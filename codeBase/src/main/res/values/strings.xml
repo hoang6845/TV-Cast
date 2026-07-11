@@ -1,0 +1,43 @@
+<resources>
+    <string name="text_downloading">Downloading</string>
+    <string name="text_connection_lost">Connection lost</string>
+    <string name="text_check_your_internet_connection_and_try_again">Check your internet connection and try again</string>
+    <string name="text_setting">Setting</string>
+    <string name="text_loading">Loading</string>
+    <string name="loading_text">Loading…</string>
+    <string name="visit_site">Visit site</string>
+    <string name="next_text">Next</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="connection_lost">Connection Lost</string>
+    <string name="connection_lost_description">Check your internet and try again</string>
+    <string name="do_you_like_quick_draw">Do you like this application?</string>
+    <string name="rate_app_description">Your rating will help us make the application even better.</string>
+    <string name="enter_your_feedback">Enter your feedback</string>
+    <string name="txt_empty" />
+    <string name="downloading">Downloading %s..</string>
+    <string name="text_ob_1">4K Quality Live Wallpaper</string>
+    <string name="text_ob_2">Variety of fun live wallpaper</string>
+    <string name="text_ob_3">Diy unique personalize</string>
+    <string name="sticker">Sticker</string>
+    <string name="request_reason_write_storage_text">We need this permission to save photo!</string>
+    <string name="request_again_text">Request again</string>
+    <string name="grant_manually_in_settings_notification">Please grant permissions in Settings manually to save your image.</string>
+    <string name="i_got_it_text">I got it</string>
+    <string name="permission_denied_text">Permission denied!</string>
+    <string name="title_cancel">Cancel</string>
+    <string name="setting_capp">SETTING</string>
+    <string name="text_movie">Movie</string>
+    <string name="text_live">Live</string>
+    <string name="text_search">Search</string>
+    <string name="text_add_profile">Add Profile</string>
+    <string name="text_xtream" translatable="false">Xtream</string>
+    <string name="text_home">Home</string>
+    <string name="text_channel">Channel</string>
+    <string name="text_settings">Settings</string>
+    <string-array name="text_first_time">
+        <item>Setting things up, please wait…</item>
+        <item>Getting your app ready…</item>
+        <item>Loading data for the first time…</item>
+    </string-array>
+</resources>

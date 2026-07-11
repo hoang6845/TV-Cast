@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/myColorSurface">
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/navHostFragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="?attr/myColorSurface"
+        android:clickable="true"
+        android:focusable="true"
+        app:defaultNavHost="true"
+        app:layout_constraintBottom_toBottomOf="@id/bar1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <include
+        android:id="@+id/layoutNoInternet"
+        layout="@layout/layout_no_internet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <include
+        android:id="@+id/loading"
+        layout="@layout/view_loading" />
+
+    <include
+        android:id="@+id/downloading"
+        layout="@layout/view_download_loading" />
+
+
+
+    <FrameLayout
+        android:id="@+id/bar1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Background lõm custom -->
+        <hoang.dqm.codebase.utils.CradleBottomBar
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:id="@+id/bottom_bar"
+            android:paddingTop="30dp"
+            android:paddingBottom="4dp">
+
+            <LinearLayout
+                android:id="@+id/tabHome"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/iconHome"
+                    android:layout_width="@dimen/_24sdp"
+                    android:layout_height="@dimen/_24sdp"
+                    android:src="@drawable/ic_home" />
+
+                <TextView
+                    android:id="@+id/labelHome"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/text_home"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Channel -->
+            <LinearLayout
+                android:id="@+id/tabChannel"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/iconChannel"
+                    android:layout_width="@dimen/_24sdp"
+                    android:layout_height="@dimen/_24sdp"
+                    android:src="@drawable/ic_channel"
+                    app:tint="@color/color_primary_045DCC" />
+
+                <TextView
+                    android:id="@+id/labelChannel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/text_channel"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Space cho FAB -->
+            <View
+                android:layout_height="@dimen/_1sdp"
+                android:layout_width="0dp"
+                android:layout_weight="1" />
+
+            <!-- Xtream -->
+            <LinearLayout
+                android:id="@+id/tabXtream"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/iconXtream"
+                    android:layout_width="@dimen/_24sdp"
+                    android:layout_height="@dimen/_24sdp"
+                    android:src="@drawable/ic_xtream" />
+
+                <TextView
+                    android:id="@+id/labelXtream"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/text_xtream"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Settings -->
+            <LinearLayout
+                android:id="@+id/tabSetting"
+                android:layout_height="wrap_content"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/iconSetting"
+                    android:layout_width="@dimen/_24sdp"
+                    android:layout_height="@dimen/_24sdp"
+                    android:src="@drawable/ic_setting" />
+
+                <TextView
+                    android:id="@+id/labelSetting"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/text_settings"
+                    android:textSize="@dimen/_10ssp" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- FAB: nổi lên trên bar, căn giữa -->
+    <ImageView
+        android:id="@+id/fab_add_1"
+        android:layout_width="@dimen/_86sdp"
+        android:layout_height="@dimen/_86sdp"
+        android:layout_marginBottom="@dimen/_20sdp"
+        android:backgroundTint="#045DCC"
+        android:src="@drawable/ic_add_bar"
+        app:layout_constraintHorizontal_bias="0.488"
+        app:elevation="8dp"
+        app:layout_constraintBottom_toBottomOf="@id/bar1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        />
+
+<!--    <androidx.coordinatorlayout.widget.CoordinatorLayout-->
+<!--        android:id="@+id/bar"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:visibility="gone"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:background="@color/transparent"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent">-->
+
+<!--        <com.google.android.material.bottomappbar.BottomAppBar-->
+<!--            android:id="@+id/bottom_app_bar"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_gravity="top"-->
+<!--            android:layout_marginTop="@dimen/_24sdp"-->
+<!--            android:background="@drawable/bottom_app_bar"-->
+<!--            android:backgroundTint="?attr/myColorSurface"-->
+<!--            app:fabAlignmentMode="center"-->
+<!--            app:fabCradleMargin="@dimen/_8sdp"-->
+<!--            app:fabCradleRoundedCornerRadius="@dimen/_24sdp"-->
+<!--            app:layout_anchorGravity="center">-->
+
+<!--            <com.google.android.material.bottomnavigation.BottomNavigationView-->
+<!--                android:id="@+id/bottom_navigation"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:layout_marginStart="@dimen/_16dp"-->
+<!--                android:layout_marginEnd="@dimen/_16dp"-->
+<!--                android:background="@color/transparent"-->
+<!--                android:paddingTop="0dp"-->
+<!--                android:paddingBottom="0dp"-->
+<!--                app:elevation="0dp"-->
+<!--                app:itemActiveIndicatorStyle="@style/NoIndicator"-->
+<!--                app:itemIconTint="@color/color_icon_tint"-->
+<!--                app:itemTextColor="@color/color_icon_tint"-->
+<!--                app:labelVisibilityMode="labeled"-->
+<!--                app:menu="@menu/bottom_app_nav" />-->
+
+<!--        </com.google.android.material.bottomappbar.BottomAppBar>-->
+
+<!--        <com.google.android.material.floatingactionbutton.FloatingActionButton-->
+<!--            android:id="@+id/fab_add"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:backgroundTint="#045DCC"-->
+<!--            android:contentDescription="add playlist"-->
+<!--            android:scaleType="fitXY"-->
+<!--            android:src="@drawable/ic_add"-->
+<!--            app:layout_anchor="@id/bottom_app_bar"-->
+<!--            app:tint="@color/white" />-->
+
+<!--    </androidx.coordinatorlayout.widget.CoordinatorLayout>-->
+
+    <FrameLayout
+        android:id="@+id/liveTvContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!--    <hoang.dqm.codebase.utils.CustomTabBar-->
+    <!--        android:id="@+id/custom_tab_bar"-->
+    <!--        android:layout_width="0dp"-->
+    <!--        android:layout_height="wrap_content"-->
+    <!--        android:clickable="true"-->
+    <!--        android:focusableInTouchMode="true"-->
+    <!--        android:visibility="visible"-->
+    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
+    <!--        app:layout_constraintEnd_toEndOf="parent"-->
+    <!--        app:layout_constraintStart_toStartOf="parent"-->
+    <!--        app:layout_constraintTop_toTopOf="parent"-->
+    <!--        app:layout_constraintVertical_bias="0.88"-->
+    <!--        app:layout_constraintWidth_percent="0.8" />-->
+</androidx.constraintlayout.widget.ConstraintLayout>

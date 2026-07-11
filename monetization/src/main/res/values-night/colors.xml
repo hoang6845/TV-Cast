@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="adsBackground">#0F0F0F</color>
+    <color name="adsBackgroundButton">#2196F3</color>
+    <color name="adsExitApp">#F44336</color>
+    <color name="adsCancel">#4CAF50</color>
+    <color name="adsHeadline">#FFFFFF</color>
+    <color name="adsHeadlineLight">#FFFFFF</color>
+    <color name="adsHeadlineDark">#1B1B1F</color>
+    <color name="adsBody">#EBEBEB</color>
+    <color name="adsBodyLight">#EBEBEB</color>
+    <color name="adsBodyDark">#343942</color>
+</resources>

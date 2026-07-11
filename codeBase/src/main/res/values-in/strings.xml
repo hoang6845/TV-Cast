@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_downloading">Mengunduh</string>
+    <string name="text_connection_lost">Koneksi terputus</string>
+    <string name="text_check_your_internet_connection_and_try_again">Periksa koneksi internet Anda dan coba lagi</string>
+    <string name="text_setting">Pengaturan</string>
+    <string name="text_loading">Memuat</string>
+    <string name="loading_text">Memuat…</string>
+    <string name="visit_site">Kunjungi situs</string>
+    <string name="next_text">Berikutnya</string>
+    <string name="yes">Ya</string>
+    <string name="text_home">Beranda</string>
+    <string name="text_channel">Saluran</string>
+    <string name="text_settings">Pengaturan</string>
+    <string name="no">Tidak</string>
+    <string name="connection_lost">Koneksi terputus</string>
+    <string name="connection_lost_description">Periksa internet Anda dan coba lagi</string>
+    <string name="do_you_like_quick_draw">Apakah Anda menyukai aplikasi ini?</string>
+    <string name="rate_app_description">Penilaian Anda akan membantu kami meningkatkan aplikasi.</string>
+    <string name="enter_your_feedback">Masukkan masukan Anda</string>
+    <string name="txt_empty" />
+    <string name="downloading">Mengunduh %s..</string>
+    <string name="text_ob_1">Wallpaper hidup kualitas 4K</string>
+    <string name="text_ob_2">Beragam wallpaper hidup yang menarik</string>
+    <string name="text_ob_3">Personalisasi unik buatan sendiri</string>
+    <string name="sticker">Stiker</string>
+    <string name="request_reason_write_storage_text">Kami memerlukan izin ini untuk menyimpan foto!</string>
+    <string name="request_again_text">Minta lagi</string>
+    <string name="grant_manually_in_settings_notification">Silakan berikan izin secara manual di Pengaturan untuk menyimpan gambar.</string>
+    <string name="i_got_it_text">Mengerti</string>
+    <string name="permission_denied_text">Izin ditolak!</string>
+    <string name="title_cancel">Batal</string>
+    <string name="setting_capp">PENGATURAN</string>
+    <string name="text_movie">Film</string>
+    <string name="text_live">Langsung</string>
+    <string name="text_search">Cari</string>
+    <string name="text_add_profile">Tambah profil</string>
+</resources>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:visibility="gone"
+    tools:visibility="visible">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="@dimen/_24sdp"
+        android:background="@drawable/bg_loading"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="@dimen/_14sdp">
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            android:max="100"
+            app:indicatorColor="@color/white"
+            app:indicatorSize="@dimen/_30sdp"
+            app:trackColor="@color/gray_4a"
+            app:trackCornerRadius="@dimen/_16dp"
+            app:trackThickness="@dimen/_3dp"
+            tools:progress="10" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_6sdp"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:text="@string/text_downloading"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_11sdp" />
+    </LinearLayout>
+</FrameLayout>

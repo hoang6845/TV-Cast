@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_downloading">Wird heruntergeladen</string>
+    <string name="text_connection_lost">Verbindung verloren</string>
+    <string name="text_check_your_internet_connection_and_try_again">Überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut</string>
+    <string name="text_setting">Einstellungen</string>
+    <string name="text_loading">Wird geladen</string>
+    <string name="loading_text">Wird geladen…</string>
+    <string name="visit_site">Website besuchen</string>
+    <string name="next_text">Weiter</string>
+    <string name="yes">Ja</string>
+    <string name="no">Nein</string>
+    <string name="connection_lost">Verbindung verloren</string>
+    <string name="connection_lost_description">Überprüfen Sie Ihr Internet und versuchen Sie es erneut</string>
+    <string name="do_you_like_quick_draw">Gefällt Ihnen diese Anwendung?</string>
+    <string name="rate_app_description">Ihre Bewertung hilft uns, die Anwendung zu verbessern.</string>
+    <string name="enter_your_feedback">Geben Sie Ihr Feedback ein</string>
+    <string name="txt_empty" />
+    <string name="downloading">Wird heruntergeladen %s..</string>
+    <string name="text_ob_1">4K Live-Hintergrundbilder</string>
+    <string name="text_ob_2">Vielzahl an lustigen Live-Hintergrundbildern</string>
+    <string name="text_ob_3">Einzigartige Personalisierung selbst erstellen</string>
+    <string name="sticker">Sticker</string>
+    <string name="request_reason_write_storage_text">Wir benötigen diese Berechtigung, um Fotos zu speichern!</string>
+    <string name="request_again_text">Erneut anfordern</string>
+    <string name="grant_manually_in_settings_notification">Bitte erlauben Sie die Berechtigung manuell in den Einstellungen, um Bilder zu speichern.</string>
+    <string name="i_got_it_text">Verstanden</string>
+    <string name="permission_denied_text">Berechtigung verweigert!</string>
+    <string name="title_cancel">Abbrechen</string>
+    <string name="setting_capp">EINSTELLUNGEN</string>
+    <string name="text_movie">Film</string>
+    <string name="text_live">Live</string>
+    <string name="text_search">Suchen</string>
+    <string name="text_add_profile">Profil hinzufügen</string>
+    <string name="text_home">Startseite</string>
+    <string name="text_channel">Kanal</string>
+    <string name="text_settings">Einstellungen</string>
+
+</resources>

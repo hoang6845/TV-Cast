@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="adsBackground">#DADADA</color>
+    <color name="adsBackgroundButton">#2196F3</color>
+    <color name="adsExitApp">#F44336</color>
+    <color name="adsCancel">#4CAF50</color>
+    <color name="adsHeadline">#1B1B1F</color>
+    <color name="adsHeadlineLight">#FFFFFF</color>
+    <color name="adsHeadlineDark">#1B1B1F</color>
+    <color name="adsBody">#343942</color>
+    <color name="adsBodyLight">#EBEBEB</color>
+    <color name="adsBodyDark">#343942</color>
+    <color name="viewNativeAdPreloadBackgroundColor">#CED4DA</color>
+    <color name="viewNativeAdPreloadTextColor">#212529</color>
+    <color name="viewNativeAdMaskColor">#E7E2E2</color>
+    <color name="viewNativeAdShimmerColor">#E7E2E2</color>
+</resources>

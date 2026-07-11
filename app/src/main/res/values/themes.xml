@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Base.Theme" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="materialSwitchStyle">@style/MyMaterialSwitch</item>
+
+        <item name="colorPrimary">@color/color_primary_045DCC</item>
+        <item name="colorSecondary">@color/color_primary_045DCC</item>
+        <item name="colorPrimaryVariant">@color/color_primary_037EB9</item>
+        <item name="colorOnPrimary">@color/color_on_primary</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/black</item>
+
+        <!-- Custom attrs -->
+        <item name="myColorPrimary">@color/color_primary_045DCC</item>
+        <item name="myColorPrimaryVariant">@color/color_primary_037EB9</item>
+        <item name="myColorOnPrimary">@color/color_on_primary</item>
+        <item name="myColorSecondary">@color/color_primary_045DCC</item>
+        <item name="myColorSurface">#18202B</item>
+        <item name="myColorOnSurface">@color/white</item>
+        <item name="textSpecial">#1F2937</item>
+        <item name="textDescriptionSpecial">#4A5565</item>
+        <item name="textHint">#697E93</item>
+        <item name="textTitle">@color/white</item>
+        <item name="iconColor">#889DB8</item>
+        <item name="textDescriptionMovie">#58575E</item>
+        <item name="colorBgBox">#18202B</item>
+        <item name="colorBgBoxDescription">#F2F4F6</item>
+
+    </style>
+
+    <style name="FullScreenBottomSheet" parent="Theme.MaterialComponents.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/FullWidthBottomSheetStyle</item>
+        <item name="materialSwitchStyle">@style/MyMaterialSwitch</item>
+        <item name="colorSecondary">@color/color_primary_045DCC</item>
+
+        <item name="colorPrimary">@color/color_primary_045DCC</item>
+        <item name="colorPrimaryVariant">@color/color_primary_037EB9</item>
+        <item name="colorOnPrimary">@color/color_on_primary</item>
+
+        <item name="myColorPrimary">@color/color_primary_045DCC</item>
+        <item name="myColorPrimaryVariant">@color/color_primary_037EB9</item>
+        <item name="myColorOnPrimary">@color/color_on_primary</item>
+        <item name="myColorSecondary">@color/color_primary_045DCC</item>
+        <item name="myColorSurface">#E9F6FF</item>
+        <item name="myColorOnSurface">@color/black</item>
+        <item name="textSpecial">#1F2937</item>
+        <item name="textDescriptionSpecial">#4A5565</item>
+        <item name="textHint">#7E838F</item>
+    </style>
+    <style name="BottomSheetCornerRadius">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">@dimen/_16sdp</item>
+        <item name="cornerSizeTopRight">@dimen/_16sdp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <style name="FullWidthBottomSheetStyle" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="android:maxWidth">9999dp</item>
+        <item name="shapeAppearanceOverlay">@style/BottomSheetCornerRadius</item>
+        <item name="backgroundTint">#E9F6FF</item>
+    </style>
+
+    <style name="Theme.TVCast" parent="Base.Theme">
+        <item name="bottomSheetDialogTheme">@style/FullScreenBottomSheet</item>
+    </style>
+</resources>

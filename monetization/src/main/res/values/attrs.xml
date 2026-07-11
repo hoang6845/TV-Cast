@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ViewNativeAd">
+        <attr name="native_ad_layout" format="reference" />
+        <attr name="background_color" format="color" />
+        <attr name="mask_color" format="color" />
+        <attr name="shimmer_color" format="color" />
+    </declare-styleable>
+</resources>

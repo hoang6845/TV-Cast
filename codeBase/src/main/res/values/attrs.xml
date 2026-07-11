@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="myColorSurface" format="color"/>
+    <attr name="myColorOnSurface" format="color"/>
+
+    <declare-styleable name="StrokedTextView">
+        <attr name="textStrokeColor" format="color"/>
+        <attr name="textStrokeWidth" format="float"/>
+        <attr name="textHasShadow" format="boolean"/>
+    </declare-styleable>
+
+    <declare-styleable name="GradientTextView">
+        <attr name="gradientStartColor" format="color" />
+        <attr name="gradientCenterColor" format="color" />
+        <attr name="gradientEndColor" format="color" />
+        <attr name="gradientStrokeWidth" format="float" />
+        <attr name="gradientHasGlow" format="boolean" />
+        <attr name="gradientGlowColor" format="color" />
+        <attr name="gradientGlowAlpha" format="float" />
+    </declare-styleable>
+</resources>

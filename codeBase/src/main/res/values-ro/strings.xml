@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_downloading">Se descarcă</string>
+    <string name="text_connection_lost">Conexiune pierdută</string>
+    <string name="text_check_your_internet_connection_and_try_again">Verificați conexiunea la internet și încercați din nou</string>
+    <string name="text_setting">Setări</string>
+    <string name="text_loading">Se încarcă</string>
+    <string name="loading_text">Se încarcă…</string>
+    <string name="visit_site">Vizitați site-ul</string>
+    <string name="next_text">Următorul</string>
+    <string name="yes">Da</string>
+    <string name="text_home">Acasă</string>
+    <string name="text_channel">Canal</string>
+    <string name="text_settings">Setări</string>
+    <string name="no">Nu</string>
+    <string name="connection_lost">Conexiune pierdută</string>
+    <string name="connection_lost_description">Verificați internetul și încercați din nou</string>
+    <string name="do_you_like_quick_draw">Vă place această aplicație?</string>
+    <string name="rate_app_description">Evaluarea dvs. ne va ajuta să îmbunătățim aplicația.</string>
+    <string name="enter_your_feedback">Introduceți feedback-ul dvs.</string>
+    <string name="txt_empty" />
+    <string name="downloading">Se descarcă %s..</string>
+    <string name="text_ob_1">Wallpaper live de calitate 4K</string>
+    <string name="text_ob_2">Varietate de wallpaper-uri live distractive</string>
+    <string name="text_ob_3">Personalizare unică DIY</string>
+    <string name="sticker">Sticker</string>
+    <string name="request_reason_write_storage_text">Avem nevoie de această permisiune pentru a salva fotografii!</string>
+    <string name="request_again_text">Solicită din nou</string>
+    <string name="grant_manually_in_settings_notification">Acordați manual permisiunea în Setări pentru a salva imaginea.</string>
+    <string name="i_got_it_text">Am înțeles</string>
+    <string name="permission_denied_text">Permisiune refuzată!</string>
+    <string name="title_cancel">Anulează</string>
+    <string name="setting_capp">SETĂRI</string>
+    <string name="text_movie">Film</string>
+    <string name="text_live">Live</string>
+    <string name="text_search">Căutare</string>
+    <string name="text_add_profile">Adaugă profil</string>
+</resources>

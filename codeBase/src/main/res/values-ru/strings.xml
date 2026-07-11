@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_downloading">Загрузка</string>
+    <string name="text_connection_lost">Соединение потеряно</string>
+    <string name="text_check_your_internet_connection_and_try_again">Проверьте подключение к интернету и попробуйте снова</string>
+    <string name="text_setting">Настройки</string>
+    <string name="text_loading">Загрузка</string>
+    <string name="loading_text">Загрузка…</string>
+    <string name="visit_site">Посетить сайт</string>
+    <string name="next_text">Далее</string>
+    <string name="yes">Да</string>
+    <string name="no">Нет</string>
+    <string name="connection_lost">Соединение потеряно</string>
+    <string name="connection_lost_description">Проверьте интернет и попробуйте снова</string>
+    <string name="do_you_like_quick_draw">Вам нравится это приложение?</string>
+    <string name="rate_app_description">Ваш отзыв поможет нам улучшить приложение.</string>
+    <string name="enter_your_feedback">Введите ваш отзыв</string>
+    <string name="txt_empty" />
+    <string name="downloading">Загрузка %s..</string>
+    <string name="text_ob_1">Живые обои в 4K качестве</string>
+    <string name="text_ob_2">Разнообразие интересных живых обоев</string>
+    <string name="text_ob_3">Создавайте уникальную персонализацию</string>
+    <string name="sticker">Стикер</string>
+    <string name="request_reason_write_storage_text">Нужно разрешение для сохранения фото!</string>
+    <string name="request_again_text">Запросить снова</string>
+    <string name="grant_manually_in_settings_notification">Пожалуйста, предоставьте разрешение вручную в настройках для сохранения изображения.</string>
+    <string name="i_got_it_text">Понятно</string>
+    <string name="permission_denied_text">Доступ запрещен!</string>
+    <string name="title_cancel">Отмена</string>
+    <string name="setting_capp">НАСТРОЙКИ</string>
+    <string name="text_movie">Фильм</string>
+    <string name="text_live">Живое</string>
+    <string name="text_search">Поиск</string>
+    <string name="text_add_profile">Добавить профиль</string>
+
+    <string name="text_home">Главная</string>
+    <string name="text_channel">Канал</string>
+    <string name="text_settings">Настройки</string>
+</resources>

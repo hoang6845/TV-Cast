@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    >
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent=".1" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/imvLogo"
+        android:layout_width="@dimen/_120sdp"
+        android:layout_height="0dp"
+        app:layout_constraintDimensionRatio="175:163"
+        android:scaleType="centerCrop"
+        android:src="@color/Robin_Egg_Blue"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/guideline" />
+
+    <hoang.dqm.codebase.ui.components.widgets.StrokedTextView
+        android:id="@+id/imvLogoText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="WORLD FOOTBALL CUP 2026"
+        android:fontFamily="@font/inter"
+        android:textSize="@dimen/_16ssp"
+        android:gravity="center"
+        app:textStrokeColor="#0088CA"
+        app:textStrokeWidth="3"
+        android:layout_marginTop="@dimen/_32sdp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imvLogo"
+        app:layout_constraintWidth_percent=".8" />
+
+    <TextView
+        android:id="@+id/tvPercentLoading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/inter"
+        android:textColor="@color/black"
+        android:textSize="@dimen/_18sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/tvLoading"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="80%"
+        tools:visibility="gone" />
+
+
+    <TextView
+        android:id="@+id/tvLoading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:textAllCaps="false"
+        android:textColor="#7E838F"
+        android:textSize="@dimen/_14ssp"
+        app:layout_constraintBottom_toTopOf="@id/tv_wait"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="@string/loading_text" />
+
+    <TextView
+        android:id="@+id/tv_wait"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/_36sdp"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:textColor="#7E838F"
+        android:textSize="@dimen/_14ssp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:text="@string/text_please_wait_a_moment" />
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/progressBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_16sdp"
+        android:background="@drawable/bg_progress_loading"
+        android:indeterminate="true"
+        android:visibility="gone"
+        app:indicatorColor="@color/colorRed500"
+        app:layout_constraintTop_toBottomOf="@id/imvLogo"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_percent=".7"
+        tools:max="100"
+        tools:progress="50"
+        app:trackColor="#D1D5DB"
+        app:trackCornerRadius="@dimen/_40sdp"
+        app:trackThickness="@dimen/_12dp" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

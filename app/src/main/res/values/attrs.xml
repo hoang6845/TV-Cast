@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="myColorPrimary" format="color"/>
+    <attr name="myColorPrimaryVariant" format="color"/>
+    <attr name="myColorOnPrimary" format="color"/>
+    <attr name="myColorSecondary" format="color"/>
+    <attr name="myColorSurface" format="color"/>
+    <attr name="myColorOnSurface" format="color"/>
+    <attr name="textSpecial" format="color"/>
+    <attr name="textDescriptionSpecial" format="color"/>
+    <attr name="textHint" format="color"/>
+    <attr name="textTitle" format="color"/>
+    <attr name="iconColor" format="color"/>
+    <attr name="textDescriptionMovie" format="color"/>
+    <attr name="colorBgBox" format="color"/>
+    <attr name="colorBgBoxDescription" format="color"/>
+    <declare-styleable name="PasscodeButton">
+        <attr name="isBackspace" format="boolean" />
+    </declare-styleable>
+</resources>

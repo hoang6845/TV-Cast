@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ad">Ad</string>
+    <string name="open">Open</string>
+    <string name="welcome_back_title">Welcome Back</string>
+    <string name="loading_ads_msg">Loading Ads...</string>
+    <string name="loading_app_open_ads_msg">Loading App Open Ads...</string>
+</resources>

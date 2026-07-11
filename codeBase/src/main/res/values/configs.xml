@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="billing_sub_week" translatable="false">weekly_trial_premium</string>
+    <string name="billing_sub_year" translatable="false">yearly_premium</string>
+
+<!--    <string name="ads_app_id" translatable="false">ca-app-pub-5698123608094343~8244678878</string>-->
+<!--    <string name="ads_inter_splash" translatable="false">ca-app-pub-5698123608094343/2022317239</string>-->
+<!--    <string name="ads_interstitial_id" translatable="false">ca-app-pub-5698123608094343/2079981386</string>-->
+<!--    <string name="full_back" translatable="false">ca-app-pub-5698123608094343/3201491361</string>-->
+<!--    <string name="ads_open_id" translatable="false">ca-app-pub-5698123608094343/6949164685</string>-->
+<!--    <string name="ads_native_language_id" translatable="false">ca-app-pub-5698123608094343/9326092185</string>-->
+<!--    <string name="ads_native_language_click" translatable="false">ca-app-pub-5698123608094343/7875233549</string>-->
+<!--    <string name="ads_native_intro1" translatable="false">ca-app-pub-5698123608094343/5249070201</string>-->
+<!--    <string name="ads_native_intro2" translatable="false">ca-app-pub-5698123608094343/8070674669</string>-->
+<!--    <string name="ads_native_intro_full_id" translatable="false">ca-app-pub-5698123608094343/2622906869</string>-->
+<!--    <string name="ads_native_home" translatable="false">ca-app-pub-5698123608094343/6757592995</string>-->
+<!--    <string name="ads_collapse_channel" translatable="false">ca-app-pub-5698123608094343/6508357158</string>-->
+<!--    <string name="reward" translatable="false">ca-app-pub-5698123608094343/7629867133</string>-->
+
+    <!--    <string name="ads_native_id" translatable="false">ca-app-pub-5698123608094343/2972851807</string>-->
+    <!--    <string name="ads_native_intro_id" translatable="false">ca-app-pub-5698123608094343/1659770132</string>-->
+    <!--    <string name="ads_native_intro_full_id" translatable="false">ca-app-pub-5698123608094343/3915124736</string>-->
+    <!--    <string name="ads_native_language_id" translatable="false">ca-app-pub-5698123608094343/1288961396</string>-->
+    <!--    <string name="ads_banner_collapsible_water_id" translatable="false">ca-app-pub-5698123608094343/2174667653</string>-->
+    <!--    <string name="ads_banner_collapsible_vibrate_id" translatable="false">ca-app-pub-5698123608094343/9445916920</string>-->
+    <!--    <string name="ads_banner_collapsible_manual_id" translatable="false">ca-app-pub-5698123608094343/8132835257</string>-->
+
+    <!--for debug-->
+    <string name="ads_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="ads_inter_splash" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+    <string name="ads_interstitial_id" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+    <string name="full_back" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+    <string name="ads_open_id" translatable="false">ca-app-pub-3940256099942544/9257395921</string>
+    <string name="ads_native_language_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
+    <string name="ads_native_language_click" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
+    <string name="ads_native_intro1" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
+    <string name="ads_native_intro2" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
+    <string name="ads_native_intro_full_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
+    <string name="ads_native_home" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
+    <string name="ads_collapse_channel" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
+    <string name="reward" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
+
+    <!--    <string name="ads_native_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
+    <!--    <string name="ads_native_intro_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
+    <!--    <string name="ads_native_intro_full_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
+    <!--    <string name="ads_banner_collapsible_water_id" translatable="false">ca-app-pub-3940256099942544/9214589741</string>-->
+    <!--    <string name="ads_banner_collapsible_vibrate_id" translatable="false">ca-app-pub-3940256099942544/9214589741</string>-->
+    <!--    <string name="ads_banner_collapsible_manual_id" translatable="false">ca-app-pub-3940256099942544/9214589741</string>-->
+    <!--    <string name="ads_native_video" translatable="false">ca-app-pub-3940256099942544/1044960115</string>-->
+
+</resources>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/home"
+        app:srcCompat="@drawable/ic_home"
+        android:title="Home"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_home" />
+
+    <item
+        android:id="@+id/channel"
+        app:srcCompat="@drawable/ic_channel"
+        app:showAsAction="always"
+        android:title="Channel"
+        android:icon="@drawable/ic_channel" />
+    <item
+        android:title=""
+        />
+    <item
+        android:id="@+id/xtream"
+        app:showAsAction="always"
+        app:srcCompat="@drawable/ic_xtream"
+        android:title="Xtream"
+        android:icon="@drawable/ic_xtream" />
+    <item
+        android:id="@+id/setting"
+        app:srcCompat="@drawable/ic_setting"
+        app:showAsAction="always"
+        android:title="Settings"
+        android:icon="@drawable/ic_setting" />
+</menu>

@@ -1,0 +1,39 @@
+<resources>
+    <string name="app_name">TV Cast</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="text_please_wait_a_moment">Please wait a moment</string>
+    <string name="text_setting_up_your_app_experience_please_wait_a_moment">Setting up your app experience, please wait a moment...</string>
+    <string name="text_continue">Continue</string>
+    <string name="text_get_started">Get Started</string>
+    <string name="text_next">Next</string>
+    <string name="text_connect_tv">Connect TV</string>
+    <string name="text_mirror_screen">Mirror Screen</string>
+    <string name="text_display_the_content_from_phone_to_tv">Display the content from Phone to TV</string>
+    <string name="text_cast_media">Cast Media</string>
+    <string name="text_view_favorite_photos_and_videos_on_tv">View favorite photos and videos on TV</string>
+    <string name="text_camera_cast">Camera Cast</string>
+    <string name="text_mirror_your_camera_to_your_tv">Mirror your Camera to your TV</string>
+    <string name="text_try_tv_remote">Try TV Remote</string>
+    <string name="text_use_your_phone_as_a_tv_remote">Use your phone as a TV remote</string>
+    <string name="text_cast_youtube">Cast Youtube</string>
+    <string name="text_watch_youtube_videos_on_your_tv">Watch Youtube videos on your TV</string>
+    <string name="text_cast_web">Cast Web</string>
+    <string name="text_browse_and_mirror_videos_from_websites">Browse and mirror videos from websites</string>
+    <string name="text_movie_advisor">Movie Advisor</string>
+    <string name="text_find_movies_or_series_to_watch">Find movies or series to watch</string>
+    <string name="text_watch_iptv">Watch IPTV</string>
+    <string name="text_1000_channels_in_high_quality">1000+ channels in high quality</string>
+    <string name="text_back">Back</string>
+    <string name="text_forward">Forward</string>
+    <string name="text_open_in_youtube">Open in YouTube</string>
+    <string name="text_open_youtube_video">Open a YouTube video</string>
+    <string name="text_cast_with_youtube">Cast with YouTube</string>
+    <string name="text_opening_youtube">Opening YouTube...</string>
+    <string name="text_select_youtube_video_first">Please open a YouTube video first</string>
+    <string name="text_youtube_required">YouTube is required</string>
+    <string name="text_youtube_required_message">YouTube is required to cast this video.</string>
+    <string name="text_install_youtube">Install YouTube</string>
+    <string name="text_web_page_not_supported">This link cannot be opened</string>
+    <string name="text_could_not_open_youtube">Could not open YouTube</string>
+</resources>

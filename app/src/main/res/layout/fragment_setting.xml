@@ -1,0 +1,550 @@
+<!--<?xml version="1.0" encoding="utf-8"?>-->
+<!--<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"-->
+<!--    xmlns:tools="http://schemas.android.com/tools"-->
+<!--    android:layout_width="match_parent"-->
+<!--    android:layout_height="match_parent"-->
+<!--    android:background="?attr/myColorSurface"-->
+<!--    xmlns:app="http://schemas.android.com/apk/res-auto"-->
+<!--    tools:context=".ui.setting.SettingFragment">-->
+
+<!--    <androidx.constraintlayout.widget.ConstraintLayout-->
+<!--        android:id="@+id/clToolbar"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        app:layout_constraintTop_toTopOf="parent">-->
+
+<!--        <ImageView-->
+<!--            android:id="@+id/imvBack"-->
+<!--            android:layout_width="@dimen/_40sdp"-->
+<!--            android:layout_height="@dimen/_40sdp"-->
+<!--            android:layout_centerVertical="true"-->
+<!--            android:foreground="?actionBarItemBackground"-->
+<!--            android:padding="@dimen/_6sdp"-->
+<!--            android:src="@drawable/ic_back"-->
+<!--            android:visibility="invisible"-->
+<!--            app:layout_constraintStart_toStartOf="parent"-->
+<!--            app:layout_constraintTop_toTopOf="parent" />-->
+
+<!--        <androidx.appcompat.widget.AppCompatTextView-->
+<!--            android:id="@+id/tvTitle"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_centerVertical="true"-->
+<!--            app:fontFamily="@font/inter"-->
+<!--            app:layout_constraintEnd_toEndOf="parent"-->
+<!--            android:paddingHorizontal="@dimen/_16dp"-->
+<!--            android:text="@string/text_setting"-->
+<!--            android:textSize="@dimen/_16ssp"-->
+<!--            android:fontFamily="@font/inter"-->
+<!--            android:textColor="?attr/textTitle"-->
+<!--            app:layout_constraintBottom_toBottomOf="@id/imvBack"-->
+<!--            app:layout_constraintStart_toStartOf="parent"-->
+<!--            app:layout_constraintTop_toTopOf="@id/imvBack" />-->
+
+<!--        <ImageView-->
+<!--            android:id="@+id/btn_premium"-->
+<!--            android:layout_width="@dimen/_28sdp"-->
+<!--            android:layout_height="@dimen/_28sdp"-->
+<!--            android:layout_marginEnd="@dimen/_12sdp"-->
+<!--            android:src="@drawable/ic_premium"-->
+<!--            app:layout_constraintBottom_toBottomOf="parent"-->
+<!--            app:layout_constraintEnd_toEndOf="parent"-->
+<!--            app:layout_constraintTop_toTopOf="parent" />-->
+
+<!--        <ImageView-->
+<!--            android:layout_width="@dimen/_28sdp"-->
+<!--            android:layout_height="@dimen/_28sdp"-->
+<!--            android:layout_marginEnd="@dimen/_6sdp"-->
+<!--            android:src="@drawable/ic_help"-->
+<!--            android:id="@+id/guide_help"-->
+<!--            app:tint="?attr/myColorOnSurface"-->
+<!--            app:layout_constraintBottom_toBottomOf="parent"-->
+<!--            app:layout_constraintEnd_toStartOf="@id/btn_premium"-->
+<!--            app:layout_constraintTop_toTopOf="parent" />-->
+<!--    </androidx.constraintlayout.widget.ConstraintLayout>-->
+
+<!--    <androidx.core.widget.NestedScrollView-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="0dp"-->
+<!--        android:paddingBottom="@dimen/_120sdp"-->
+<!--        android:clipToPadding="false"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"-->
+<!--        app:layout_constraintTop_toBottomOf="@id/clToolbar">-->
+
+<!--        <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="match_parent"-->
+<!--            android:layout_marginTop="@dimen/_20sdp"-->
+<!--            android:orientation="vertical"-->
+<!--            android:paddingHorizontal="@dimen/_10sdp">-->
+
+<!--            <androidx.constraintlayout.widget.ConstraintLayout-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:visibility="gone"-->
+<!--                android:background="@drawable/bg_round_24">-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llMusic"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:orientation="horizontal"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toTopOf="parent">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_music" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_music"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:id="@+id/switchMusic"-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:src="@drawable/ic_switch_off" />-->
+
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llSoundFx"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/llMusic">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_sound_fx" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_sound_fx"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:id="@+id/switch_sound_fx"-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:src="@drawable/ic_switch_off" />-->
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llVibrate"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/llSoundFx">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/vibrate" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_vibrate"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:id="@+id/switchVibrate"-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:src="@drawable/ic_switch_off" />-->
+
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+<!--            </androidx.constraintlayout.widget.ConstraintLayout>-->
+
+<!--            <androidx.constraintlayout.widget.ConstraintLayout-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_marginTop="@dimen/_16sdp"-->
+<!--                >-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llManageSubscription"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toTopOf="parent">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_subscription" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_manage_subscription"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_arrow_right"-->
+<!--                        />-->
+
+
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llLanguage"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/llDarkMode">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_translate" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_language"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_arrow_right"-->
+<!--                        />-->
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llImport"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/llManageSubscription">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_url" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_how_to_import_a_playlist"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_arrow_right"-->
+<!--                        />-->
+
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llDarkMode"-->
+<!--                    android:visibility="gone"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/llImport">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_darkmode" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_dark_mode"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <com.google.android.material.materialswitch.MaterialSwitch-->
+<!--                        android:id="@+id/themeSwitch"-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        app:layout_constraintBottom_toBottomOf="@id/title_passcode"-->
+<!--                        app:layout_constraintEnd_toEndOf="parent"-->
+<!--                        app:layout_constraintHorizontal_bias="0.9"-->
+<!--                        app:layout_constraintStart_toEndOf="@id/title_passcode"-->
+<!--                        app:layout_constraintTop_toTopOf="@id/title_passcode"-->
+<!--                        app:showText="false"-->
+<!--                        app:thumbIcon="@drawable/thumb_toggle"-->
+<!--                        app:thumbIconTint="@color/track_thumb_color"-->
+<!--                        app:thumbTint="@color/track_thumb_color"-->
+<!--                        app:trackTint="@color/track_switch_color"-->
+<!--                        tools:checked="false" />-->
+
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llRate"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/llFeedback">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_rate" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_review_app"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_arrow_right"-->
+<!--                        />-->
+
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llFeedback"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/llLanguage">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_feedback" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_email_us"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_arrow_right"-->
+<!--                        />-->
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llShare"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/llRate">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_share_sg" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_share_this_app"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_arrow_right"-->
+<!--                        />-->
+
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llPolicy"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/ll_cmp_setting">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_policy" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_policy"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_arrow_right"-->
+<!--                        />-->
+
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/llTerm"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/llPolicy">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_temp" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_term_conditions"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_arrow_right"-->
+<!--                        />-->
+
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+<!--                <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                    android:id="@+id/ll_cmp_setting"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:foreground="?selectableItemBackground"-->
+<!--                    android:gravity="center_vertical"-->
+<!--                    android:padding="@dimen/_12sdp"-->
+<!--                    app:layout_constraintTop_toBottomOf="@id/llShare">-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        app:tint="?attr/myColorOnSurface"-->
+<!--                        android:src="@drawable/ic_license" />-->
+
+<!--                    <androidx.appcompat.widget.AppCompatTextView-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:fontFamily="@font/inter"-->
+<!--                        android:paddingHorizontal="@dimen/_12sdp"-->
+<!--                        android:text="@string/text_license_agreement"-->
+<!--                        android:textColor="?attr/myColorOnSurface"-->
+<!--                        android:textSize="@dimen/_14ssp" />-->
+
+<!--                    <ImageView-->
+<!--                        android:layout_width="@dimen/_20sdp"-->
+<!--                        android:layout_height="@dimen/_20sdp"-->
+<!--                        android:src="@drawable/ic_arrow_right"-->
+<!--                        app:tint="?attr/myColorOnSurface"/>-->
+<!--                </androidx.appcompat.widget.LinearLayoutCompat>-->
+<!--            </androidx.constraintlayout.widget.ConstraintLayout>-->
+
+
+<!--        </androidx.appcompat.widget.LinearLayoutCompat>-->
+<!--    </androidx.core.widget.NestedScrollView>-->
+
+<!--</androidx.constraintlayout.widget.ConstraintLayout>-->
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />

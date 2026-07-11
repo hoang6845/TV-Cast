@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_downloading">Téléchargement</string>
+    <string name="text_connection_lost">Connexion perdue</string>
+    <string name="text_check_your_internet_connection_and_try_again">Vérifiez votre connexion Internet et réessayez</string>
+    <string name="text_setting">Paramètres</string>
+    <string name="text_loading">Chargement</string>
+    <string name="loading_text">Chargement…</string>
+    <string name="visit_site">Visiter le site</string>
+    <string name="next_text">Suivant</string>
+    <string name="yes">Oui</string>
+    <string name="text_home">Accueil</string>
+    <string name="text_channel">Chaîne</string>
+    <string name="text_settings">Paramètres</string>
+    <string name="no">Non</string>
+    <string name="connection_lost">Connexion perdue</string>
+    <string name="connection_lost_description">Vérifiez Internet et réessayez</string>
+    <string name="do_you_like_quick_draw">Aimez-vous cette application ?</string>
+    <string name="rate_app_description">Votre évaluation nous aidera à améliorer l\'application.</string>
+    <string name="enter_your_feedback">Entrez votre avis</string>
+    <string name="txt_empty" />
+    <string name="downloading">Téléchargement %s..</string>
+    <string name="text_ob_1">Fond d\'écran animé 4K</string>
+    <string name="text_ob_2">Variété de fonds d\'écran animés amusants</string>
+    <string name="text_ob_3">Personnalisation unique DIY</string>
+    <string name="sticker">Autocollant</string>
+    <string name="request_reason_write_storage_text">Nous avons besoin de cette autorisation pour enregistrer des photos !</string>
+    <string name="request_again_text">Demander à nouveau</string>
+    <string name="grant_manually_in_settings_notification">Veuillez accorder l\'autorisation manuellement dans les paramètres pour enregistrer l\'image.</string>
+    <string name="i_got_it_text">J\'ai compris</string>
+    <string name="permission_denied_text">Autorisation refusée !</string>
+    <string name="title_cancel">Annuler</string>
+    <string name="setting_capp">PARAMÈTRES</string>
+    <string name="text_movie">Film</string>
+    <string name="text_live">En direct</string>
+    <string name="text_search">Rechercher</string>
+    <string name="text_add_profile">Ajouter un profil</string>
+</resources>

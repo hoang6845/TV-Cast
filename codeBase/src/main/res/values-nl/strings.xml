@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_downloading">Downloaden</string>
+    <string name="text_connection_lost">Verbinding verbroken</string>
+    <string name="text_check_your_internet_connection_and_try_again">Controleer je internetverbinding en probeer het opnieuw</string>
+    <string name="text_setting">Instellingen</string>
+    <string name="text_loading">Laden</string>
+    <string name="loading_text">Laden…</string>
+    <string name="visit_site">Bezoek site</string>
+    <string name="next_text">Volgende</string>
+    <string name="yes">Ja</string>
+    <string name="no">Nee</string>
+    <string name="text_home">Home</string>
+    <string name="text_channel">Kanaal</string>
+    <string name="text_settings">Instellingen</string>
+    <string name="connection_lost">Verbinding verbroken</string>
+    <string name="connection_lost_description">Controleer internet en probeer opnieuw</string>
+    <string name="do_you_like_quick_draw">Vind je deze app leuk?</string>
+    <string name="rate_app_description">Je beoordeling helpt ons de app te verbeteren.</string>
+    <string name="enter_your_feedback">Voer je feedback in</string>
+    <string name="txt_empty" />
+    <string name="downloading">Downloaden %s..</string>
+    <string name="text_ob_1">4K live wallpaper</string>
+    <string name="text_ob_2">Verscheidenheid aan leuke live wallpapers</string>
+    <string name="text_ob_3">Unieke DIY-personalisatie</string>
+    <string name="sticker">Sticker</string>
+    <string name="request_reason_write_storage_text">We hebben deze toestemming nodig om foto\'s op te slaan!</string>
+    <string name="request_again_text">Opnieuw aanvragen</string>
+    <string name="grant_manually_in_settings_notification">Geef handmatig toestemming in Instellingen om afbeeldingen op te slaan.</string>
+    <string name="i_got_it_text">Begrepen</string>
+    <string name="permission_denied_text">Toestemming geweigerd!</string>
+    <string name="title_cancel">Annuleren</string>
+    <string name="setting_capp">INSTELLINGEN</string>
+    <string name="text_movie">Film</string>
+    <string name="text_live">Live</string>
+    <string name="text_search">Zoeken</string>
+    <string name="text_add_profile">Profiel toevoegen</string>
+</resources>

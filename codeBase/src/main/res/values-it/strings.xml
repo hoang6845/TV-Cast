@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_downloading">Download in corso</string>
+    <string name="text_connection_lost">Connessione persa</string>
+    <string name="text_check_your_internet_connection_and_try_again">Controlla la connessione internet e riprova</string>
+    <string name="text_setting">Impostazioni</string>
+    <string name="text_loading">Caricamento</string>
+    <string name="loading_text">Caricamento…</string>
+    <string name="visit_site">Visita il sito</string>
+    <string name="next_text">Avanti</string>
+    <string name="yes">Sì</string>
+    <string name="no">No</string>
+    <string name="text_home">Home</string>
+    <string name="text_channel">Canale</string>
+    <string name="text_settings">Impostazioni</string>
+    <string name="connection_lost">Connessione persa</string>
+    <string name="connection_lost_description">Controlla internet e riprova</string>
+    <string name="do_you_like_quick_draw">Ti piace questa applicazione?</string>
+    <string name="rate_app_description">La tua valutazione ci aiuterà a migliorare l\'app.</string>
+    <string name="enter_your_feedback">Inserisci il tuo feedback</string>
+    <string name="txt_empty" />
+    <string name="downloading">Download %s..</string>
+    <string name="text_ob_1">Sfondo animato in qualità 4K</string>
+    <string name="text_ob_2">Varietà di sfondi animati divertenti</string>
+    <string name="text_ob_3">Personalizzazione unica fai-da-te</string>
+    <string name="sticker">Adesivo</string>
+    <string name="request_reason_write_storage_text">Abbiamo bisogno di questo permesso per salvare le foto!</string>
+    <string name="request_again_text">Richiedi di nuovo</string>
+    <string name="grant_manually_in_settings_notification">Concedi manualmente il permesso nelle Impostazioni per salvare le immagini.</string>
+    <string name="i_got_it_text">Ho capito</string>
+    <string name="permission_denied_text">Permesso negato!</string>
+    <string name="title_cancel">Annulla</string>
+    <string name="setting_capp">IMPOSTAZIONI</string>
+    <string name="text_movie">Film</string>
+    <string name="text_live">Live</string>
+    <string name="text_search">Cerca</string>
+    <string name="text_add_profile">Aggiungi profilo</string>
+</resources>

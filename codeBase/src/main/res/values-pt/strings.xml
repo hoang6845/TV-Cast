@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_downloading">Baixando</string>
+    <string name="text_connection_lost">Conexão perdida</string>
+    <string name="text_check_your_internet_connection_and_try_again">Verifique sua conexão com a internet e tente novamente</string>
+    <string name="text_setting">Configurações</string>
+    <string name="text_loading">Carregando</string>
+    <string name="loading_text">Carregando…</string>
+    <string name="visit_site">Visitar site</string>
+    <string name="next_text">Próximo</string>
+    <string name="yes">Sim</string>
+    <string name="text_home">Início</string>
+    <string name="text_channel">Canal</string>
+    <string name="text_settings">Configurações</string>
+    <string name="no">Não</string>
+    <string name="connection_lost">Conexão perdida</string>
+    <string name="connection_lost_description">Verifique sua internet e tente novamente</string>
+    <string name="do_you_like_quick_draw">Você gosta deste aplicativo?</string>
+    <string name="rate_app_description">Sua avaliação nos ajudará a melhorar o aplicativo.</string>
+    <string name="enter_your_feedback">Digite seu feedback</string>
+    <string name="txt_empty" />
+    <string name="downloading">Baixando %s..</string>
+    <string name="text_ob_1">Papel de parede ao vivo em 4K</string>
+    <string name="text_ob_2">Variedade de papéis de parede animados divertidos</string>
+    <string name="text_ob_3">Personalização única DIY</string>
+    <string name="sticker">Adesivo</string>
+    <string name="request_reason_write_storage_text">Precisamos desta permissão para salvar fotos!</string>
+    <string name="request_again_text">Solicitar novamente</string>
+    <string name="grant_manually_in_settings_notification">Conceda permissão manualmente nas Configurações para salvar imagens.</string>
+    <string name="i_got_it_text">Entendi</string>
+    <string name="permission_denied_text">Permissão negada!</string>
+    <string name="title_cancel">Cancelar</string>
+    <string name="setting_capp">CONFIGURAÇÕES</string>
+    <string name="text_movie">Filme</string>
+    <string name="text_live">Ao vivo</string>
+    <string name="text_search">Pesquisar</string>
+    <string name="text_add_profile">Adicionar perfil</string>
+</resources>

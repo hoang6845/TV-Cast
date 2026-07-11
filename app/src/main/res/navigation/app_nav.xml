@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/app_nav"
+    app:startDestination="@id/splashFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.base.ui.home.HomeFragment"
+        android:label="fragment_home"
+        tools:layout="@layout/fragment_home" />
+    <fragment
+        android:id="@+id/castYoutubeFragment"
+        android:name="com.example.base.ui.cast_youtube.CastYoutubeFragment"
+        android:label="CastYoutubeFragment"
+        tools:layout="@layout/fragment_cast_youtube" />
+    <fragment
+        android:id="@+id/splashFragment"
+        android:name="com.example.base.ui.splash.SplashFragment"
+        android:label="SplashFragment" />
+    <fragment
+        android:id="@+id/introFragment"
+        android:name="com.example.base.ui.intro.IntroFragment"
+        android:label="fragment_intro"
+        tools:layout="@layout/fragment_intro" />
+</navigation>

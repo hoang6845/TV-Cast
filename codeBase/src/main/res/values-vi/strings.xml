@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_downloading">Đang tải xuống</string>
+    <string name="text_connection_lost">Mất kết nối</string>
+    <string name="text_check_your_internet_connection_and_try_again">Kiểm tra kết nối internet và thử lại</string>
+    <string name="text_setting">Cài đặt</string>
+    <string name="text_loading">Đang tải</string>
+    <string name="loading_text">Đang tải…</string>
+    <string name="visit_site">Truy cập trang web</string>
+    <string name="next_text">Tiếp theo</string>
+    <string name="yes">Có</string>
+    <string name="no">Không</string>
+    <string name="connection_lost">Mất kết nối</string>
+    <string name="connection_lost_description">Kiểm tra internet và thử lại</string>
+    <string name="do_you_like_quick_draw">Bạn có thích ứng dụng này không?</string>
+    <string name="rate_app_description">Đánh giá của bạn sẽ giúp chúng tôi cải thiện ứng dụng tốt hơn.</string>
+    <string name="enter_your_feedback">Nhập phản hồi của bạn</string>
+    <string name="txt_empty" />
+    <string name="downloading">Đang tải %s..</string>
+    <string name="text_ob_1">Hình nền động chất lượng 4K</string>
+    <string name="text_ob_2">Nhiều hình nền động thú vị</string>
+    <string name="text_ob_3">Tự tạo cá nhân hóa độc đáo</string>
+    <string name="sticker">Nhãn dán</string>
+    <string name="request_reason_write_storage_text">Chúng tôi cần quyền này để lưu ảnh!</string>
+    <string name="request_again_text">Yêu cầu lại</string>
+    <string name="grant_manually_in_settings_notification">Vui lòng cấp quyền trong Cài đặt để lưu ảnh.</string>
+    <string name="i_got_it_text">Đã hiểu</string>
+    <string name="permission_denied_text">Bị từ chối quyền!</string>
+    <string name="title_cancel">Hủy</string>
+    <string name="setting_capp">CÀI ĐẶT</string>
+    <string name="text_movie">Phim</string>
+    <string name="text_live">Trực tiếp</string>
+    <string name="text_search">Tìm kiếm</string>
+    <string name="text_add_profile">Thêm hồ sơ</string>
+
+    <string name="text_home">Trang chủ</string>
+    <string name="text_channel">Kênh</string>
+    <string name="text_settings">Cài đặt</string>
+</resources>

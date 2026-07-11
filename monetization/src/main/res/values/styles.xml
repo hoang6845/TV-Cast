@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="WelcomeActivityTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowEnterAnimation">@android:anim/fade_in</item>
+        <item name="android:windowExitAnimation">@android:anim/fade_out</item>
+        <item name="colorAccent">#FFB703</item>
+        <item name="android:textColor">#000000</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">#FFFFFF</item>
+    </style>
+
+    <style name="PrepareLoadingAdsDialogTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorAccent">#FFB703</item>
+        <item name="android:textColor">#000000</item>
+    </style>
+
+    <style name="AppOpenLoadingAdsDialogTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorAccent">#FFB703</item>
+        <item name="android:textColor">#000000</item>
+    </style>
+
+</resources>
