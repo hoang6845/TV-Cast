@@ -41,13 +41,14 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
             if (hasNavigated) return@registerForActivityResult
 
             if (result.resultCode == Activity.RESULT_OK) {
-                val goToIntro =
-                    result.data?.getBooleanExtra("go_to_intro", false) ?: false
-
-                if (goToIntro) {
-                    hasNavigated = true
-                    navigate(com.example.base.R.id.introFragment, isPop = true)
-                }
+//                val goToIntro =
+//                    result.data?.getBooleanExtra("go_to_intro", false) ?: false
+//
+//                if (goToIntro) {
+//                    hasNavigated = true
+//                    navigate(com.example.base.R.id.introFragment, isPop = true)
+//                }
+                navigate(com.example.base.R.id.homeFragment)
             }
         }
 

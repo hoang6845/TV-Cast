@@ -166,10 +166,10 @@ class CastYoutubeFragment : BaseFragment<FragmentCastYoutubeBinding, CastYoutube
 
         val host = uri.host?.lowercase(Locale.US) ?: return false
         return host == "youtube.com" ||
-            host.endsWith(".youtube.com") ||
-            host == "youtu.be" ||
-            host == "youtube-nocookie.com" ||
-            host.endsWith(".youtube-nocookie.com")
+                host.endsWith(".youtube.com") ||
+                host == "youtu.be" ||
+                host == "youtube-nocookie.com" ||
+                host.endsWith(".youtube-nocookie.com")
     }
 
     private fun updateCurrentVideo(url: String?) {
@@ -222,11 +222,7 @@ class CastYoutubeFragment : BaseFragment<FragmentCastYoutubeBinding, CastYoutube
     }
 
     private fun handleBackPressed() {
-        if (binding.webView.canGoBack()) {
-            binding.webView.goBack()
-        } else {
-            popBackStack()
-        }
+        popBackStack()
     }
 
     private fun openSelectedVideoOrPrompt() {

@@ -1,15 +1,11 @@
 package com.example.base
 
-import android.content.Context
 import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.example.base.utils.AdsConstants
 import com.example.base.utils.AppConstants
 import com.example.base.utils.ThemeManager
-import com.google.android.gms.cast.framework.CastOptions
-import com.google.android.gms.cast.framework.OptionsProvider
-import com.google.android.gms.cast.framework.SessionProvider
 import com.makeramen.roundedimageview.BuildConfig
 import dagger.hilt.android.HiltAndroidApp
 import hoang.dqm.codebase.base.application.BaseApplication
@@ -24,16 +20,7 @@ import tpt.dev.monetization.subs.model.IAPProductType
 import javax.inject.Inject
 
 @HiltAndroidApp
-class MainApplication : BaseApplication(), Configuration.Provider, OptionsProvider {
-    override fun getCastOptions(p0: Context): CastOptions {
-        return CastOptions.Builder()
-            .setReceiverApplicationId("CC1AD845")
-            .build()
-    }
-
-    override fun getAdditionalSessionProviders(context: Context)
-            : MutableList<SessionProvider>? = null
-
+class MainApplication : BaseApplication(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 

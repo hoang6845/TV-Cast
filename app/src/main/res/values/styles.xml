@@ -4,4 +4,9 @@
         <item name="thumbTint">@color/white</item>
         <item name="trackTint">@color/track_switch_color</item>
     </style>
+
+    <style name="CastWebMediaRouteButtonTheme">
+        <item name="android:colorControlNormal">@color/white</item>
+        <item name="colorControlNormal">@color/white</item>
+    </style>
 </resources>

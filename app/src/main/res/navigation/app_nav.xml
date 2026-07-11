@@ -16,6 +16,11 @@
         android:label="CastYoutubeFragment"
         tools:layout="@layout/fragment_cast_youtube" />
     <fragment
+        android:id="@+id/castWebFragment"
+        android:name="com.example.base.ui.cast_web.CastWebFragment"
+        android:label="CastWebFragment"
+        tools:layout="@layout/fragment_cast_web" />
+    <fragment
         android:id="@+id/splashFragment"
         android:name="com.example.base.ui.splash.SplashFragment"
         android:label="SplashFragment" />

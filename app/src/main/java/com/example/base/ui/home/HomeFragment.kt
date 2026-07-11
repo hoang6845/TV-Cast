@@ -87,7 +87,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
                 AppConstants.TYPE_CAMERA_CAST -> {}
                 AppConstants.TYPE_TRY_TV_REMOTE -> {}
                 AppConstants.TYPE_CAST_YOUTUBE -> navigate(R.id.castYoutubeFragment)
-                AppConstants.TYPE_CAST_WEB -> {}
+                AppConstants.TYPE_CAST_WEB -> navigate(R.id.castWebFragment)
                 AppConstants.TYPE_MOVIE_ADVISOR -> {}
                 AppConstants.TYPE_IPTV -> {}
 

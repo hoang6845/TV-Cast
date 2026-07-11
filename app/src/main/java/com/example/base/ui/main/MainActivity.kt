@@ -49,7 +49,6 @@ class MainActivity : BaseMainActivity<ActivityMainBinding, MainViewModel>() {
     override fun initView() {
         super.initView()
         showSystemNavigationBar()
-        applyBottomNavigationBarInset()
         updateStatusBarAppearance()
 
         navController?.addOnDestinationChangedListener { _, _, _ ->
@@ -75,23 +74,9 @@ class MainActivity : BaseMainActivity<ActivityMainBinding, MainViewModel>() {
 
     override fun initListener() {
         super.initListener()
-        navController?.addOnDestinationChangedListener { _, destination, _ ->
-            when (destination.id) {
-                com.example.base.R.id.castYoutubeFragment -> hideBar()
-                else -> showBar()
-            }
-        }
+
     }
 
-    private fun showBar() {
-        binding.bar1.visible()
-        binding.fabAdd1.visible()
-    }
-
-    private fun hideBar() {
-        binding.bar1.gone()
-        binding.fabAdd1.gone()
-    }
 
     override fun onResume() {
         super.onResume()
@@ -135,30 +120,6 @@ class MainActivity : BaseMainActivity<ActivityMainBinding, MainViewModel>() {
         super.attachBaseContext(localeUpdatedContext)
     }
 
-    private fun applyBottomNavigationBarInset() {
-        val originalBarBottomMargin =
-            (binding.bar1.layoutParams as ConstraintLayout.LayoutParams).bottomMargin
-
-        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { _, insets ->
-            val bottomInset = insets.getInsets(
-                WindowInsetsCompat.Type.navigationBars()
-            ).bottom
-
-            val hasNavigationBar = bottomInset > 0
-
-            val barParams = binding.bar1.layoutParams as ConstraintLayout.LayoutParams
-            barParams.bottomMargin = if (hasNavigationBar) {
-                originalBarBottomMargin + bottomInset
-            } else {
-                originalBarBottomMargin
-            }
-            binding.bar1.layoutParams = barParams
-
-            insets
-        }
-
-        ViewCompat.requestApplyInsets(binding.main)
-    }
 
     private fun showSystemNavigationBar() {
         WindowCompat.setDecorFitsSystemWindows(window, false)

@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".ui.cast_web.CastWebFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_52sdp"
+        android:background="#0B0B0B"
+        android:paddingStart="@dimen/_8sdp"
+        android:paddingEnd="@dimen/_8sdp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="@dimen/_40sdp"
+            android:layout_height="@dimen/_40sdp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/text_back"
+            android:padding="@dimen/_8sdp"
+            android:src="@drawable/ic_arrow_back_white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/title_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="@id/btn_back"
+            app:layout_constraintEnd_toStartOf="@id/btn_top_cast"
+            app:layout_constraintStart_toEndOf="@id/btn_back"
+            app:layout_constraintTop_toTopOf="@id/btn_back">
+
+            <View
+                android:id="@+id/connection_dot"
+                android:layout_width="@dimen/_5sdp"
+                android:layout_height="@dimen/_5sdp"
+                android:layout_marginEnd="@dimen/_5sdp"
+                android:background="@drawable/bg_cast_youtube_status_dot"
+                android:backgroundTint="#777777" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/inter"
+                android:includeFontPadding="false"
+                android:text="@string/text_cast_web_videos"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_13ssp" />
+        </LinearLayout>
+
+        <androidx.mediarouter.app.MediaRouteButton
+            android:id="@+id/btn_top_cast"
+            android:layout_width="@dimen/_40sdp"
+            android:layout_height="@dimen/_40sdp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/text_cast_to_tv"
+            android:padding="@dimen/_8sdp"
+            android:theme="@style/CastWebMediaRouteButtonTheme"
+            app:layout_constraintBottom_toBottomOf="@id/btn_back"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/btn_back" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_2sdp"
+        android:indeterminate="false"
+        android:max="100"
+        android:progressTint="#F4D188"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        tools:progress="45"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/address_bar"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_50sdp"
+        android:background="#0B0B0B"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/_10sdp"
+        android:paddingEnd="@dimen/_10sdp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progress_bar"
+        tools:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_34sdp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_cast_web_search"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/_10sdp"
+            android:paddingEnd="@dimen/_4sdp">
+
+            <ImageView
+                android:id="@+id/icon_security"
+                android:layout_width="@dimen/_16sdp"
+                android:layout_height="@dimen/_16sdp"
+                android:contentDescription="@string/text_secure_browsing"
+                android:src="@drawable/ic_lock_web_white"
+                app:tint="#84FF6A" />
+
+            <EditText
+                android:id="@+id/input_address"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="@dimen/_6sdp"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:fontFamily="@font/inter"
+                android:imeOptions="actionGo"
+                android:inputType="textUri"
+                android:maxLines="1"
+                android:padding="0dp"
+                android:selectAllOnFocus="true"
+                android:singleLine="true"
+                android:textColor="@color/white"
+                android:textColorHint="#8A8A8A"
+                android:textSize="@dimen/_10ssp"
+                tools:text="https://www.ted.com" />
+
+            <ImageButton
+                android:id="@+id/btn_reload"
+                android:layout_width="@dimen/_30sdp"
+                android:layout_height="@dimen/_30sdp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/text_reload"
+                android:padding="@dimen/_7sdp"
+                android:src="@drawable/ic_reload_white" />
+
+            <ImageButton
+                android:id="@+id/btn_bookmark"
+                android:layout_width="@dimen/_30sdp"
+                android:layout_height="@dimen/_30sdp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/text_bookmark"
+                android:padding="@dimen/_7sdp"
+                android:src="@drawable/ic_bookmark_web_white"
+                app:tint="#BFBFBF" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/browser_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@id/bottom_bar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/address_bar">
+
+        <WebView
+            android:id="@+id/web_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/black"
+            android:overScrollMode="never"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <ScrollView
+            android:id="@+id/browser_home"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:overScrollMode="never">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/_14sdp"
+                android:paddingTop="@dimen/_14sdp"
+                android:paddingEnd="@dimen/_14sdp"
+                android:paddingBottom="@dimen/_18sdp">
+
+                <LinearLayout
+                    android:id="@+id/search_bar_home"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_40sdp"
+                    android:background="@drawable/bg_cast_web_search"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="@dimen/_10sdp"
+                    android:paddingEnd="@dimen/_10sdp">
+
+                    <ImageView
+                        android:layout_width="@dimen/_16sdp"
+                        android:layout_height="@dimen/_16sdp"
+                        android:contentDescription="@string/text_search"
+                        android:src="@drawable/ic_search"
+                        app:tint="#8A8A8A" />
+
+                    <EditText
+                        android:id="@+id/input_search"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:layout_weight="1"
+                        android:background="@android:color/transparent"
+                        android:fontFamily="@font/inter"
+                        android:hint="@string/text_search"
+                        android:imeOptions="actionSearch"
+                        android:inputType="textUri|textNoSuggestions"
+                        android:maxLines="1"
+                        android:padding="0dp"
+                        android:singleLine="true"
+                        android:textColor="@color/white"
+                        android:textColorHint="#8A8A8A"
+                        android:textSize="@dimen/_11ssp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="@dimen/_40sdp"
+                    android:layout_height="@dimen/_40sdp"
+                    android:layout_marginTop="@dimen/_28sdp"
+                    android:contentDescription="@string/text_secure_browsing"
+                    android:src="@drawable/ic_lock_web_white"
+                    app:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_8sdp"
+                    android:fontFamily="@font/inter"
+                    android:includeFontPadding="false"
+                    android:text="@string/text_secure_browsing"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/_14ssp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_6sdp"
+                    android:fontFamily="@font/inter"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="@string/text_secure_browsing_desc"
+                    android:textColor="#8A8A8A"
+                    android:textSize="@dimen/_10ssp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_24sdp"
+                    android:fontFamily="@font/inter"
+                    android:includeFontPadding="false"
+                    android:text="@string/text_favorite_tabs"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/_11ssp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_10sdp"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_72sdp"
+                        android:orientation="horizontal">
+
+                        <include
+                            android:id="@+id/site_youtube"
+                            layout="@layout/item_cast_web_site"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginEnd="@dimen/_8sdp"
+                            android:layout_weight="1" />
+
+                        <include
+                            android:id="@+id/site_facebook"
+                            layout="@layout/item_cast_web_site"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginEnd="@dimen/_8sdp"
+                            android:layout_weight="1" />
+
+                        <include
+                            android:id="@+id/site_ted"
+                            layout="@layout/item_cast_web_site"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_72sdp"
+                        android:layout_marginTop="@dimen/_8sdp"
+                        android:orientation="horizontal">
+
+                        <include
+                            android:id="@+id/site_vevo"
+                            layout="@layout/item_cast_web_site"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginEnd="@dimen/_8sdp"
+                            android:layout_weight="1" />
+
+                        <include
+                            android:id="@+id/site_twitch"
+                            layout="@layout/item_cast_web_site"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginEnd="@dimen/_8sdp"
+                            android:layout_weight="1" />
+
+                        <include
+                            android:id="@+id/site_veoh"
+                            layout="@layout/item_cast_web_site"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/bottom_bar"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_64sdp"
+        android:background="#0F0F0F"
+        android:paddingStart="@dimen/_12sdp"
+        android:paddingEnd="@dimen/_12sdp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_web_back"
+            android:layout_width="@dimen/_42sdp"
+            android:layout_height="@dimen/_40sdp"
+            android:background="@drawable/bg_cast_youtube_nav_button"
+            android:contentDescription="@string/text_back"
+            android:padding="@dimen/_9sdp"
+            android:src="@drawable/ic_arrow_back_white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/btn_cast_web_action"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_40sdp"
+            android:layout_marginStart="@dimen/_12sdp"
+            android:layout_marginEnd="@dimen/_12sdp"
+            android:background="@drawable/bg_cast_youtube_action"
+            android:clickable="true"
+            android:ellipsize="end"
+            android:focusable="true"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:paddingHorizontal="@dimen/_12sdp"
+            android:text="@string/text_no_videos_detected"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_12ssp"
+            app:layout_constraintBottom_toBottomOf="@id/btn_web_back"
+            app:layout_constraintEnd_toStartOf="@id/btn_web_forward"
+            app:layout_constraintStart_toEndOf="@id/btn_web_back"
+            app:layout_constraintTop_toTopOf="@id/btn_web_back" />
+
+        <ImageButton
+            android:id="@+id/btn_web_forward"
+            android:layout_width="@dimen/_42sdp"
+            android:layout_height="@dimen/_40sdp"
+            android:background="@drawable/bg_cast_youtube_nav_button"
+            android:contentDescription="@string/text_forward"
+            android:padding="@dimen/_9sdp"
+            android:src="@drawable/ic_arrow_forward_white"
+            app:layout_constraintBottom_toBottomOf="@id/btn_web_back"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/btn_web_back" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
