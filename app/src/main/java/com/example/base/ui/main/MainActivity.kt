@@ -25,6 +25,7 @@ import com.example.base.utils.CommonAppSharePref
 import com.example.base.utils.ContextUtils
 import com.example.base.utils.gone
 import com.example.base.utils.visible
+import dagger.hilt.android.AndroidEntryPoint
 import hoang.dqm.codebase.R
 import hoang.dqm.codebase.base.activity.navigate
 import hoang.dqm.codebase.base.activity.navigateLeft
@@ -39,7 +40,7 @@ import hoang.dqm.codebase.utils.openSettingNetWork
 import hoang.dqm.codebase.utils.singleClick
 import java.util.Locale
 import kotlin.math.abs
-
+@AndroidEntryPoint
 class MainActivity : BaseMainActivity<ActivityMainBinding, MainViewModel>() {
     override val graphResId: Int
         get() = com.example.base.R.navigation.app_nav
