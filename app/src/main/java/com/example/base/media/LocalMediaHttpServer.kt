@@ -67,7 +67,9 @@ class LocalMediaHttpServer(
     private fun acceptLoop(socket: ServerSocket) {
         while (!socket.isClosed) {
             val client = runCatching { socket.accept() }.getOrNull() ?: break
-            executor?.execute { handle(client) }
+            executor?.execute {
+                runCatching { handle(client) }
+            }
         }
     }
 

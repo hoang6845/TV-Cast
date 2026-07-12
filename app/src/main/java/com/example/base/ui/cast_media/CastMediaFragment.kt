@@ -264,6 +264,9 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         selectedPhotoIndex = 0
         binding.photoPreview.setImageURI(uris.first())
         photoAdapter.submit(uris, selectedPhotoIndex)
+        if (isCasting) {
+            castSelectedMedia()
+        }
         updateControls()
     }
 
@@ -272,6 +275,9 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         selectedPhotoIndex = position
         binding.photoPreview.setImageURI(uri)
         photoAdapter.submit(photos, selectedPhotoIndex)
+        if (isCasting) {
+            castSelectedMedia()
+        }
     }
 
     private fun setVideo(uri: Uri) {
@@ -284,6 +290,9 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         player?.prepare()
         player?.playWhenReady = false
         startVideoProgressTicker()
+        if (isCasting) {
+            castSelectedMedia()
+        }
         updateControls()
     }
 

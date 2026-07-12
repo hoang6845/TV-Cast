@@ -129,10 +129,12 @@
     <string name="text_preparing_screen">Preparing screen...</string>
     <string name="text_mirroring_not_started">Mirroring not started</string>
     <string name="text_mirroring_to_tv">Mirroring to %1$s</string>
+    <string name="text_screen_cast_managed_by_android">Screen casting is managed by Android</string>
     <string name="text_screen_sharing_permission_required">Screen sharing permission is required to start mirroring.</string>
     <string name="text_stop_screen_mirroring_title">Stop screen mirroring?</string>
-    <string name="text_stop_screen_mirroring_message">Your phone screen will no longer be displayed on the TV.</string>
+    <string name="text_stop_screen_mirroring_message">Open Android Cast settings to stop screen mirroring.</string>
     <string name="text_select_tv_for_mirroring">Select a TV to start screen mirroring.</string>
+    <string name="text_could_not_open_cast_settings">Could not open Android Cast settings on this device.</string>
     <string name="text_mirroring_help_title">Screen Mirroring Help</string>
     <string name="text_mirroring_help_message">Can\'t find your TV?\n- Make sure your phone and TV are on the same Wi-Fi.\n- Turn off VPN if devices cannot be discovered.\n- Enable casting on your TV.\n\nImage is lagging?\n- Select Medium or Low quality.\n- Move closer to the Wi-Fi router.\n- Close unnecessary apps.\n\nNo sound?\n- Make sure Sound is enabled.\n- Some apps do not allow audio capture.\n- DRM-protected content may not support audio.</string>
     <string name="text_audio_sharing_limited">Some apps or devices may not allow audio sharing. Mirroring can continue without sound.</string>

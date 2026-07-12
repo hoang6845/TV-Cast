@@ -1,11 +1,12 @@
 package com.example.base.ui.screen_mirroring
 
-import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.media.projection.MediaProjectionManager
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -16,7 +17,6 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import com.example.base.R
 import com.example.base.databinding.FragmentScreenMirroringBinding
-import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
@@ -34,24 +34,29 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     private var autoRotateEnabled = true
     private var soundEnabled = true
     private var pendingMirroring = false
-    private var isRequestingPermission = false
     private var isPreparing = false
     private var isMirroring = false
     private var isReconnecting = false
+    private var markMirroringAfterSettings = false
     private var toolbarBaseHeight = 0
     private var bottomButtonBaseMargin = 0
 
-    private val screenCaptureLauncher = registerForActivityResult(
+    private val screenCastSettingsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        isRequestingPermission = false
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            beginMirroring()
-        } else {
-            pendingMirroring = false
-            showPermissionDeniedDialog()
-            updateControls()
-        }
+    ) {
+        val shouldMarkMirroring = markMirroringAfterSettings
+        markMirroringAfterSettings = false
+        pendingMirroring = false
+        isPreparing = false
+        isMirroring = shouldMarkMirroring
+        updateCastStatus(
+            if (shouldMarkMirroring) {
+                CastConnectionState.Connected
+            } else {
+                CastConnectionState.Disconnected
+            }
+        )
+        updateControls()
     }
 
     private val castSessionListener = object : SessionManagerListener<CastSession> {
@@ -62,7 +67,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         override fun onSessionStarted(session: CastSession, sessionId: String) {
             updateCastStatus(CastConnectionState.Connected)
             if (pendingMirroring) {
-                requestScreenCapture()
+                openSystemCastSettings(markMirroringOnReturn = true)
             } else {
                 updateControls()
             }
@@ -70,7 +75,6 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
         override fun onSessionStartFailed(session: CastSession, error: Int) {
             pendingMirroring = false
-            isRequestingPermission = false
             updateCastStatus(CastConnectionState.Error)
             showConnectFailedDialog()
             updateControls()
@@ -87,7 +91,6 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         override fun onSessionEnded(session: CastSession, error: Int) {
             val wasMirroring = isMirroring || isReconnecting
             pendingMirroring = false
-            isRequestingPermission = false
             isPreparing = false
             isMirroring = false
             isReconnecting = false
@@ -134,6 +137,13 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         binding.btnBack.setOnClickListener { handleBackPressed() }
         binding.btnStartMirroring.setOnClickListener { handleMainAction() }
         binding.helpChip.setOnClickListener { showHelpDialog() }
+        binding.btnTopCast.setOnClickListener {
+            if (isMirroring) {
+                openSystemCastSettings(markMirroringOnReturn = true)
+            } else {
+                startMirroringFlow()
+            }
+        }
         binding.rowHigh.setOnClickListener { selectQuality(MirroringQuality.HIGH) }
         binding.rowMedium.setOnClickListener { selectQuality(MirroringQuality.MEDIUM) }
         binding.rowLow.setOnClickListener { selectQuality(MirroringQuality.LOW) }
@@ -203,7 +213,6 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     private fun setupCastButton() {
         runCatching {
             castContext = CastContext.getSharedInstance(requireContext())
-            CastButtonFactory.setUpMediaRouteButton(requireContext(), binding.btnTopCast)
             updateCastStatusFromSession()
         }.onFailure {
             binding.btnTopCast.isEnabled = false
@@ -247,49 +256,29 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun startMirroringFlow() {
-        val session = currentCastSession()
-        if (session?.isConnected != true) {
-            pendingMirroring = true
-            updateControls(selectingTv = true)
-            binding.btnTopCast.performClick()
-            mainHandler.postDelayed({
-                if (_binding != null && view != null && pendingMirroring && currentCastSession()?.isConnected != true) {
-                    pendingMirroring = false
-                    showNoDevicesDialog()
-                    updateControls()
-                }
-            }, CAST_SELECTION_TIMEOUT_MS)
-            return
-        }
-
-        requestScreenCapture()
-    }
-
-    private fun requestScreenCapture() {
-        if (isRequestingPermission) return
-
-        pendingMirroring = false
-        isRequestingPermission = true
-        updateControls()
-
-        val projectionManager = requireContext().getSystemService(MediaProjectionManager::class.java)
-        screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
-    }
-
-    private fun beginMirroring() {
+        pendingMirroring = true
         isPreparing = true
-        updateControls()
-        mainHandler.postDelayed({
-            if (_binding == null || view == null) return@postDelayed
+        updateControls(selectingTv = true)
+        openSystemCastSettings(markMirroringOnReturn = true)
+    }
+
+    private fun openSystemCastSettings(markMirroringOnReturn: Boolean) {
+        markMirroringAfterSettings = markMirroringOnReturn
+        runCatching {
+            screenCastSettingsLauncher.launch(Intent(Settings.ACTION_CAST_SETTINGS))
+        }.onFailure { error ->
+            markMirroringAfterSettings = false
+            pendingMirroring = false
             isPreparing = false
-            if (currentCastSession()?.isConnected == true) {
-                isMirroring = true
-                updateCastStatus(CastConnectionState.Connected)
+            isMirroring = false
+            updateCastStatus(CastConnectionState.Error)
+            updateControls()
+            if (error is ActivityNotFoundException) {
+                showCastSettingsUnavailableDialog()
             } else {
                 showConnectFailedDialog()
             }
-            updateControls()
-        }, START_MIRRORING_DELAY_MS)
+        }
     }
 
     private fun showStopMirroringDialog() {
@@ -304,11 +293,11 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     private fun stopMirroring() {
         currentCastSession()?.remoteMediaClient?.stop()
         pendingMirroring = false
-        isRequestingPermission = false
         isPreparing = false
         isMirroring = false
         isReconnecting = false
         updateControls()
+        openSystemCastSettings(markMirroringOnReturn = false)
     }
 
     private fun beginReconnectState() {
@@ -332,6 +321,14 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
             .setMessage(R.string.text_screen_sharing_permission_required)
             .setNegativeButton(R.string.text_cancel, null)
             .setPositiveButton(R.string.text_try_again) { _, _ -> startMirroringFlow() }
+            .show()
+    }
+
+    private fun showCastSettingsUnavailableDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.text_something_went_wrong)
+            .setMessage(R.string.text_could_not_open_cast_settings)
+            .setPositiveButton(R.string.text_ok, null)
             .show()
     }
 
@@ -359,8 +356,8 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
             .setNegativeButton(R.string.text_close, null)
             .setPositiveButton(R.string.text_choose_another_tv) { _, _ ->
                 pendingMirroring = true
-                binding.btnTopCast.performClick()
                 updateControls(selectingTv = true)
+                openSystemCastSettings(markMirroringOnReturn = true)
             }
             .show()
     }
@@ -378,18 +375,16 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
         binding.statusContainer.isVisible = isMirroring ||
                 isPreparing ||
-                isRequestingPermission ||
                 pendingMirroring ||
                 isReconnecting ||
                 currentCastSession()?.isConnected == true
 
-        binding.btnStartMirroring.isEnabled = !isRequestingPermission && !pendingMirroring
+        binding.btnStartMirroring.isEnabled = !pendingMirroring
         binding.btnStartMirroring.alpha = if (binding.btnStartMirroring.isEnabled) 1f else 0.72f
         binding.btnStartMirroring.text = when {
             isReconnecting -> getString(R.string.text_reconnecting)
             isMirroring -> getString(R.string.text_stop_mirroring)
             isPreparing -> getString(R.string.text_preparing_screen)
-            isRequestingPermission -> getString(R.string.text_waiting_for_permission)
             pendingMirroring || selectingTv -> getString(R.string.text_select_a_tv)
             else -> getString(R.string.text_start_mirroring)
         }
@@ -403,9 +398,8 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
         val deviceName = currentCastSession()?.castDevice?.friendlyName ?: "TV"
         binding.statusText.text = when {
-            isMirroring -> getString(R.string.text_mirroring_to_tv, deviceName)
+            isMirroring -> getString(R.string.text_screen_cast_managed_by_android)
             isPreparing -> getString(R.string.text_preparing_screen)
-            isRequestingPermission -> getString(R.string.text_waiting_for_permission)
             pendingMirroring || selectingTv -> getString(R.string.text_select_a_tv)
             isReconnecting -> getString(R.string.text_reconnecting)
             currentCastSession()?.isConnected == true -> getString(R.string.text_casting_to_tv, deviceName)
@@ -464,8 +458,6 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     companion object {
-        private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
-        private const val START_MIRRORING_DELAY_MS = 900L
         private const val RECONNECT_TIMEOUT_MS = 5_000L
     }
 }

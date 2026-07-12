@@ -7,6 +7,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -27,11 +28,15 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import com.example.base.R
 import com.example.base.databinding.FragmentCameraCastBinding
+import com.google.android.gms.cast.MediaInfo
+import com.google.android.gms.cast.MediaLoadRequestData
+import com.google.android.gms.cast.MediaMetadata
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.io.ByteArrayOutputStream
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
@@ -39,6 +44,9 @@ import hoang.dqm.codebase.base.activity.popBackStack
 class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastViewModel>() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val cameraFrameServer by lazy {
+        CameraFrameHttpServer(requireContext().applicationContext) { latestCameraFrame }
+    }
     private lateinit var prefs: SharedPreferences
 
     private var castContext: CastContext? = null
@@ -50,6 +58,9 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     private var isCasting = false
     private var isStartingCast = false
     private var isReconnecting = false
+    private var cameraFrameUrl: String? = null
+    @Volatile
+    private var latestCameraFrame: ByteArray? = null
     private var microphoneMuted = true
     private var microphonePermissionDenied = false
     private var torchEnabled = false
@@ -58,6 +69,12 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     private var cameraReady = false
     private var toolbarBaseHeight = 0
     private var bottomButtonBaseMargin = 0
+
+    private val cameraFrameRefreshRunnable = object : Runnable {
+        override fun run() {
+            refreshCameraCastFrame()
+        }
+    }
 
     private val cameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -134,6 +151,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
             isStartingCast = false
             isCasting = false
             updateCastStatus(CastConnectionState.Disconnected)
+            stopCameraFrameRefresh()
             if (wasCasting) {
                 showConnectionLostDialog()
             }
@@ -148,8 +166,9 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
             isReconnecting = false
             updateCastStatus(CastConnectionState.Connected)
             if (isCasting) {
-                updateControls()
+                scheduleCameraFrameRefresh()
             }
+            updateControls()
         }
 
         override fun onSessionResumeFailed(session: CastSession, error: Int) {
@@ -223,6 +242,9 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
 
     override fun onDestroyView() {
         mainHandler.removeCallbacksAndMessages(null)
+        cameraFrameServer.close()
+        latestCameraFrame = null
+        cameraFrameUrl = null
         stopCamera()
         super.onDestroyView()
     }
@@ -447,6 +469,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         cameraReady = false
         isCasting = false
         isStartingCast = false
+        stopCameraFrameRefresh()
         stopCamera()
         binding.cameraLoading.isVisible = false
         binding.previewView.isVisible = false
@@ -578,25 +601,113 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun beginCameraCast() {
-        if (!cameraReady) {
-            showCameraStartError()
+        val session = currentCastSession()
+        if (session?.isConnected != true) {
+            startCastFlow()
             return
         }
+
+        if (!updateLatestCameraFrame()) {
+            Toast.makeText(requireContext(), R.string.text_could_not_prepare_media, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val streamUrl = cameraFrameUrl ?: cameraFrameServer.start()
+        if (streamUrl == null) {
+            Toast.makeText(requireContext(), R.string.text_could_not_prepare_media, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        cameraFrameUrl = streamUrl
         isStartingCast = true
         updateControls()
-        mainHandler.postDelayed({
-            if (_binding == null || view == null) return@postDelayed
-            if (currentCastSession()?.isConnected == true) {
+
+        loadCameraFrame(session, firstLoad = true)
+    }
+
+    private fun refreshCameraCastFrame() {
+        if (_binding == null || view == null || !isCasting) return
+
+        val session = currentCastSession()
+        if (session?.isConnected != true) {
+            beginReconnectState()
+            return
+        }
+
+        if (updateLatestCameraFrame()) {
+            loadCameraFrame(session, firstLoad = false)
+        }
+        scheduleCameraFrameRefresh()
+    }
+
+    private fun loadCameraFrame(session: CastSession, firstLoad: Boolean) {
+        val streamUrl = cameraFrameUrl ?: return
+        val frameUrl = "$streamUrl?t=${System.currentTimeMillis()}"
+        val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_PHOTO).apply {
+            putString(MediaMetadata.KEY_TITLE, getString(R.string.text_camera_cast))
+        }
+        val mediaInfo = MediaInfo.Builder(frameUrl)
+            .setStreamType(MediaInfo.STREAM_TYPE_NONE)
+            .setContentType(CAMERA_FRAME_CONTENT_TYPE)
+            .setMetadata(metadata)
+            .build()
+
+        val loadRequest = MediaLoadRequestData.Builder()
+            .setMediaInfo(mediaInfo)
+            .setAutoplay(true)
+            .build()
+
+        val pendingResult = session.remoteMediaClient?.load(loadRequest)
+        if (!firstLoad) return
+
+        if (pendingResult == null) {
+            isStartingCast = false
+            isCasting = false
+            stopCameraFrameRefresh()
+            showConnectFailedDialog()
+            updateControls()
+            return
+        }
+
+        pendingResult.setResultCallback { result ->
+            mainHandler.post {
+                if (_binding == null || view == null) return@post
+
                 isStartingCast = false
-                isCasting = true
-                updateCastStatus(CastConnectionState.Connected)
-                updateControls()
-            } else {
-                isStartingCast = false
-                showConnectFailedDialog()
+                isCasting = result.status.isSuccess
+                if (isCasting) {
+                    updateCastStatus(CastConnectionState.Connected)
+                    scheduleCameraFrameRefresh()
+                } else {
+                    stopCameraFrameRefresh()
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.text_could_not_cast_media,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
                 updateControls()
             }
-        }, START_CAST_DELAY_MS)
+        }
+    }
+
+    private fun updateLatestCameraFrame(): Boolean {
+        val bitmap = binding.previewView.bitmap ?: return false
+        latestCameraFrame = ByteArrayOutputStream().use { output ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, CAMERA_FRAME_JPEG_QUALITY, output)
+            output.toByteArray()
+        }
+        return true
+    }
+
+    private fun scheduleCameraFrameRefresh() {
+        mainHandler.removeCallbacks(cameraFrameRefreshRunnable)
+        mainHandler.postDelayed(cameraFrameRefreshRunnable, CAMERA_FRAME_REFRESH_MS)
+    }
+
+    private fun stopCameraFrameRefresh() {
+        mainHandler.removeCallbacks(cameraFrameRefreshRunnable)
+        latestCameraFrame = null
     }
 
     private fun showStopCastingDialog() {
@@ -610,6 +721,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
 
     private fun stopCasting() {
         currentCastSession()?.remoteMediaClient?.stop()
+        stopCameraFrameRefresh()
         isCasting = false
         isStartingCast = false
         isReconnecting = false
@@ -655,8 +767,9 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
             .setNegativeButton(R.string.text_close, null)
             .setPositiveButton(R.string.text_choose_another_tv) { _, _ ->
                 pendingCast = true
-                binding.btnTopCast.performClick()
+                isStartingCast = true
                 updateControls(selectingTv = true)
+                binding.btnTopCast.performClick()
             }
             .show()
     }
@@ -769,7 +882,9 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         private const val DEFAULT_ZOOM_RATIO = 1f
         private const val HALF_ZOOM_RATIO = 0.5f
         private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
-        private const val START_CAST_DELAY_MS = 900L
+        private const val CAMERA_FRAME_REFRESH_MS = 1_200L
+        private const val CAMERA_FRAME_JPEG_QUALITY = 72
+        private const val CAMERA_FRAME_CONTENT_TYPE = "image/jpeg"
         private const val RECONNECT_TIMEOUT_MS = 5_000L
         private const val SWITCH_CAMERA_LOCK_MS = 500L
         private const val ACTIVE_CONTROL_COLOR = "#D6A948"
