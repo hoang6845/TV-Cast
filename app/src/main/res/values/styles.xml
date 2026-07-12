@@ -9,4 +9,43 @@
         <item name="android:colorControlNormal">@color/white</item>
         <item name="colorControlNormal">@color/white</item>
     </style>
+
+    <style name="TvRemoteSmallButton">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:background">@drawable/bg_cast_youtube_nav_button</item>
+        <item name="android:clickable">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:focusable">true</item>
+        <item name="android:fontFamily">@font/inter</item>
+        <item name="android:gravity">center</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:paddingStart">@dimen/_8sdp</item>
+        <item name="android:paddingEnd">@dimen/_8sdp</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">@dimen/_9ssp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TvRemoteGridCell">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">0dp</item>
+        <item name="android:layout_columnWeight">1</item>
+        <item name="android:layout_rowWeight">1</item>
+        <item name="android:layout_margin">@dimen/_4sdp</item>
+    </style>
+
+    <style name="TvRemoteDpadButton" parent="TvRemoteGridCell">
+        <item name="android:background">@drawable/bg_cast_youtube_nav_button</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:fontFamily">@font/inter</item>
+        <item name="android:gravity">center</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">@dimen/_11ssp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
 </resources>

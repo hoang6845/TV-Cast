@@ -1,0 +1,656 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".ui.tv_remote.TvRemoteFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_52sdp"
+        android:background="#0B0B0B"
+        android:paddingStart="@dimen/_8sdp"
+        android:paddingEnd="@dimen/_8sdp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="@dimen/_40sdp"
+            android:layout_height="@dimen/_40sdp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/text_back"
+            android:padding="@dimen/_8sdp"
+            android:src="@drawable/ic_arrow_back_white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="@string/text_tv_remote"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_13ssp"
+            app:layout_constraintBottom_toBottomOf="@id/btn_back"
+            app:layout_constraintEnd_toStartOf="@id/btn_refresh"
+            app:layout_constraintStart_toEndOf="@id/btn_back"
+            app:layout_constraintTop_toTopOf="@id/btn_back" />
+
+        <TextView
+            android:id="@+id/btn_refresh"
+            android:layout_width="@dimen/_58sdp"
+            android:layout_height="@dimen/_34sdp"
+            android:background="@drawable/bg_cast_youtube_nav_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="@string/text_refresh"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_9ssp"
+            app:layout_constraintBottom_toBottomOf="@id/btn_back"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/btn_back" />
+
+        <TextView
+            android:id="@+id/btn_more"
+            android:layout_width="@dimen/_40sdp"
+            android:layout_height="@dimen/_40sdp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="@string/text_more_dots"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_18ssp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/btn_back"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/btn_back"
+            tools:visibility="visible" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <ScrollView
+        android:id="@+id/content_scroll"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingStart="@dimen/_12sdp"
+        android:paddingTop="@dimen/_12sdp"
+        android:paddingEnd="@dimen/_12sdp"
+        android:paddingBottom="@dimen/_18sdp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:id="@+id/scan_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_mirroring_panel"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:padding="@dimen/_16sdp">
+
+                    <ProgressBar
+                        android:id="@+id/progress_searching"
+                        android:layout_width="@dimen/_36sdp"
+                        android:layout_height="@dimen/_36sdp"
+                        android:indeterminateTint="#F4D188" />
+
+                    <TextView
+                        android:id="@+id/text_scan_state"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/_12sdp"
+                        android:fontFamily="@font/inter"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:text="@string/text_searching_for_tvs"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/_15ssp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/text_scan_help"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/_8sdp"
+                        android:fontFamily="@font/inter"
+                        android:gravity="center"
+                        android:lineSpacingExtra="@dimen/_2sdp"
+                        android:text="@string/text_tv_remote_scan_help"
+                        android:textColor="#A9A9AD"
+                        android:textSize="@dimen/_9ssp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/device_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <LinearLayout
+                        android:id="@+id/row_living_room"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_66sdp"
+                        android:background="@drawable/bg_mirroring_status"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="@dimen/_12sdp"
+                        android:paddingEnd="@dimen/_12sdp">
+
+                        <TextView
+                            android:layout_width="@dimen/_38sdp"
+                            android:layout_height="@dimen/_38sdp"
+                            android:background="@drawable/bg_cast_youtube_action"
+                            android:fontFamily="@font/inter"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:text="@string/text_tv_icon"
+                            android:textColor="@color/white"
+                            android:textSize="@dimen/_9ssp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/_12sdp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/living_room_name"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:fontFamily="@font/inter"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="@color/white"
+                                android:textSize="@dimen/_12ssp"
+                                android:textStyle="bold"
+                                tools:text="Living Room TV" />
+
+                            <TextView
+                                android:id="@+id/living_room_meta"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_5sdp"
+                                android:ellipsize="end"
+                                android:fontFamily="@font/inter"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="#A9A9AD"
+                                android:textSize="@dimen/_9ssp"
+                                tools:text="Android TV - Available" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/row_bedroom"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_66sdp"
+                        android:layout_marginTop="@dimen/_10sdp"
+                        android:background="@drawable/bg_mirroring_status"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="@dimen/_12sdp"
+                        android:paddingEnd="@dimen/_12sdp">
+
+                        <TextView
+                            android:layout_width="@dimen/_38sdp"
+                            android:layout_height="@dimen/_38sdp"
+                            android:background="@drawable/bg_cast_youtube_action"
+                            android:fontFamily="@font/inter"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:text="@string/text_tv_icon"
+                            android:textColor="@color/white"
+                            android:textSize="@dimen/_9ssp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/_12sdp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/bedroom_name"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:fontFamily="@font/inter"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="@color/white"
+                                android:textSize="@dimen/_12ssp"
+                                android:textStyle="bold"
+                                tools:text="Bedroom TV" />
+
+                            <TextView
+                                android:id="@+id/bedroom_meta"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_5sdp"
+                                android:ellipsize="end"
+                                android:fontFamily="@font/inter"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="#A9A9AD"
+                                android:textSize="@dimen/_9ssp"
+                                tools:text="Google TV - Available" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/row_office"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_66sdp"
+                        android:layout_marginTop="@dimen/_10sdp"
+                        android:background="@drawable/bg_mirroring_status"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="@dimen/_12sdp"
+                        android:paddingEnd="@dimen/_12sdp">
+
+                        <TextView
+                            android:layout_width="@dimen/_38sdp"
+                            android:layout_height="@dimen/_38sdp"
+                            android:background="@drawable/bg_cast_youtube_action"
+                            android:fontFamily="@font/inter"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:text="@string/text_tv_icon"
+                            android:textColor="@color/white"
+                            android:textSize="@dimen/_9ssp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/_12sdp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/office_name"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:fontFamily="@font/inter"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="@color/white"
+                                android:textSize="@dimen/_12ssp"
+                                android:textStyle="bold"
+                                tools:text="Office TV" />
+
+                            <TextView
+                                android:id="@+id/office_meta"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_5sdp"
+                                android:ellipsize="end"
+                                android:fontFamily="@font/inter"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="#A9A9AD"
+                                android:textSize="@dimen/_9ssp"
+                                tools:text="Chromecast - Available" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/empty_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:background="@drawable/bg_mirroring_panel"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:padding="@dimen/_16sdp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/inter"
+                        android:gravity="center"
+                        android:text="@string/text_no_tvs_found"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/_14ssp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/_8sdp"
+                        android:fontFamily="@font/inter"
+                        android:gravity="center"
+                        android:text="@string/text_tv_remote_same_wifi_hint"
+                        android:textColor="#A9A9AD"
+                        android:textSize="@dimen/_9ssp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/remote_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_42sdp"
+                    android:background="@drawable/bg_mirroring_status"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="@dimen/_12sdp"
+                    android:paddingEnd="@dimen/_12sdp">
+
+                    <View
+                        android:layout_width="@dimen/_7sdp"
+                        android:layout_height="@dimen/_7sdp"
+                        android:layout_marginEnd="@dimen/_8sdp"
+                        android:background="@drawable/bg_cast_youtube_status_dot"
+                        android:backgroundTint="#84FF6A" />
+
+                    <TextView
+                        android:id="@+id/connection_text"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/inter"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:textColor="#D6D6D6"
+                        android:textSize="@dimen/_9ssp"
+                        tools:text="Connected to Living Room TV" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_56sdp"
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btn_power"
+                        style="@style/TvRemoteSmallButton"
+                        android:text="@string/text_power" />
+
+                    <TextView
+                        android:id="@+id/btn_input"
+                        style="@style/TvRemoteSmallButton"
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:text="@string/text_input" />
+
+                    <TextView
+                        android:id="@+id/btn_settings"
+                        style="@style/TvRemoteSmallButton"
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:text="@string/text_settings" />
+                </LinearLayout>
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_206sdp"
+                    android:layout_marginTop="@dimen/_14sdp"
+                    android:alignmentMode="alignMargins"
+                    android:columnCount="3"
+                    android:rowCount="3"
+                    android:useDefaultMargins="true">
+
+                    <Space style="@style/TvRemoteGridCell" />
+
+                    <TextView
+                        android:id="@+id/btn_up"
+                        style="@style/TvRemoteDpadButton"
+                        android:text="@string/text_arrow_up" />
+
+                    <Space style="@style/TvRemoteGridCell" />
+
+                    <TextView
+                        android:id="@+id/btn_left"
+                        style="@style/TvRemoteDpadButton"
+                        android:text="@string/text_arrow_left" />
+
+                    <TextView
+                        android:id="@+id/btn_ok"
+                        style="@style/TvRemoteDpadButton"
+                        android:background="@drawable/bg_cast_youtube_action"
+                        android:text="@string/text_ok" />
+
+                    <TextView
+                        android:id="@+id/btn_right"
+                        style="@style/TvRemoteDpadButton"
+                        android:text="@string/text_arrow_right" />
+
+                    <Space style="@style/TvRemoteGridCell" />
+
+                    <TextView
+                        android:id="@+id/btn_down"
+                        style="@style/TvRemoteDpadButton"
+                        android:text="@string/text_arrow_down" />
+
+                    <Space style="@style/TvRemoteGridCell" />
+                </GridLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_48sdp"
+                    android:layout_marginTop="@dimen/_8sdp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btn_back_remote"
+                        style="@style/TvRemoteSmallButton"
+                        android:text="@string/text_back" />
+
+                    <TextView
+                        android:id="@+id/btn_home"
+                        style="@style/TvRemoteSmallButton"
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:text="@string/text_home" />
+
+                    <TextView
+                        android:id="@+id/btn_menu"
+                        style="@style/TvRemoteSmallButton"
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:text="@string/text_menu" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_108sdp"
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_mirroring_panel"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="@dimen/_8sdp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/inter"
+                            android:text="@string/text_volume"
+                            android:textColor="@color/white"
+                            android:textSize="@dimen/_10ssp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_marginTop="@dimen/_8sdp"
+                            android:layout_weight="1"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/btn_vol_down"
+                                style="@style/TvRemoteSmallButton"
+                                android:text="@string/text_minus" />
+
+                            <TextView
+                                android:id="@+id/btn_mute"
+                                style="@style/TvRemoteSmallButton"
+                                android:layout_marginStart="@dimen/_6sdp"
+                                android:text="@string/text_mute" />
+
+                            <TextView
+                                android:id="@+id/btn_vol_up"
+                                style="@style/TvRemoteSmallButton"
+                                android:layout_marginStart="@dimen/_6sdp"
+                                android:text="@string/text_plus" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="@dimen/_10sdp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_mirroring_panel"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="@dimen/_8sdp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/inter"
+                            android:text="@string/text_channel"
+                            android:textColor="@color/white"
+                            android:textSize="@dimen/_10ssp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_marginTop="@dimen/_8sdp"
+                            android:layout_weight="1"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/btn_channel_down"
+                                style="@style/TvRemoteSmallButton"
+                                android:text="@string/text_minus" />
+
+                            <TextView
+                                android:id="@+id/btn_channel_up"
+                                style="@style/TvRemoteSmallButton"
+                                android:layout_marginStart="@dimen/_6sdp"
+                                android:text="@string/text_plus" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_52sdp"
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btn_rewind"
+                        style="@style/TvRemoteSmallButton"
+                        android:text="@string/text_rewind_short" />
+
+                    <TextView
+                        android:id="@+id/btn_play_pause"
+                        style="@style/TvRemoteSmallButton"
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:text="@string/text_play_pause_short" />
+
+                    <TextView
+                        android:id="@+id/btn_forward_media"
+                        style="@style/TvRemoteSmallButton"
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:text="@string/text_forward_short" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_50sdp"
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btn_keyboard"
+                        style="@style/TvRemoteSmallButton"
+                        android:text="@string/text_keyboard" />
+
+                    <TextView
+                        android:id="@+id/btn_apps"
+                        style="@style/TvRemoteSmallButton"
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:text="@string/text_apps" />
+
+                    <TextView
+                        android:id="@+id/btn_touchpad"
+                        style="@style/TvRemoteSmallButton"
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:text="@string/text_touchpad" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/command_status_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:fontFamily="@font/inter"
+                    android:gravity="center"
+                    android:text="@string/text_remote_ready"
+                    android:textColor="#A9A9AD"
+                    android:textSize="@dimen/_9ssp" />
+            </LinearLayout>
+        </FrameLayout>
+    </ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>
+

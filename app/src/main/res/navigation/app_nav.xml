@@ -36,6 +36,11 @@
         android:label="ScreenMirroringFragment"
         tools:layout="@layout/fragment_screen_mirroring" />
     <fragment
+        android:id="@+id/tvRemoteFragment"
+        android:name="com.example.base.ui.tv_remote.TvRemoteFragment"
+        android:label="TvRemoteFragment"
+        tools:layout="@layout/fragment_tv_remote" />
+    <fragment
         android:id="@+id/splashFragment"
         android:name="com.example.base.ui.splash.SplashFragment"
         android:label="SplashFragment" />
