@@ -21,6 +21,21 @@
         android:label="CastWebFragment"
         tools:layout="@layout/fragment_cast_web" />
     <fragment
+        android:id="@+id/castMediaFragment"
+        android:name="com.example.base.ui.cast_media.CastMediaFragment"
+        android:label="CastMediaFragment"
+        tools:layout="@layout/fragment_cast_media" />
+    <fragment
+        android:id="@+id/cameraCastFragment"
+        android:name="com.example.base.ui.cast_camera.CameraCastFragment"
+        android:label="CameraCastFragment"
+        tools:layout="@layout/fragment_camera_cast" />
+    <fragment
+        android:id="@+id/screenMirroringFragment"
+        android:name="com.example.base.ui.screen_mirroring.ScreenMirroringFragment"
+        android:label="ScreenMirroringFragment"
+        tools:layout="@layout/fragment_screen_mirroring" />
+    <fragment
         android:id="@+id/splashFragment"
         android:name="com.example.base.ui.splash.SplashFragment"
         android:label="SplashFragment" />

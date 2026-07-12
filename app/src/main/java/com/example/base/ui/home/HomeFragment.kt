@@ -1,10 +1,13 @@
 package com.example.base.ui.home
 
+import android.os.Bundle
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.base.R
 import com.example.base.databinding.FragmentHomeBinding
 import com.example.base.model.entity.ItemFunc
+import com.example.base.ui.cast_media.CastMediaFragment
 import com.example.base.utils.AppConstants
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.navigate
 
@@ -82,9 +85,9 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     fun setUpAdapter(){
         adapter.onClickItem { item, position ->
             when (item.type){
-                AppConstants.TYPE_MIRROR -> {}
-                AppConstants.TYPE_CAST_MEDIA -> {}
-                AppConstants.TYPE_CAMERA_CAST -> {}
+                AppConstants.TYPE_MIRROR -> navigate(R.id.screenMirroringFragment)
+                AppConstants.TYPE_CAST_MEDIA -> showCastMediaChooser()
+                AppConstants.TYPE_CAMERA_CAST -> navigate(R.id.cameraCastFragment)
                 AppConstants.TYPE_TRY_TV_REMOTE -> {}
                 AppConstants.TYPE_CAST_YOUTUBE -> navigate(R.id.castYoutubeFragment)
                 AppConstants.TYPE_CAST_WEB -> navigate(R.id.castWebFragment)
@@ -103,5 +106,29 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
             false
         )
 
+    }
+
+    private fun showCastMediaChooser() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.text_cast_media)
+            .setItems(
+                arrayOf(
+                    getString(R.string.text_cast_photos),
+                    getString(R.string.text_cast_video)
+                )
+            ) { _, which ->
+                val mode = if (which == 0) {
+                    CastMediaFragment.MODE_PHOTO
+                } else {
+                    CastMediaFragment.MODE_VIDEO
+                }
+                navigate(
+                    R.id.castMediaFragment,
+                    Bundle().apply {
+                        putString(CastMediaFragment.ARG_MODE, mode)
+                    }
+                )
+            }
+            .show()
     }
 }

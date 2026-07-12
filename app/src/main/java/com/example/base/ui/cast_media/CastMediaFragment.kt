@@ -1,0 +1,560 @@
+package com.example.base.ui.cast_media
+
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.base.R
+import com.example.base.databinding.FragmentCastMediaBinding
+import com.example.base.media.LocalMediaHttpServer
+import com.google.android.gms.cast.MediaInfo
+import com.google.android.gms.cast.MediaLoadRequestData
+import com.google.android.gms.cast.MediaMetadata
+import com.google.android.gms.cast.framework.CastButtonFactory
+import com.google.android.gms.cast.framework.CastContext
+import com.google.android.gms.cast.framework.CastSession
+import com.google.android.gms.cast.framework.SessionManagerListener
+import com.google.android.gms.common.images.WebImage
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import hoang.dqm.codebase.base.activity.BaseFragment
+import hoang.dqm.codebase.base.activity.onBackPressed
+import hoang.dqm.codebase.base.activity.popBackStack
+import hoang.dqm.codebase.R as CodeBaseR
+
+class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewModel>() {
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val mediaServer by lazy { LocalMediaHttpServer(requireContext().applicationContext) }
+    private val photoAdapter by lazy { PhotoThumbAdapter(::selectPhoto) }
+    private val mode: String by lazy {
+        arguments?.getString(ARG_MODE, MODE_PHOTO) ?: MODE_PHOTO
+    }
+
+    private var castContext: CastContext? = null
+    private var pendingCast = false
+    private var isCasting = false
+    private var selectedPhotoIndex = 0
+    private var photos = emptyList<Uri>()
+    private var videoUri: Uri? = null
+    private var player: ExoPlayer? = null
+    private var toolbarBaseHeight = 0
+    private var bottomButtonBaseMargin = 0
+
+    private val videoProgressRunnable = object : Runnable {
+        override fun run() {
+            updateVideoTime()
+            mainHandler.postDelayed(this, VIDEO_PROGRESS_INTERVAL_MS)
+        }
+    }
+
+    private val photoPicker = registerForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS)
+    ) { uris ->
+        if (uris.isEmpty()) {
+            showMediaErrorDialog()
+        } else {
+            setPhotos(uris)
+        }
+    }
+
+    private val videoPicker = registerForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri == null) {
+            showMediaErrorDialog()
+        } else {
+            setVideo(uri)
+        }
+    }
+
+    private val castSessionListener = object : SessionManagerListener<CastSession> {
+        override fun onSessionStarting(session: CastSession) {
+            updateCastStatus(CastConnectionState.Connecting)
+        }
+
+        override fun onSessionStarted(session: CastSession, sessionId: String) {
+            updateCastStatus(CastConnectionState.Connected)
+            if (pendingCast) {
+                pendingCast = false
+                castSelectedMedia()
+            }
+        }
+
+        override fun onSessionStartFailed(session: CastSession, error: Int) {
+            pendingCast = false
+            updateCastStatus(CastConnectionState.Error)
+            updateControls()
+        }
+
+        override fun onSessionEnding(session: CastSession) {
+            updateCastStatus(CastConnectionState.Connecting)
+        }
+
+        override fun onSessionEnded(session: CastSession, error: Int) {
+            pendingCast = false
+            isCasting = false
+            updateCastStatus(CastConnectionState.Disconnected)
+            updateControls()
+        }
+
+        override fun onSessionResuming(session: CastSession, sessionId: String) {
+            updateCastStatus(CastConnectionState.Connecting)
+        }
+
+        override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
+            updateCastStatus(CastConnectionState.Connected)
+            updateControls()
+        }
+
+        override fun onSessionResumeFailed(session: CastSession, error: Int) {
+            updateCastStatus(CastConnectionState.Error)
+            updateControls()
+        }
+
+        override fun onSessionSuspended(session: CastSession, reason: Int) {
+            isCasting = false
+            updateCastStatus(CastConnectionState.Disconnected)
+            updateControls()
+        }
+    }
+
+    override fun initView() {
+        applySystemInsets()
+        setupCastButton()
+        setupModeUi()
+        setupPhotoList()
+        updateControls()
+    }
+
+    override fun initListener() {
+        binding.btnBack.setOnClickListener { handleBackPressed() }
+        binding.btnStartCasting.setOnClickListener { handleCastButton() }
+        binding.photoPreview.setOnClickListener { openPicker() }
+        binding.videoPlayer.setOnClickListener { openPicker() }
+        onBackPressed(Runnable { handleBackPressed() })
+    }
+
+    override fun initData() {
+        mainHandler.post { openPicker() }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        castContext?.sessionManager?.addSessionManagerListener(
+            castSessionListener,
+            CastSession::class.java
+        )
+        updateCastStatusFromSession()
+    }
+
+    override fun onStop() {
+        castContext?.sessionManager?.removeSessionManagerListener(
+            castSessionListener,
+            CastSession::class.java
+        )
+        super.onStop()
+    }
+
+    override fun onPause() {
+        mainHandler.removeCallbacks(videoProgressRunnable)
+        player?.pause()
+        super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (mode == MODE_VIDEO && videoUri != null) {
+            startVideoProgressTicker()
+        }
+    }
+
+    override fun onDestroyView() {
+        mainHandler.removeCallbacksAndMessages(null)
+        player?.release()
+        player = null
+        mediaServer.close()
+        super.onDestroyView()
+    }
+
+    private fun applySystemInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+
+            if (toolbarBaseHeight == 0) {
+                toolbarBaseHeight = binding.toolbar.layoutParams.height
+            }
+            binding.toolbar.layoutParams = binding.toolbar.layoutParams.apply {
+                height = toolbarBaseHeight + systemBars.top
+            }
+            binding.toolbar.updatePadding(top = systemBars.top)
+
+            val params = binding.btnStartCasting.layoutParams as ViewGroup.MarginLayoutParams
+            if (bottomButtonBaseMargin == 0) {
+                bottomButtonBaseMargin = params.bottomMargin
+            }
+            params.bottomMargin = bottomButtonBaseMargin + systemBars.bottom
+            binding.btnStartCasting.layoutParams = params
+
+            insets
+        }
+    }
+
+    private fun setupCastButton() {
+        runCatching {
+            castContext = CastContext.getSharedInstance(requireContext())
+            CastButtonFactory.setUpMediaRouteButton(requireContext(), binding.btnTopCast)
+            updateCastStatusFromSession()
+        }.onFailure {
+            binding.btnTopCast.isEnabled = false
+            binding.btnTopCast.alpha = 0.45f
+            updateCastStatus(CastConnectionState.Error)
+        }
+    }
+
+    private fun setupModeUi() {
+        val isPhotoMode = mode == MODE_PHOTO
+        binding.title.text = getString(
+            if (isPhotoMode) R.string.text_cast_photos else R.string.text_cast_video
+        )
+        binding.photoPreview.isVisible = isPhotoMode
+        binding.photoList.isVisible = isPhotoMode
+        binding.videoPlayer.isVisible = !isPhotoMode
+        binding.videoTimeRow.isVisible = !isPhotoMode
+    }
+
+    private fun setupPhotoList() {
+        binding.photoList.adapter = photoAdapter
+        binding.photoList.layoutManager = LinearLayoutManager(
+            requireContext(),
+            LinearLayoutManager.HORIZONTAL,
+            false
+        )
+    }
+
+    private fun openPicker() {
+        if (mode == MODE_PHOTO) {
+            photoPicker.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        } else {
+            videoPicker.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+            )
+        }
+    }
+
+    private fun setPhotos(uris: List<Uri>) {
+        photos = uris
+        selectedPhotoIndex = 0
+        binding.photoPreview.setImageURI(uris.first())
+        photoAdapter.submit(uris, selectedPhotoIndex)
+        updateControls()
+    }
+
+    private fun selectPhoto(position: Int) {
+        val uri = photos.getOrNull(position) ?: return
+        selectedPhotoIndex = position
+        binding.photoPreview.setImageURI(uri)
+        photoAdapter.submit(photos, selectedPhotoIndex)
+    }
+
+    private fun setVideo(uri: Uri) {
+        videoUri = uri
+        if (player == null) {
+            player = ExoPlayer.Builder(requireContext()).build()
+            binding.videoPlayer.player = player
+        }
+        player?.setMediaItem(MediaItem.fromUri(uri))
+        player?.prepare()
+        player?.playWhenReady = false
+        startVideoProgressTicker()
+        updateControls()
+    }
+
+    private fun startVideoProgressTicker() {
+        mainHandler.removeCallbacks(videoProgressRunnable)
+        updateVideoTime()
+        mainHandler.postDelayed(videoProgressRunnable, VIDEO_PROGRESS_INTERVAL_MS)
+    }
+
+    private fun updateVideoTime() {
+        val currentPlayer = player ?: return
+        binding.textVideoPosition.text = currentPlayer.currentPosition.formatDuration()
+        binding.textVideoDuration.text = currentPlayer.duration
+            .takeIf { it != C.TIME_UNSET && it > 0 }
+            ?.formatDuration()
+            ?: "00:00"
+    }
+
+    private fun Long.formatDuration(): String {
+        val totalSeconds = (this / 1000).coerceAtLeast(0)
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return "%02d:%02d".format(minutes, seconds)
+    }
+
+    private fun handleCastButton() {
+        if (isCasting) {
+            showStopCastingDialog()
+        } else {
+            castSelectedMedia()
+        }
+    }
+
+    private fun castSelectedMedia() {
+        val selected = currentSelection()
+        if (selected == null) {
+            showMediaErrorDialog()
+            return
+        }
+
+        val session = currentCastSession()
+        if (session?.isConnected != true) {
+            pendingCast = true
+            Toast.makeText(requireContext(), R.string.text_select_tv_to_cast, Toast.LENGTH_SHORT).show()
+            binding.btnTopCast.performClick()
+            mainHandler.postDelayed({
+                if (_binding != null && view != null && currentCastSession()?.isConnected != true) {
+                    pendingCast = false
+                    updateCastStatusFromSession()
+                }
+            }, CAST_SELECTION_TIMEOUT_MS)
+            updateControls()
+            return
+        }
+
+        val castUrl = mediaServer.register(
+            selected.uri,
+            selected.mimeType
+        )
+        if (castUrl == null) {
+            Toast.makeText(requireContext(), R.string.text_could_not_prepare_media, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        binding.preparingOverlay.isVisible = true
+        isCasting = true
+        updateControls()
+
+        val metadata = MediaMetadata(
+            if (selected.isPhoto) MediaMetadata.MEDIA_TYPE_PHOTO else MediaMetadata.MEDIA_TYPE_MOVIE
+        ).apply {
+            putString(MediaMetadata.KEY_TITLE, selected.title)
+            if (selected.isPhoto) {
+                addImage(WebImage(castUrl.toUri()))
+            }
+        }
+
+        val mediaInfo = MediaInfo.Builder(castUrl)
+            .setStreamType(
+                if (selected.isPhoto) MediaInfo.STREAM_TYPE_NONE else MediaInfo.STREAM_TYPE_BUFFERED
+            )
+            .setContentType(selected.mimeType)
+            .setMetadata(metadata)
+            .build()
+
+        session.remoteMediaClient
+            ?.load(
+                MediaLoadRequestData.Builder()
+                    .setMediaInfo(mediaInfo)
+                    .setAutoplay(!selected.isPhoto)
+                    .build()
+            )
+            ?.setResultCallback { result ->
+                mainHandler.post {
+                    if (_binding == null || view == null) return@post
+
+                    binding.preparingOverlay.isVisible = false
+                    isCasting = result.status.isSuccess
+                    if (!result.status.isSuccess) {
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.text_could_not_cast_media,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    updateControls()
+                }
+            }
+    }
+
+    private fun currentSelection(): SelectedMedia? {
+        val uri = if (mode == MODE_PHOTO) {
+            photos.getOrNull(selectedPhotoIndex)
+        } else {
+            videoUri
+        } ?: return null
+
+        val mimeType = requireContext().contentResolver.getType(uri) ?: if (mode == MODE_PHOTO) {
+            "image/jpeg"
+        } else {
+            "video/mp4"
+        }
+        val title = LocalMediaHttpServer.queryDisplayName(requireContext(), uri)
+        return SelectedMedia(
+            uri = uri,
+            title = title,
+            mimeType = mimeType,
+            isPhoto = mode == MODE_PHOTO
+        )
+    }
+
+    private fun showStopCastingDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setMessage(R.string.text_stop_casting_message)
+            .setPositiveButton(R.string.text_stop_casting) { _, _ -> stopCasting() }
+            .setNegativeButton(R.string.text_cancel, null)
+            .show()
+    }
+
+    private fun stopCasting() {
+        currentCastSession()?.remoteMediaClient?.stop()
+        isCasting = false
+        binding.preparingOverlay.isVisible = false
+        updateControls()
+    }
+
+    private fun showMediaErrorDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.text_something_went_wrong)
+            .setMessage(R.string.text_media_pick_error_message)
+            .setPositiveButton(R.string.text_ok, null)
+            .show()
+        updateControls()
+    }
+
+    private fun updateControls() {
+        if (_binding == null || view == null) return
+
+        val hasMedia = currentSelection() != null
+        binding.btnStartCasting.isEnabled = hasMedia || isCasting
+        binding.btnStartCasting.alpha = if (hasMedia || isCasting) 1f else 0.65f
+        binding.btnStartCasting.text = when {
+            isCasting -> getString(R.string.text_stop_casting)
+            pendingCast -> getString(R.string.text_connecting_to_tv)
+            else -> getString(R.string.text_start_casting)
+        }
+        binding.btnStartCasting.setBackgroundResource(
+            if (isCasting) R.drawable.bg_cast_media_stop_action else R.drawable.bg_cast_youtube_action
+        )
+    }
+
+    private fun updateCastStatusFromSession() {
+        val state = if (currentCastSession()?.isConnected == true) {
+            CastConnectionState.Connected
+        } else {
+            CastConnectionState.Disconnected
+        }
+        updateCastStatus(state)
+        updateControls()
+    }
+
+    private fun updateCastStatus(state: CastConnectionState) {
+        val color = when (state) {
+            CastConnectionState.Disconnected -> "#777777"
+            CastConnectionState.Connecting -> "#F4D188"
+            CastConnectionState.Connected -> "#84FF6A"
+            CastConnectionState.Error -> "#FF5C5C"
+        }
+        binding.connectionDot.backgroundTintList = ColorStateList.valueOf(Color.parseColor(color))
+    }
+
+    private fun currentCastSession(): CastSession? {
+        return castContext?.sessionManager?.currentCastSession
+    }
+
+    private fun handleBackPressed() {
+        popBackStack()
+    }
+
+    private data class SelectedMedia(
+        val uri: Uri,
+        val title: String,
+        val mimeType: String,
+        val isPhoto: Boolean
+    )
+
+    private enum class CastConnectionState {
+        Disconnected,
+        Connecting,
+        Connected,
+        Error
+    }
+
+    companion object {
+        const val ARG_MODE = "mode"
+        const val MODE_PHOTO = "photo"
+        const val MODE_VIDEO = "video"
+        private const val MAX_PHOTOS = 20
+        private const val VIDEO_PROGRESS_INTERVAL_MS = 500L
+        private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
+    }
+}
+
+private class PhotoThumbAdapter(
+    private val onClick: (Int) -> Unit
+) : RecyclerView.Adapter<PhotoThumbAdapter.PhotoThumbViewHolder>() {
+
+    private var items: List<Uri> = emptyList()
+    private var selectedIndex = 0
+
+    fun submit(newItems: List<Uri>, selected: Int) {
+        items = newItems
+        selectedIndex = selected
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhotoThumbViewHolder {
+        val imageView = ImageView(parent.context).apply {
+            layoutParams = RecyclerView.LayoutParams(
+                parent.resources.getDimensionPixelSize(CodeBaseR.dimen._42sdp),
+                parent.resources.getDimensionPixelSize(CodeBaseR.dimen._54sdp)
+            ).apply {
+                marginEnd = parent.resources.getDimensionPixelSize(CodeBaseR.dimen._6sdp)
+            }
+            background = androidx.core.content.ContextCompat.getDrawable(
+                parent.context,
+                R.drawable.bg_cast_media_thumb
+            )
+            clipToOutline = true
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            setPadding(2, 2, 2, 2)
+        }
+        return PhotoThumbViewHolder(imageView)
+    }
+
+    override fun onBindViewHolder(holder: PhotoThumbViewHolder, position: Int) {
+        holder.imageView.setImageURI(items[position])
+        holder.imageView.background = androidx.core.content.ContextCompat.getDrawable(
+            holder.imageView.context,
+            if (position == selectedIndex) {
+                R.drawable.bg_cast_media_thumb_selected
+            } else {
+                R.drawable.bg_cast_media_thumb
+            }
+        )
+        holder.imageView.setOnClickListener { onClick(position) }
+    }
+
+    override fun getItemCount(): Int = items.size
+
+    class PhotoThumbViewHolder(
+        val imageView: ImageView
+    ) : RecyclerView.ViewHolder(imageView)
+}
