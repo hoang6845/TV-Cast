@@ -1,6 +1,7 @@
 package com.example.base.tvremote
 
 import android.content.Context
+import android.net.wifi.WifiManager
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 
@@ -9,19 +10,22 @@ internal class AndroidTvDiscovery(
     private val onDevicesChanged: (List<TvRemoteDevice>) -> Unit,
     private val onError: (String) -> Unit
 ) {
-    private val nsdManager = context.applicationContext.getSystemService(Context.NSD_SERVICE) as NsdManager
+    private val appContext = context.applicationContext
+    private val nsdManager = appContext.getSystemService(Context.NSD_SERVICE) as NsdManager
+    private val wifiManager = appContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     private val devices = linkedMapOf<String, TvRemoteDevice>()
     private var discoveryListener: NsdManager.DiscoveryListener? = null
+    private var multicastLock: WifiManager.MulticastLock? = null
 
     fun start() {
         stop()
         devices.clear()
-        onDevicesChanged(emptyList())
+        acquireMulticastLock()
         val listener = object : NsdManager.DiscoveryListener {
             override fun onDiscoveryStarted(serviceType: String) = Unit
 
             override fun onServiceFound(serviceInfo: NsdServiceInfo) {
-                if (serviceInfo.serviceType != SERVICE_TYPE) return
+                if (!serviceInfo.serviceType.contains("_androidtvremote2")) return
                 resolve(serviceInfo)
             }
 
@@ -51,6 +55,7 @@ internal class AndroidTvDiscovery(
             runCatching { nsdManager.stopServiceDiscovery(it) }
         }
         discoveryListener = null
+        releaseMulticastLock()
     }
 
     private fun resolve(serviceInfo: NsdServiceInfo) {
@@ -76,9 +81,26 @@ internal class AndroidTvDiscovery(
         )
     }
 
+    private fun acquireMulticastLock() {
+        if (multicastLock?.isHeld == true) return
+        multicastLock = wifiManager.createMulticastLock(MULTICAST_LOCK_TAG).apply {
+            setReferenceCounted(false)
+            acquire()
+        }
+    }
+
+    private fun releaseMulticastLock() {
+        multicastLock?.let { lock ->
+            if (lock.isHeld) {
+                runCatching { lock.release() }
+            }
+        }
+        multicastLock = null
+    }
+
     companion object {
         private const val SERVICE_TYPE = "_androidtvremote2._tcp."
         private const val DEFAULT_REMOTE_PORT = 6466
+        private const val MULTICAST_LOCK_TAG = "tv_cast_android_tv_remote_discovery"
     }
 }
-

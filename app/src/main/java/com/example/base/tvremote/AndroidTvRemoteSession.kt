@@ -152,9 +152,13 @@ internal class AndroidTvRemoteSession(
 
 internal fun SSLSocketFactory.createAndroidTvSocket(host: String, port: Int): SSLSocket {
     val socket = createSocket() as SSLSocket
+    socket.useClientMode = true
+    socket.supportedProtocols
+        .filter { it == "TLSv1.2" }
+        .takeIf { it.isNotEmpty() }
+        ?.let { socket.enabledProtocols = it.toTypedArray() }
     socket.soTimeout = 0
     socket.connect(InetSocketAddress(host, port), 8_000)
     socket.startHandshake()
     return socket
 }
-

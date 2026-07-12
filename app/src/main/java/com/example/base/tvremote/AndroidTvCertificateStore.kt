@@ -1,76 +1,71 @@
 package com.example.base.tvremote
 
 import android.content.Context
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
-import java.math.BigInteger
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.net.Socket
-import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.PrivateKey
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
-import java.util.Date
 import javax.net.ssl.SSLEngine
 import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
 import javax.net.ssl.X509ExtendedKeyManager
 import javax.net.ssl.X509TrustManager
-import javax.security.auth.x500.X500Principal
 
 internal class AndroidTvCertificateStore(context: Context) {
     private val appContext = context.applicationContext
 
     fun sslContext(): SSLContext {
-        ensureCertificate()
         val keyStore = keyStore()
-        val privateKey = keyStore.getKey(KEY_ALIAS, null) as PrivateKey
+        val privateKey = keyStore.getKey(KEY_ALIAS, KEY_PASSWORD) as PrivateKey
         val certificate = keyStore.getCertificate(KEY_ALIAS) as X509Certificate
-        val sslContext = SSLContext.getInstance("TLS")
-        sslContext.init(
-            arrayOf(SingleAliasKeyManager(privateKey, certificate)),
-            arrayOf(TrustAllManager),
-            SecureRandom()
-        )
-        return sslContext
+        return SSLContext.getInstance("TLSv1.2").apply {
+            init(
+                arrayOf(SingleAliasKeyManager(privateKey, certificate)),
+                arrayOf(TrustAllManager),
+                SecureRandom()
+            )
+        }
     }
 
     fun certificate(): X509Certificate {
-        ensureCertificate()
         return keyStore().getCertificate(KEY_ALIAS) as X509Certificate
     }
 
-    private fun ensureCertificate() {
-        val keyStore = keyStore()
-        if (keyStore.containsAlias(KEY_ALIAS)) return
+    private fun keyStore(): KeyStore {
+        val file = certificateFile()
+        val keyStore = KeyStore.getInstance(KEYSTORE_TYPE)
+        if (file.exists()) {
+            try {
+                FileInputStream(file).use { input ->
+                    keyStore.load(input, KEY_PASSWORD)
+                }
+                if (keyStore.containsAlias(KEY_ALIAS)) return keyStore
+            } catch (_: Throwable) {
+                file.delete()
+            }
+        }
 
-        val generator = KeyPairGenerator.getInstance(
-            KeyProperties.KEY_ALGORITHM_RSA,
-            ANDROID_KEY_STORE
+        keyStore.load(null, KEY_PASSWORD)
+        val generated = SelfSignedCertificateGenerator.generate(
+            commonName = "${appContext.packageName}.androidtvremote"
         )
-        val now = System.currentTimeMillis()
-        val spec = KeyGenParameterSpec.Builder(
+        keyStore.setKeyEntry(
             KEY_ALIAS,
-            KeyProperties.PURPOSE_SIGN or
-                    KeyProperties.PURPOSE_VERIFY or
-                    KeyProperties.PURPOSE_ENCRYPT or
-                    KeyProperties.PURPOSE_DECRYPT
+            generated.keyPair.private,
+            KEY_PASSWORD,
+            arrayOf(generated.certificate)
         )
-            .setCertificateSubject(X500Principal("CN=${appContext.packageName}"))
-            .setCertificateSerialNumber(BigInteger.valueOf(now))
-            .setCertificateNotBefore(Date(now - ONE_DAY_MS))
-            .setCertificateNotAfter(Date(now + TEN_YEARS_MS))
-            .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
-            .setKeySize(2048)
-            .build()
-        generator.initialize(spec)
-        generator.generateKeyPair()
+        FileOutputStream(file).use { output ->
+            keyStore.store(output, KEY_PASSWORD)
+        }
+        return keyStore
     }
 
-    private fun keyStore(): KeyStore {
-        return KeyStore.getInstance(ANDROID_KEY_STORE).apply { load(null) }
+    private fun certificateFile(): File {
+        return File(appContext.filesDir, CERTIFICATE_FILE_NAME)
     }
 
     private class SingleAliasKeyManager(
@@ -113,10 +108,10 @@ internal class AndroidTvCertificateStore(context: Context) {
     }
 
     companion object {
-        private const val ANDROID_KEY_STORE = "AndroidKeyStore"
-        private const val KEY_ALIAS = "tv_cast_android_tv_remote_v2"
-        private const val ONE_DAY_MS = 24L * 60L * 60L * 1000L
-        private const val TEN_YEARS_MS = 10L * 365L * ONE_DAY_MS
+        private const val KEYSTORE_TYPE = "PKCS12"
+        private const val CERTIFICATE_FILE_NAME = "android_tv_remote_client_v1.p12"
+        private const val KEY_ALIAS = "tv_cast_android_tv_remote_software_v1"
+        private val KEY_PASSWORD = "tv_cast_remote".toCharArray()
     }
 }
 

@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.text.InputFilter
 import android.text.InputType
+import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
@@ -67,10 +68,12 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     private var toolbarBaseHeight = 0
     private var contentBaseBottomPadding = -1
     private var lastCommandAt = 0L
+    private var viewActive = false
 
     private val nearbyWifiPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
+        if (!canUseBinding()) return@registerForActivityResult
         if (granted) {
             startScan()
         } else {
@@ -79,17 +82,24 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     override fun initView() {
+        viewActive = true
         controller = AndroidTvRemoteController(
             context = requireContext(),
             onDevicesChanged = { devices ->
                 mainHandler.post {
+                    if (!canUseBinding()) return@post
                     discoveredDevices = devices
-                    isScanning = false
+                    if (devices.isNotEmpty()) {
+                        isScanning = false
+                    }
                     renderDisconnected()
                 }
             },
             onStateChanged = { state ->
-                mainHandler.post { renderState(state) }
+                mainHandler.post {
+                    if (!canUseBinding()) return@post
+                    renderState(state)
+                }
             }
         )
         applySystemInsets()
@@ -135,10 +145,11 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     override fun onDestroyView() {
-        mainHandler.removeCallbacksAndMessages(null)
+        viewActive = false
         if (::controller.isInitialized) {
             controller.close()
         }
+        mainHandler.removeCallbacksAndMessages(null)
         super.onDestroyView()
     }
 
@@ -181,6 +192,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun renderDisconnected() {
+        if (!canUseBinding()) return
         binding.title.text = getString(R.string.text_tv_remote)
         binding.btnRefresh.isVisible = true
         binding.btnMore.isVisible = false
@@ -204,6 +216,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun bindDeviceRows() {
+        if (!canUseBinding()) return
         val rows = listOf(
             Triple(binding.rowLivingRoom, binding.livingRoomName, binding.livingRoomMeta),
             Triple(binding.rowBedroom, binding.bedroomName, binding.bedroomMeta),
@@ -220,6 +233,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun renderNoPermission() {
+        if (!canUseBinding()) return
         isScanning = false
         discoveredDevices = emptyList()
         renderDisconnected()
@@ -228,6 +242,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun renderState(state: TvRemoteConnectionState) {
+        if (!canUseBinding()) return
         when (state) {
             TvRemoteConnectionState.Idle -> Unit
             TvRemoteConnectionState.Searching -> {
@@ -274,6 +289,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
                 Toast.makeText(requireContext(), state.message, Toast.LENGTH_SHORT).show()
                 isScanning = false
                 renderDisconnected()
+                Log.d("renderState", "renderState: ${state.message}")
             }
         }
     }
@@ -347,6 +363,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun renderRemote() {
+        if (!canUseBinding()) return
         val device = selectedDevice ?: return
         binding.title.text = device.name
         binding.btnRefresh.isVisible = false
@@ -363,6 +380,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun setRemoteEnabled(enabled: Boolean) {
+        if (!canUseBinding()) return
         val controls = listOf(
             binding.btnPower,
             binding.btnInput,
@@ -613,17 +631,21 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun showConnectionError(error: Throwable) {
+        if (!canUseBinding()) return
         Toast.makeText(
             requireContext(),
             error.message ?: getString(R.string.text_could_not_connect_tv),
             Toast.LENGTH_LONG
         ).show()
+        Log.d("renderState", "renderState: ${error.message}")
+
         isConnected = false
         isReconnecting = false
         renderDisconnected()
     }
 
     private fun handleCommandError(error: Throwable) {
+        if (!canUseBinding()) return
         binding.commandStatusText.text = error.message ?: getString(R.string.text_connection_lost)
         if (error is TvRemoteException) {
             showConnectionLostDialog()
@@ -663,6 +685,10 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         } else {
             popBackStack()
         }
+    }
+
+    private fun canUseBinding(): Boolean {
+        return viewActive && _binding != null && view != null && isAdded
     }
 
     companion object {
