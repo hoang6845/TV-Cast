@@ -3,7 +3,10 @@ package hoang.dqm.codebase.data
 data class CategoryItem(
     var type: String = "",
     var value: String = "",
+    var name: String = "",
+    var description: String = ""
 )
+
 
 data class CategoryItemUrl(
     var type: String = "",

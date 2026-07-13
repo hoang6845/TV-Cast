@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".ui.iptv_fragment.IPTVFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/top_bar"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_48sdp"
+        android:paddingHorizontal="@dimen/_12sdp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="@dimen/_34sdp"
+            android:layout_height="@dimen/_34sdp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/text_back"
+            android:padding="@dimen/_7sdp"
+            android:src="@drawable/ic_arrow_back_white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="@string/text_iptv"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_11ssp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_top_action"
+            app:layout_constraintStart_toEndOf="@id/btn_back"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/btn_top_action"
+            android:layout_width="@dimen/_34sdp"
+            android:layout_height="@dimen/_34sdp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/text_refresh_playlist"
+            android:padding="@dimen/_7sdp"
+            android:src="@drawable/ic_reload_white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <LinearLayout
+        android:id="@+id/content_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/top_bar">
+
+        <LinearLayout
+            android:id="@+id/tab_container"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/_34sdp"
+            android:layout_marginHorizontal="@dimen/_28sdp"
+            android:layout_marginTop="@dimen/_6sdp"
+            android:background="@drawable/bg_iptv_tab_container"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="@dimen/_3sdp">
+
+            <TextView
+                android:id="@+id/btn_genres"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_iptv_tab_selected"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/text_genres"
+                android:textColor="@color/black"
+                android:textSize="@dimen/_10ssp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btn_favorites"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/text_favorites"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_10ssp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/filter_container"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/_42sdp"
+            android:layout_marginHorizontal="@dimen/_12sdp"
+            android:layout_marginTop="@dimen/_10sdp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btn_search"
+                android:layout_width="@dimen/_42sdp"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_iptv_search"
+                android:contentDescription="@string/text_search"
+                android:padding="@dimen/_11sdp"
+                android:src="@drawable/ic_iptv_search" />
+
+            <TextView
+                android:id="@+id/btn_filter_mode"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="@dimen/_7sdp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_iptv_dropdown"
+                android:drawableEnd="@drawable/ic_iptv_arrow_down"
+                android:drawablePadding="@dimen/_4sdp"
+                android:ellipsize="end"
+                android:fontFamily="@font/inter"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:paddingHorizontal="@dimen/_10sdp"
+                android:text="@string/text_by_country"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_9ssp" />
+
+            <TextView
+                android:id="@+id/btn_filter_value"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="@dimen/_7sdp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_iptv_dropdown"
+                android:drawableEnd="@drawable/ic_iptv_arrow_down"
+                android:drawablePadding="@dimen/_4sdp"
+                android:ellipsize="end"
+                android:fontFamily="@font/inter"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:paddingHorizontal="@dimen/_10sdp"
+                android:text="@string/text_all_countries"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_9ssp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/list_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/_10sdp"
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_categories"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="@dimen/_12sdp"
+                tools:itemCount="8"
+                tools:listitem="@layout/item_iptv_category" />
+
+            <TextView
+                android:id="@+id/tv_empty_categories"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:padding="@dimen/_24sdp"
+                android:text="@string/text_no_categories_found"
+                android:textColor="#8F8F96"
+                android:textSize="@dimen/_11ssp"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_channels"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingHorizontal="@dimen/_8sdp"
+                android:paddingBottom="@dimen/_12sdp"
+                android:visibility="gone"
+                tools:itemCount="6"
+                tools:listitem="@layout/item_iptv_channel" />
+
+            <TextView
+                android:id="@+id/tv_empty_channels"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:padding="@dimen/_24sdp"
+                android:text="@string/text_no_channels_found"
+                android:textColor="#8F8F96"
+                android:textSize="@dimen/_11ssp"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/player_container"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/_110sdp"
+            android:layout_marginHorizontal="@dimen/_12sdp"
+            android:layout_marginBottom="@dimen/_12sdp"
+            android:background="@drawable/bg_iptv_bottom_player"
+            android:clipToOutline="true"
+            android:visibility="gone">
+
+            <androidx.media3.ui.PlayerView
+                android:id="@+id/player_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/black"
+                app:resize_mode="zoom"
+                app:show_buffering="never"
+                app:use_controller="false" />
+
+            <ProgressBar
+                android:id="@+id/player_loading"
+                android:layout_width="@dimen/_30sdp"
+                android:layout_height="@dimen/_30sdp"
+                android:layout_gravity="center"
+                android:indeterminateTint="@color/white"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/player_unavailable"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_iptv_player_overlay"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingHorizontal="@dimen/_20sdp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/inter"
+                    android:includeFontPadding="false"
+                    android:text="@string/text_channel_unavailable"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/_11ssp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_6sdp"
+                    android:fontFamily="@font/inter"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="@string/text_channel_unavailable_message"
+                    android:textColor="#B7B7BD"
+                    android:textSize="@dimen/_8ssp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/btn_cast_to_tv"
+                android:layout_width="@dimen/_74sdp"
+                android:layout_height="@dimen/_30sdp"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="@dimen/_10sdp"
+                android:layout_marginBottom="@dimen/_10sdp"
+                android:background="@drawable/bg_iptv_cast_button"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/text_cast_to_tv"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_8ssp"
+                android:textStyle="bold" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/refresh_loading_overlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_iptv_loading_overlay"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="@dimen/_170sdp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_iptv_row"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/_18sdp">
+
+            <ProgressBar
+                android:layout_width="@dimen/_32sdp"
+                android:layout_height="@dimen/_32sdp"
+                android:indeterminateTint="@color/white" />
+
+            <TextView
+                android:id="@+id/tv_refresh_progress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_12sdp"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_10ssp"
+                tools:text="Refreshing playlist 45%" />
+        </LinearLayout>
+    </FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

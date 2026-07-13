@@ -92,7 +92,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
                 AppConstants.TYPE_CAST_YOUTUBE -> navigate(R.id.castYoutubeFragment)
                 AppConstants.TYPE_CAST_WEB -> navigate(R.id.castWebFragment)
                 AppConstants.TYPE_MOVIE_ADVISOR -> {}
-                AppConstants.TYPE_IPTV -> {}
+                AppConstants.TYPE_IPTV -> navigate(R.id.iptvFragment)
 
             }
         }

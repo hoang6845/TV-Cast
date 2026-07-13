@@ -41,6 +41,11 @@
         android:label="TvRemoteFragment"
         tools:layout="@layout/fragment_tv_remote" />
     <fragment
+        android:id="@+id/iptvFragment"
+        android:name="com.example.base.ui.iptv_fragment.IPTVFragment"
+        android:label="IPTVFragment"
+        tools:layout="@layout/fragment_i_p_t_v" />
+    <fragment
         android:id="@+id/splashFragment"
         android:name="com.example.base.ui.splash.SplashFragment"
         android:label="SplashFragment" />

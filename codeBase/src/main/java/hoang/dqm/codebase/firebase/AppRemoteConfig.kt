@@ -17,7 +17,7 @@ object AppRemoteConfig {
     private val baseConfig by lazy { RemoteConfigImpl() }
     const val REMOTE_DATA_CATEGORY_APP = "data_category_app"
     private const val ACCESS_KEY_REMOTE_DATA = "access_key_remote_data"
-    const val DATA_CATEGORY_URL = "data_category_url"
+    const val DATA_CATEGORY_URL = "category_iptv"
     const val DATA_AVATAR = "data_avatar"
     const val DATA_PRICE = "data_price"
     const val TIME_DELAY_INTER_SPLASH_OPEN = "time_delay_inter_splash_vs_open"
@@ -25,6 +25,7 @@ object AppRemoteConfig {
     const val IS_SHOW_AD_OPEN = "is_show_ad_open"
     const val IS_SHOW_ADS_APP = "is_show_ads_app"
     const val IS_SHOW_INTER_SPLASH = "is_show_inter_splash"
+    const val CATEGORY_IPTV = "category_iptv"
 
     fun fetchConfig( callback: Runnable){
         Log.d("AppRemoteConfig", "fetchConfig called, passing callback to baseConfig")
@@ -164,8 +165,14 @@ object AppRemoteConfig {
         return jsonArray.map { jsonElement ->
             val obj = jsonElement.asJsonObject
             val type = obj.get("type")?.asString ?: ""
+            val name = obj.get("name")?.asString ?: ""
+            val description = obj.get("description")?.asString ?: ""
             val value = obj.get(langKey)?.asString ?: ""
-            CategoryItem(type = type, value = value)
+            CategoryItem(
+                type = type, value = value,
+                name = name,
+                description = description
+            )
         }
     }
 
