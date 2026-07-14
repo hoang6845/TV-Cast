@@ -12,6 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="fitXY"
+        android:src="@drawable/intro_1"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -116,8 +117,10 @@
         android:layout_marginHorizontal="@dimen/_16sdp"
         android:layout_marginTop="@dimen/_8sdp"
         android:layout_marginBottom="@dimen/_40sdp"
+        android:background="@drawable/shape_btn"
         android:fontFamily="@font/inter"
         android:gravity="center"
+        android:text="@string/text_continue"
         android:textColor="@color/white"
         android:textSize="@dimen/_18ssp"
         app:layout_constraintBottom_toBottomOf="parent"

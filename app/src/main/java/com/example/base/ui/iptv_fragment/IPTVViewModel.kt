@@ -90,6 +90,8 @@ class IPTVViewModel @Inject constructor(
     }
 
     fun openCategory(category: IPTVCategoryItem) {
+        if (_uiState.value.tab != IPTVTab.GENRES) return
+
         _uiState.update {
             it.copy(
                 selectedCategory = category,
@@ -187,12 +189,26 @@ class IPTVViewModel @Inject constructor(
             }
 
         val filtered = filteredChannels(current.tab, current.filterMode, selectedFilter)
-        val categories = buildCategoryItems(filtered)
-        val selectedCategory = current.selectedCategory
-            ?.let { selected ->
-                categories.firstOrNull { it.name.equals(selected.name, ignoreCase = true) }
-            }
-        val channels = selectedCategory?.let { buildChannelsForCategory(filtered, it.name) }.orEmpty()
+        val categories = if (current.tab == IPTVTab.GENRES) {
+            buildCategoryItems(filtered)
+        } else {
+            emptyList()
+        }
+        val selectedCategory = if (current.tab == IPTVTab.GENRES) {
+            current.selectedCategory
+                ?.let { selected ->
+                    categories.firstOrNull { it.name.equals(selected.name, ignoreCase = true) }
+                }
+        } else {
+            null
+        }
+        val channels = when (current.tab) {
+            IPTVTab.GENRES -> selectedCategory
+                ?.let { buildChannelsForCategory(filtered, it.name) }
+                .orEmpty()
+
+            IPTVTab.FAVORITES -> buildDirectChannels(filtered)
+        }
         val selectedChannel = current.selectedChannel
             ?.let { channel -> channels.firstOrNull { it.id == channel.id } }
 
@@ -300,6 +316,12 @@ class IPTVViewModel @Inject constructor(
     ): List<Channel> {
         return channels
             .filter { channel -> channel.hasGroup(channel.categories, categoryName) }
+            .distinctBy { it.id }
+            .sortedWith(compareBy { it.name.lowercase() })
+    }
+
+    private fun buildDirectChannels(channels: List<Channel>): List<Channel> {
+        return channels
             .distinctBy { it.id }
             .sortedWith(compareBy { it.name.lowercase() })
     }

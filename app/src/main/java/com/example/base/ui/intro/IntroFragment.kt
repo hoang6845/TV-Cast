@@ -43,11 +43,16 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         adjustInsetsForBottomNavigation(binding.viewPager2)
 
         slides = listOf(
-//            SlideItem("Slide 1", "Slide 1", R.drawable.intro_1),
-//            SlideItem("Import M3U/M3U8 URLs to Watch Instantly", "Add favorite channels and personalize your playlist unlimitedly", R.drawable.intro_2),
-//            SlideItem("Slide 2", "Slide 2", R.drawable.intro_2),
-//            SlideItem("Slide 3", "Slide 3", R.drawable.intro_3),
-//            SlideItem("Slide 4", "Slide 4", R.drawable.intro_4),
+            SlideItem(
+                getString(R.string.text_welcome),
+                getString(R.string.text_mirror_your_screen_to_any_tv_wirelessly_and_enjoy_your_content_on_the_big_screen), R.drawable.intro_1),
+            SlideItem(getString(R.string.text_let_s_find_your_tv),
+                getString(R.string.text_allow_local_network_access_to_connect_to_your_tv_devices_on_the_same_wi_fi_network), R.drawable.intro_2),
+            SlideItem(getString(R.string.text_mirror_phone_screen),
+                getString(R.string.text_cast_from_phone_in_real_time_games_web_and_more), R.drawable.intro_3),
+            SlideItem(
+                getString(R.string.text_hd_quality_streaming),
+                getString(R.string.text_stream_your_photos_videos_and_apps_in_stunning_hd_quality_to_your_tv), R.drawable.intro_4),
         )
 
         introAdapter = ViewPager2Adapter(
@@ -55,9 +60,15 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
 
             getLayoutResId = { _, position ->
                 when (position) {
-                    0 -> R.layout.item_intro_ad
+//                    0 -> R.layout.item_intro_ad
+//                    1 -> R.layout.item_intro
+//                    2 -> R.layout.full_native
+//                    3 -> R.layout.item_intro
+//                    4 -> R.layout.item_intro_ad
+//                    else -> R.layout.item_intro
+                    0 -> R.layout.item_intro
                     1 -> R.layout.item_intro
-                    2 -> R.layout.full_native
+                    2 -> R.layout.item_intro
                     3 -> R.layout.item_intro
                     4 -> R.layout.item_intro_ad
                     else -> R.layout.item_intro
@@ -66,12 +77,18 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
 
             bindView = { view, item, position ->
                 when (position) {
-                    0 -> bindIntroType2(view, item, position)
+//                    0 -> bindIntroType2(view, item, position)
+//                    1 -> bindIntroType1(view, item, position)
+//                    2 -> bindIntroType3(view, item, position)
+//                    3 -> bindIntroType1(view, item, position)
+//                    4 -> bindIntroType2(view, item, position)
+//                    else -> bindIntroType3(view, item, position)
+                    0 -> bindIntroType1(view, item, position)
                     1 -> bindIntroType1(view, item, position)
-                    2 -> bindIntroType3(view, item, position)
+                    2 -> bindIntroType1(view, item, position)
                     3 -> bindIntroType1(view, item, position)
-                    4 -> bindIntroType2(view, item, position)
-                    else -> bindIntroType3(view, item, position)
+                    4 -> bindIntroType1(view, item, position)
+                    else -> bindIntroType1(view, item, position)
                 }
             }
         )
@@ -80,13 +97,14 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         binding.viewPager2.offscreenPageLimit = 4
     }
 
+    @SuppressLint("CutPasteId")
     private fun bindIntroType1(view: View, item: SlideItem, position: Int) {
-        view.findViewById<TextView>(R.id.title_1).isVisible = position == 1
-        view.findViewById<TextView>(R.id.des_1).isVisible = position == 1
-        view.findViewById<TextView>(R.id.title_2).isVisible = position == 3
-        view.findViewById<TextView>(R.id.des_2).isVisible = position == 3
-        view.findViewById<TextView>(R.id.title_3).isVisible = position == 4
-        view.findViewById<TextView>(R.id.des_3).isVisible = position == 4
+        view.findViewById<TextView>(R.id.title_1).isVisible = false
+        view.findViewById<TextView>(R.id.des_1).isVisible = false
+        view.findViewById<TextView>(R.id.title_2).isVisible = false
+        view.findViewById<TextView>(R.id.des_2).isVisible = false
+        view.findViewById<TextView>(R.id.title_3).isVisible = true
+        view.findViewById<TextView>(R.id.des_3).isVisible = true
 //        view.findViewById<TextView>(R.id.title_3).text = buildSpannedString {
 //            color(Color.parseColor("#ffffff")) {
 //                append(getString(R.string.text_start))
@@ -100,6 +118,8 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
 //                append(getString(R.string.text_trial))
 //            }
 //        }
+        view.findViewById<TextView>(R.id.title_3).text = item.title
+        view.findViewById<TextView>(R.id.des_3).text = item.description
         view.findViewById<TextView>(R.id.btn_save).text = getString(R.string.text_continue)
         view.findViewById<ImageView>(R.id.img_intro).setImageResource(item.imageRes)
         view.findViewById<TextView>(R.id.btn_save).setOnClickListener {

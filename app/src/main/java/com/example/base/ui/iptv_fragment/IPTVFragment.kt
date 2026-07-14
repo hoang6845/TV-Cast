@@ -68,10 +68,10 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         onBackPressed { handleBackPress() }
         binding.btnBack.setOnClickListener { handleBackPress() }
         binding.btnTopAction.setOnClickListener {
-            if (currentUiState.selectedCategory == null) {
-                viewModel.refreshPlaylist()
-            } else {
+            if (currentUiState.isShowingChannelList()) {
                 showCastDialog()
+            } else {
+                viewModel.refreshPlaylist()
             }
         }
         binding.btnGenres.setOnClickListener { viewModel.selectTab(IPTVTab.GENRES) }
@@ -102,7 +102,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     private fun renderUiState(state: IPTVUiState) {
         currentUiState = state
 
-        val showingChannels = state.selectedCategory != null
+        val showingChannels = state.isShowingChannelList()
         binding.tvTitle.text = state.selectedCategory?.name ?: getString(R.string.text_iptv)
         binding.btnTopAction.setImageResource(
             if (showingChannels) R.drawable.ic_cast_screen_white else R.drawable.ic_reload_white
@@ -138,10 +138,13 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     }
 
     private fun renderLists(state: IPTVUiState, showingChannels: Boolean) {
-        binding.tabContainer.isVisible = showingChannels.not()
-        binding.filterContainer.isVisible = showingChannels.not()
-        binding.rvCategories.isVisible = showingChannels.not()
-        binding.tvEmptyCategories.isVisible = showingChannels.not() && state.categories.isEmpty()
+        val showingRootTabs = state.selectedCategory == null
+        val showingGenreCategories = state.tab == IPTVTab.GENRES && state.selectedCategory == null
+
+        binding.tabContainer.isVisible = showingRootTabs
+        binding.filterContainer.isVisible = showingRootTabs
+        binding.rvCategories.isVisible = showingGenreCategories
+        binding.tvEmptyCategories.isVisible = showingGenreCategories && state.categories.isEmpty()
         binding.rvChannels.isVisible = showingChannels
         binding.tvEmptyChannels.isVisible = showingChannels && state.channels.isEmpty()
 
@@ -473,7 +476,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     }
 
     private fun updateCastIcon(connected: Boolean) {
-        if (currentUiState.selectedCategory == null) {
+        if (!currentUiState.isShowingChannelList()) {
             binding.btnTopAction.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
             return
         }
@@ -481,6 +484,10 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
             if (connected) Color.parseColor("#C49A45") else Color.WHITE,
             PorterDuff.Mode.SRC_IN
         )
+    }
+
+    private fun IPTVUiState.isShowingChannelList(): Boolean {
+        return tab == IPTVTab.FAVORITES || selectedCategory != null
     }
 
     private fun handleBackPress() {

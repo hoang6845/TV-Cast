@@ -230,4 +230,12 @@
     <string name="text_check_tv_pairing_code">Check your TV screen for the pairing code.</string>
     <string name="text_connecting_to_device">Connecting to %1$s...</string>
     <string name="text_pairing_code_format_error">Enter 6 hexadecimal characters from the TV screen.</string>
+    <string name="text_mirror_your_screen_to_any_tv_wirelessly_and_enjoy_your_content_on_the_big_screen">Mirror your screen to any TV wirelessly and enjoy your content on the big screen.</string>
+    <string name="text_let_s_find_your_tv">Let’s Find Your TV!</string>
+    <string name="text_welcome">Welcome!</string>
+    <string name="text_allow_local_network_access_to_connect_to_your_tv_devices_on_the_same_wi_fi_network">Allow local network access to connect to your TV devices on the same Wi-Fi network.</string>
+    <string name="text_mirror_phone_screen">Mirror Phone Screen</string>
+    <string name="text_cast_from_phone_in_real_time_games_web_and_more">Cast from phone in real time: games, web, and more</string>
+    <string name="text_stream_your_photos_videos_and_apps_in_stunning_hd_quality_to_your_tv">Stream your photos, videos, and apps in stunning HD quality to your TV.</string>
+    <string name="text_hd_quality_streaming">HD Quality Streaming</string>
 </resources>
