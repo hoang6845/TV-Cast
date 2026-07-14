@@ -46,7 +46,10 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     }
 
     private val channelAdapter by lazy {
-        IPTVChannelAdapter { channel -> viewModel.selectChannel(channel) }
+        IPTVChannelAdapter(
+            onClick = { channel -> viewModel.selectChannel(channel) },
+            onFavouriteClick = { channel -> viewModel.toggleFavourite(channel) }
+        )
     }
 
     private var currentUiState = IPTVUiState()
@@ -79,6 +82,12 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         binding.btnFilterMode.setOnClickListener { showFilterModeMenu() }
         binding.btnFilterValue.setOnClickListener { showFilterSheet() }
         binding.btnSearch.setOnClickListener { showFilterSheet() }
+        binding.etChannelSearch.doOnTextChanged { text, _, _, _ ->
+            val query = text?.toString().orEmpty()
+            if (query != currentUiState.channelSearchQuery) {
+                viewModel.updateChannelSearchQuery(query)
+            }
+        }
         binding.btnCastToTv.setOnClickListener { showCastDialog() }
     }
 
@@ -135,14 +144,19 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         binding.btnFilterValue.text = state.selectedFilter
             ?: state.filterOptions.firstOrNull { it.value == null }?.label
             ?: getFilterAllLabel(state.filterMode)
+        if (binding.etChannelSearch.text?.toString() != state.channelSearchQuery) {
+            binding.etChannelSearch.setText(state.channelSearchQuery)
+        }
     }
 
     private fun renderLists(state: IPTVUiState, showingChannels: Boolean) {
         val showingRootTabs = state.selectedCategory == null
         val showingGenreCategories = state.tab == IPTVTab.GENRES && state.selectedCategory == null
+        val showingFavoriteSearch = state.tab == IPTVTab.FAVORITES && state.selectedCategory == null
 
         binding.tabContainer.isVisible = showingRootTabs
-        binding.filterContainer.isVisible = showingRootTabs
+        binding.filterContainer.isVisible = showingRootTabs && state.tab == IPTVTab.GENRES
+        binding.channelSearchContainer.isVisible = showingFavoriteSearch
         binding.rvCategories.isVisible = showingGenreCategories
         binding.tvEmptyCategories.isVisible = showingGenreCategories && state.categories.isEmpty()
         binding.rvChannels.isVisible = showingChannels

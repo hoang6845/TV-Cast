@@ -1,17 +1,21 @@
 package com.example.base.ui.iptv_fragment
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.example.base.R
 import com.example.base.databinding.ItemIptvChannelBinding
 import com.example.base.model.entity.Channel
 import hoang.dqm.codebase.utils.loadImageSketch
 
 class IPTVChannelAdapter(
-    private val onClick: (Channel) -> Unit
+    private val onClick: (Channel) -> Unit,
+    private val onFavouriteClick: (Channel) -> Unit
 ) : ListAdapter<Channel, IPTVChannelAdapter.ChannelViewHolder>(DiffCallback) {
 
     private var selectedChannelId: String? = null
@@ -46,6 +50,20 @@ class IPTVChannelAdapter(
             binding.root.isSelected = selected
             binding.tvChannelName.text = item.name
             binding.tvLogoFallback.text = item.initials()
+            binding.btnFavourite.setImageResource(
+                if (item.isFavourite) R.drawable.ic_movie_star else R.drawable.ic_iptv_star_outline
+            )
+            binding.btnFavourite.imageTintList = ColorStateList.valueOf(
+                Color.parseColor(if (item.isFavourite) "#D4A642" else "#FFFFFFFF")
+            )
+            binding.btnFavourite.alpha = if (item.isFavourite) 1f else 0.72f
+            binding.btnFavourite.contentDescription = binding.root.context.getString(
+                if (item.isFavourite) {
+                    R.string.text_remove_from_favorites
+                } else {
+                    R.string.text_add_to_favorites
+                }
+            )
 
             val logo = item.logo
             binding.tvLogoFallback.isVisible = logo.isNullOrBlank()
@@ -57,6 +75,7 @@ class IPTVChannelAdapter(
             }
 
             binding.root.setOnClickListener { onClick(item) }
+            binding.btnFavourite.setOnClickListener { onFavouriteClick(item) }
         }
     }
 

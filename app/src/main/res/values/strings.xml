@@ -33,6 +33,7 @@
     <string name="text_all_language">All Language</string>
     <string name="text_search_country">Search country</string>
     <string name="text_search_language">Search language</string>
+    <string name="text_search_channel_name">Search by channel name</string>
     <string name="text_refresh_playlist">Refresh playlist</string>
     <string name="text_refreshing_playlist_progress">Refreshing playlist %1$d%%</string>
     <string name="text_playlist_refreshed">Playlist refreshed</string>
@@ -42,6 +43,8 @@
     <string name="text_channel_unavailable">Channel Unavailable</string>
     <string name="text_channel_unavailable_message">This channel is currently unavailable.\nPlease try again later.</string>
     <string name="text_select_channel_first">Please select a channel first</string>
+    <string name="text_add_to_favorites">Add to favorites</string>
+    <string name="text_remove_from_favorites">Remove from favorites</string>
     <string name="text_cast_not_available">Cast not available</string>
     <string name="text_google_play_services_has_not_been_initialized">Google Play services has not been initialized.</string>
     <string name="text_casting_to_tv_plain">Casting to TV</string>

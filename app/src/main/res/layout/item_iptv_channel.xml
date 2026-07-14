@@ -40,6 +40,19 @@
             tools:text="H" />
     </FrameLayout>
 
+    <ImageButton
+        android:id="@+id/btn_favourite"
+        android:layout_width="@dimen/_19sdp"
+        android:layout_height="@dimen/_19sdp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/text_add_to_favorites"
+        android:padding="@dimen/_3sdp"
+        android:scaleType="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_iptv_star_outline"
+        tools:tint="#D4A642" />
+
     <TextView
         android:id="@+id/tv_channel_name"
         android:layout_width="0dp"

@@ -24,6 +24,9 @@ interface ChannelDao {
     @Query("SELECT * FROM Channel ORDER BY name COLLATE NOCASE ASC")
     fun getAllChannels(): Flow<List<Channel>>
 
+    @Query("UPDATE Channel SET isFavourite = :isFavourite WHERE id = :channelId")
+    suspend fun updateFavourite(channelId: String, isFavourite: Boolean)
+
     @Query("SELECT * FROM Channel WHERE categories LIKE '%' || :category || '%' ORDER BY name COLLATE NOCASE ASC")
     fun getChannelsByCategory(category: String): Flow<List<Channel>>
 

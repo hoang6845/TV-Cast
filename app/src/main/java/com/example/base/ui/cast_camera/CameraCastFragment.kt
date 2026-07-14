@@ -1,13 +1,11 @@
 package com.example.base.ui.cast_camera
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -17,64 +15,49 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.Camera
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import com.example.base.R
+import com.example.base.cast.CastReceiverIds
 import com.example.base.databinding.FragmentCameraCastBinding
-import com.google.android.gms.cast.MediaInfo
-import com.google.android.gms.cast.MediaLoadRequestData
-import com.google.android.gms.cast.MediaMetadata
+import com.google.android.gms.cast.Cast
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import java.io.ByteArrayOutputStream
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
+import org.json.JSONObject
+import org.webrtc.SurfaceViewRenderer
 
-class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastViewModel>() {
+class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastViewModel>(),
+    CameraWebRtcStreamer.Listener {
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val cameraFrameServer by lazy {
-        CameraFrameHttpServer(requireContext().applicationContext) { latestCameraFrame }
-    }
     private lateinit var prefs: SharedPreferences
 
     private var castContext: CastContext? = null
-    private var cameraProvider: ProcessCameraProvider? = null
-    private var camera: Camera? = null
+    private var localRenderer: SurfaceViewRenderer? = null
+    private var webRtcStreamer: CameraWebRtcStreamer? = null
     private var scaleDetector: ScaleGestureDetector? = null
 
     private var pendingCast = false
     private var isCasting = false
     private var isStartingCast = false
     private var isReconnecting = false
-    private var cameraFrameUrl: String? = null
-    @Volatile
-    private var latestCameraFrame: ByteArray? = null
     private var microphoneMuted = true
     private var microphonePermissionDenied = false
     private var torchEnabled = false
-    private var lensFacing = CameraSelector.LENS_FACING_BACK
-    private var currentZoomRatio = DEFAULT_ZOOM_RATIO
+    private var useFrontCamera = false
     private var cameraReady = false
     private var toolbarBaseHeight = 0
     private var bottomButtonBaseMargin = 0
-
-    private val cameraFrameRefreshRunnable = object : Runnable {
-        override fun run() {
-            refreshCameraCastFrame()
-        }
-    }
 
     private val cameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -102,9 +85,11 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         if (granted) {
             microphoneMuted = false
             microphonePermissionDenied = false
+            webRtcStreamer?.setAudioEnabled(true)
         } else {
             microphoneMuted = true
             microphonePermissionDenied = true
+            webRtcStreamer?.setAudioEnabled(false)
             Toast.makeText(
                 requireContext(),
                 R.string.text_microphone_audio_not_transmitted,
@@ -138,7 +123,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         }
 
         override fun onSessionEnding(session: CastSession) {
-            if (isCasting) {
+            if (isCasting || isStartingCast) {
                 beginReconnectState()
             } else {
                 updateCastStatus(CastConnectionState.Connecting)
@@ -146,12 +131,14 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         }
 
         override fun onSessionEnded(session: CastSession, error: Int) {
-            val wasCasting = isCasting || isReconnecting
+            val wasCasting = isCasting || isReconnecting || isStartingCast
+            removeCastMessageCallback(session)
             pendingCast = false
             isStartingCast = false
             isCasting = false
+            isReconnecting = false
+            webRtcStreamer?.stopCasting()
             updateCastStatus(CastConnectionState.Disconnected)
-            stopCameraFrameRefresh()
             if (wasCasting) {
                 showConnectionLostDialog()
             }
@@ -165,14 +152,16 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
             isReconnecting = false
             updateCastStatus(CastConnectionState.Connected)
-            if (isCasting) {
-                scheduleCameraFrameRefresh()
+            if (isCasting || isStartingCast) {
+                beginCameraCast()
+            } else {
+                updateControls()
             }
-            updateControls()
         }
 
         override fun onSessionResumeFailed(session: CastSession, error: Int) {
             isReconnecting = false
+            isStartingCast = false
             isCasting = false
             updateCastStatus(CastConnectionState.Error)
             showConnectionLostDialog()
@@ -180,15 +169,20 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         }
 
         override fun onSessionSuspended(session: CastSession, reason: Int) {
-            if (isCasting) {
+            if (isCasting || isStartingCast) {
                 beginReconnectState()
             }
         }
     }
 
+    private val receiverMessageCallback = Cast.MessageReceivedCallback { _, _, message ->
+        handleReceiverMessage(message)
+    }
+
     override fun initView() {
         prefs = requireContext().getSharedPreferences(PREFS_NAME, 0)
         applySystemInsets()
+        setupLocalRenderer()
         setupCastButton()
         setupPreviewGestures()
         updateControls()
@@ -242,11 +236,43 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
 
     override fun onDestroyView() {
         mainHandler.removeCallbacksAndMessages(null)
-        cameraFrameServer.close()
-        latestCameraFrame = null
-        cameraFrameUrl = null
-        stopCamera()
+        currentCastSession()?.let(::removeCastMessageCallback)
+        webRtcStreamer?.release()
+        webRtcStreamer = null
+        localRenderer = null
+        castContext?.setReceiverApplicationId(CastReceiverIds.DEFAULT_MEDIA)
         super.onDestroyView()
+    }
+
+    override fun onWebRtcConnected() {
+        mainHandler.post {
+            if (_binding == null || view == null) return@post
+            isStartingCast = false
+            isReconnecting = false
+            isCasting = true
+            updateCastStatus(CastConnectionState.Connected)
+            updateControls()
+        }
+    }
+
+    override fun onWebRtcDisconnected() {
+        mainHandler.post {
+            if (_binding == null || view == null) return@post
+            if (isCasting || isStartingCast) {
+                beginReconnectState()
+            }
+        }
+    }
+
+    override fun onWebRtcError(message: String) {
+        mainHandler.post {
+            if (_binding == null || view == null) return@post
+            isStartingCast = false
+            isCasting = false
+            updateCastStatus(CastConnectionState.Error)
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            updateControls()
+        }
     }
 
     private fun applySystemInsets() {
@@ -272,9 +298,34 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         }
     }
 
+    private fun setupLocalRenderer() {
+        val parent = binding.previewView.parent as ViewGroup
+        val renderer = SurfaceViewRenderer(requireContext()).apply {
+            layoutParams = ConstraintLayout.LayoutParams(
+                ConstraintLayout.LayoutParams.MATCH_PARENT,
+                ConstraintLayout.LayoutParams.MATCH_PARENT
+            ).apply {
+                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+            }
+        }
+        parent.addView(renderer, 0)
+        binding.previewView.isVisible = false
+        localRenderer = renderer
+        webRtcStreamer = CameraWebRtcStreamer(
+            requireContext().applicationContext,
+            renderer,
+            ::sendSignalToReceiver,
+            this
+        )
+    }
+
     private fun setupCastButton() {
         runCatching {
             castContext = CastContext.getSharedInstance(requireContext())
+            castContext?.setReceiverApplicationId(CastReceiverIds.CAMERA_WEBRTC)
             CastButtonFactory.setUpMediaRouteButton(requireContext(), binding.btnTopCast)
             updateCastStatusFromSession()
         }.onFailure {
@@ -284,25 +335,11 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility")
     private fun setupPreviewGestures() {
         scaleDetector = ScaleGestureDetector(
             requireContext(),
-            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-                override fun onScale(detector: ScaleGestureDetector): Boolean {
-                    val zoomState = camera?.cameraInfo?.zoomState?.value ?: return false
-                    val nextZoom = (currentZoomRatio * detector.scaleFactor)
-                        .coerceIn(zoomState.minZoomRatio, zoomState.maxZoomRatio)
-                    setZoom(nextZoom)
-                    return true
-                }
-            }
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {}
         )
-
-        binding.previewView.setOnTouchListener { _, event ->
-            scaleDetector?.onTouchEvent(event)
-            true
-        }
     }
 
     private fun hasCameraPermission(): Boolean {
@@ -367,12 +404,12 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
                 R.string.text_allow_camera
             }
         )
-        binding.previewView.isVisible = false
+        localRenderer?.isVisible = false
     }
 
     private fun hidePermissionPlaceholder() {
         binding.placeholderContainer.isVisible = false
-        binding.previewView.isVisible = true
+        localRenderer?.isVisible = true
     }
 
     private fun handlePlaceholderAction() {
@@ -389,8 +426,8 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
 
     private fun isCameraPermanentlyDenied(): Boolean {
         return prefs.getBoolean(KEY_CAMERA_PERMISSION_ASKED, false) &&
-                !hasCameraPermission() &&
-                !shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)
+            !hasCameraPermission() &&
+            !shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)
     }
 
     private fun openAppSettings() {
@@ -412,45 +449,16 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         binding.cameraLoading.isVisible = true
         binding.cameraLoadingText.text = getString(R.string.text_please_wait_a_moment)
         binding.placeholderContainer.isVisible = false
-        binding.previewView.isVisible = true
-
-        val providerFuture = ProcessCameraProvider.getInstance(requireContext())
-        providerFuture.addListener(
-            {
-                runCatching {
-                    cameraProvider = providerFuture.get()
-                    bindCamera()
-                }.onFailure {
-                    showCameraStartError()
-                }
-            },
-            ContextCompat.getMainExecutor(requireContext())
-        )
-    }
-
-    private fun bindCamera() {
-        val provider = cameraProvider ?: return
-        val preferredSelector = CameraSelector.Builder()
-            .requireLensFacing(lensFacing)
-            .build()
-        val selector = if (provider.hasCamera(preferredSelector)) {
-            preferredSelector
-        } else {
-            lensFacing = CameraSelector.LENS_FACING_BACK
-            CameraSelector.DEFAULT_BACK_CAMERA
-        }
-
-        val preview = Preview.Builder().build().also {
-            it.setSurfaceProvider(binding.previewView.surfaceProvider)
-        }
+        localRenderer?.isVisible = true
 
         runCatching {
-            provider.unbindAll()
-            camera = provider.bindToLifecycle(viewLifecycleOwner, selector, preview)
+            webRtcStreamer?.startLocalPreview(
+                useFrontCamera = useFrontCamera,
+                enableAudio = hasMicrophonePermission() && !microphoneMuted
+            )
+        }.onSuccess {
             cameraReady = true
             binding.cameraLoading.isVisible = false
-            currentZoomRatio = DEFAULT_ZOOM_RATIO
-            setZoom(DEFAULT_ZOOM_RATIO)
             updateCameraCapabilities()
             updateControls()
         }.onFailure {
@@ -459,8 +467,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun stopCamera() {
-        cameraProvider?.unbindAll()
-        camera = null
+        webRtcStreamer?.stopCasting()
         cameraReady = false
         torchEnabled = false
     }
@@ -469,10 +476,9 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         cameraReady = false
         isCasting = false
         isStartingCast = false
-        stopCameraFrameRefresh()
         stopCamera()
         binding.cameraLoading.isVisible = false
-        binding.previewView.isVisible = false
+        localRenderer?.isVisible = false
         binding.placeholderContainer.isVisible = true
         binding.placeholderTitle.setText(R.string.text_unable_to_start_camera)
         binding.placeholderMessage.setText(R.string.text_unable_to_start_camera_message)
@@ -482,30 +488,20 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun updateCameraCapabilities() {
-        val hasFlash = camera?.cameraInfo?.hasFlashUnit() == true &&
-                lensFacing == CameraSelector.LENS_FACING_BACK
-        binding.btnFlash.isEnabled = hasFlash
-        binding.btnFlash.alpha = if (hasFlash) 1f else 0.45f
-        if (!hasFlash) {
-            torchEnabled = false
-        }
-
-        val zoomState = camera?.cameraInfo?.zoomState?.value
-        binding.btnZoomHalf.isVisible = (zoomState?.minZoomRatio ?: DEFAULT_ZOOM_RATIO) <= HALF_ZOOM_RATIO
+        binding.btnFlash.isEnabled = false
+        binding.btnFlash.alpha = 0.45f
+        binding.btnZoomHalf.isVisible = false
+        torchEnabled = false
     }
 
     private fun toggleTorch() {
-        val currentCamera = camera ?: return
-        if (currentCamera.cameraInfo.hasFlashUnit()) {
-            torchEnabled = !torchEnabled
-            currentCamera.cameraControl.enableTorch(torchEnabled)
-            updateControls()
-        }
+        Toast.makeText(requireContext(), R.string.text_camera_ready, Toast.LENGTH_SHORT).show()
     }
 
     private fun toggleMicrophone() {
         if (!microphoneMuted) {
             microphoneMuted = true
+            webRtcStreamer?.setAudioEnabled(false)
             updateControls()
             return
         }
@@ -513,6 +509,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         if (hasMicrophonePermission()) {
             microphoneMuted = false
             microphonePermissionDenied = false
+            webRtcStreamer?.setAudioEnabled(true)
             updateControls()
         } else {
             MaterialAlertDialogBuilder(requireContext())
@@ -520,6 +517,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
                 .setNegativeButton(R.string.text_not_now) { _, _ ->
                     microphoneMuted = true
                     microphonePermissionDenied = true
+                    webRtcStreamer?.setAudioEnabled(false)
                     updateControls()
                 }
                 .setPositiveButton(R.string.text_allow_microphone) { _, _ ->
@@ -534,30 +532,22 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         binding.btnSwitchCamera.isEnabled = false
         binding.cameraLoading.isVisible = true
         binding.cameraLoadingText.setText(R.string.text_switching_camera)
-        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
-            CameraSelector.LENS_FACING_FRONT
-        } else {
-            CameraSelector.LENS_FACING_BACK
-        }
-        torchEnabled = false
-        bindCamera()
+        useFrontCamera = !useFrontCamera
+        webRtcStreamer?.switchCamera(useFrontCamera)
         mainHandler.postDelayed({
             if (_binding != null && view != null) {
+                binding.cameraLoading.isVisible = false
                 binding.btnSwitchCamera.isEnabled = true
             }
         }, SWITCH_CAMERA_LOCK_MS)
     }
 
     private fun setZoom(ratio: Float) {
-        val currentCamera = camera ?: return
-        val zoomState = currentCamera.cameraInfo.zoomState.value ?: return
-        currentZoomRatio = ratio.coerceIn(zoomState.minZoomRatio, zoomState.maxZoomRatio)
-        currentCamera.cameraControl.setZoomRatio(currentZoomRatio)
-        updateZoomButtons()
+        updateZoomButtons(ratio)
     }
 
-    private fun updateZoomButtons() {
-        val isHalf = currentZoomRatio < 0.75f
+    private fun updateZoomButtons(ratio: Float = DEFAULT_ZOOM_RATIO) {
+        val isHalf = ratio < 0.75f
         tintBackground(binding.btnZoomHalf, if (isHalf) ACTIVE_CONTROL_COLOR else INACTIVE_ZOOM_COLOR)
         tintBackground(binding.btnZoomOne, if (!isHalf) ACTIVE_CONTROL_COLOR else INACTIVE_ZOOM_COLOR)
         binding.btnZoomHalf.setTextColor(Color.WHITE)
@@ -566,7 +556,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
 
     private fun handleMainAction() {
         when {
-            isCasting -> showStopCastingDialog()
+            isCasting || isStartingCast -> showStopCastingDialog()
             isReconnecting -> Unit
             else -> startCastFlow()
         }
@@ -607,107 +597,68 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
             return
         }
 
-        if (!updateLatestCameraFrame()) {
-            Toast.makeText(requireContext(), R.string.text_could_not_prepare_media, Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val streamUrl = cameraFrameUrl ?: cameraFrameServer.start()
-        if (streamUrl == null) {
-            Toast.makeText(requireContext(), R.string.text_could_not_prepare_media, Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        cameraFrameUrl = streamUrl
         isStartingCast = true
+        isReconnecting = false
         updateControls()
-
-        loadCameraFrame(session, firstLoad = true)
-    }
-
-    private fun refreshCameraCastFrame() {
-        if (_binding == null || view == null || !isCasting) return
-
-        val session = currentCastSession()
-        if (session?.isConnected != true) {
-            beginReconnectState()
-            return
-        }
-
-        if (updateLatestCameraFrame()) {
-            loadCameraFrame(session, firstLoad = false)
-        }
-        scheduleCameraFrameRefresh()
-    }
-
-    private fun loadCameraFrame(session: CastSession, firstLoad: Boolean) {
-        val streamUrl = cameraFrameUrl ?: return
-        val frameUrl = "$streamUrl?t=${System.currentTimeMillis()}"
-        val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_PHOTO).apply {
-            putString(MediaMetadata.KEY_TITLE, getString(R.string.text_camera_cast))
-        }
-        val mediaInfo = MediaInfo.Builder(frameUrl)
-            .setStreamType(MediaInfo.STREAM_TYPE_NONE)
-            .setContentType(CAMERA_FRAME_CONTENT_TYPE)
-            .setMetadata(metadata)
-            .build()
-
-        val loadRequest = MediaLoadRequestData.Builder()
-            .setMediaInfo(mediaInfo)
-            .setAutoplay(true)
-            .build()
-
-        val pendingResult = session.remoteMediaClient?.load(loadRequest)
-        if (!firstLoad) return
-
-        if (pendingResult == null) {
-            isStartingCast = false
-            isCasting = false
-            stopCameraFrameRefresh()
-            showConnectFailedDialog()
-            updateControls()
-            return
-        }
-
-        pendingResult.setResultCallback { result ->
-            mainHandler.post {
-                if (_binding == null || view == null) return@post
-
+        setCastMessageCallback(session)
+        mainHandler.postDelayed({
+            if (_binding == null || view == null) return@postDelayed
+            runCatching {
+                webRtcStreamer?.startCasting()
+            }.onFailure {
                 isStartingCast = false
-                isCasting = result.status.isSuccess
-                if (isCasting) {
-                    updateCastStatus(CastConnectionState.Connected)
-                    scheduleCameraFrameRefresh()
-                } else {
-                    stopCameraFrameRefresh()
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.text_could_not_cast_media,
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                updateCastStatus(CastConnectionState.Error)
+                Toast.makeText(
+                    requireContext(),
+                    it.message ?: getString(R.string.text_could_not_connect_tv),
+                    Toast.LENGTH_SHORT
+                ).show()
                 updateControls()
             }
+        }, RECEIVER_READY_DELAY_MS)
+    }
+
+    private fun sendSignalToReceiver(message: JSONObject) {
+        mainHandler.post {
+            currentCastSession()
+                ?.sendMessage(WEBRTC_NAMESPACE, message.toString())
+                ?.setResultCallback { result ->
+                    if (!result.status.isSuccess && _binding != null && view != null) {
+                        isStartingCast = false
+                        updateCastStatus(CastConnectionState.Error)
+                        updateControls()
+                    }
+                }
         }
     }
 
-    private fun updateLatestCameraFrame(): Boolean {
-        val bitmap = binding.previewView.bitmap ?: return false
-        latestCameraFrame = ByteArrayOutputStream().use { output ->
-            bitmap.compress(Bitmap.CompressFormat.JPEG, CAMERA_FRAME_JPEG_QUALITY, output)
-            output.toByteArray()
+    private fun setCastMessageCallback(session: CastSession) {
+        runCatching {
+            session.removeMessageReceivedCallbacks(WEBRTC_NAMESPACE)
+            session.setMessageReceivedCallbacks(WEBRTC_NAMESPACE, receiverMessageCallback)
+        }.onFailure {
+            onWebRtcError(it.message ?: getString(R.string.text_could_not_connect_tv))
         }
-        return true
     }
 
-    private fun scheduleCameraFrameRefresh() {
-        mainHandler.removeCallbacks(cameraFrameRefreshRunnable)
-        mainHandler.postDelayed(cameraFrameRefreshRunnable, CAMERA_FRAME_REFRESH_MS)
+    private fun removeCastMessageCallback(session: CastSession) {
+        runCatching {
+            session.removeMessageReceivedCallbacks(WEBRTC_NAMESPACE)
+        }
     }
 
-    private fun stopCameraFrameRefresh() {
-        mainHandler.removeCallbacks(cameraFrameRefreshRunnable)
-        latestCameraFrame = null
+    private fun handleReceiverMessage(rawMessage: String) {
+        val message = runCatching { JSONObject(rawMessage) }.getOrNull() ?: return
+        when (message.optString("type")) {
+            "ANSWER" -> webRtcStreamer?.handleAnswer(message.optString("sdp"))
+            "ICE_CANDIDATE" -> {
+                val candidate = message.optJSONObject("candidate") ?: return
+                webRtcStreamer?.handleRemoteIceCandidate(candidate)
+            }
+            "ERROR" -> onWebRtcError(
+                message.optString("message", getString(R.string.text_could_not_connect_tv))
+            )
+        }
     }
 
     private fun showStopCastingDialog() {
@@ -720,8 +671,9 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun stopCasting() {
-        currentCastSession()?.remoteMediaClient?.stop()
-        stopCameraFrameRefresh()
+        sendSignalToReceiver(JSONObject().put("type", "STOP"))
+        currentCastSession()?.let(::removeCastMessageCallback)
+        webRtcStreamer?.stopCasting()
         isCasting = false
         isStartingCast = false
         isReconnecting = false
@@ -730,7 +682,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun beginReconnectState() {
-        if (!isCasting) return
+        if (!isCasting && !isStartingCast) return
         isReconnecting = true
         updateCastStatus(CastConnectionState.Connecting)
         updateControls()
@@ -738,6 +690,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
             if (_binding != null && view != null && isReconnecting) {
                 isReconnecting = false
                 isCasting = false
+                isStartingCast = false
                 updateCastStatus(CastConnectionState.Error)
                 showConnectionLostDialog()
                 updateControls()
@@ -787,7 +740,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
             else -> getString(R.string.text_start_casting)
         }
         binding.btnStartCasting.setBackgroundResource(
-            if (isCasting || isReconnecting) {
+            if (isCasting || isStartingCast || isReconnecting) {
                 R.drawable.bg_cast_media_stop_action
             } else {
                 R.drawable.bg_cast_youtube_action
@@ -814,6 +767,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
                 "${getString(R.string.text_casting_to_tv, deviceName)} · $audio"
             }
             isReconnecting -> getString(R.string.text_reconnecting)
+            isStartingCast -> getString(R.string.text_starting_camera_cast)
             pendingCast || selectingTv -> getString(R.string.text_select_a_tv)
             cameraReady -> getString(R.string.text_camera_ready)
             else -> getString(R.string.text_camera_permission_required)
@@ -882,11 +836,10 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         private const val DEFAULT_ZOOM_RATIO = 1f
         private const val HALF_ZOOM_RATIO = 0.5f
         private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
-        private const val CAMERA_FRAME_REFRESH_MS = 1_200L
-        private const val CAMERA_FRAME_JPEG_QUALITY = 72
-        private const val CAMERA_FRAME_CONTENT_TYPE = "image/jpeg"
+        private const val RECEIVER_READY_DELAY_MS = 700L
         private const val RECONNECT_TIMEOUT_MS = 5_000L
         private const val SWITCH_CAMERA_LOCK_MS = 500L
+        private const val WEBRTC_NAMESPACE = "urn:x-cast:com.example.camera.webrtc"
         private const val ACTIVE_CONTROL_COLOR = "#D6A948"
         private const val INACTIVE_CONTROL_COLOR = "#626262"
         private const val INACTIVE_ZOOM_COLOR = "#5D5743"

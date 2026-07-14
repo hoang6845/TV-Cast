@@ -89,6 +89,16 @@ class IPTVViewModel @Inject constructor(
         rebuildUiState()
     }
 
+    fun updateChannelSearchQuery(query: String) {
+        _uiState.update {
+            it.copy(
+                channelSearchQuery = query,
+                selectedChannel = null
+            )
+        }
+        rebuildUiState()
+    }
+
     fun openCategory(category: IPTVCategoryItem) {
         if (_uiState.value.tab != IPTVTab.GENRES) return
 
@@ -120,6 +130,12 @@ class IPTVViewModel @Inject constructor(
 
     fun selectChannel(channel: Channel) {
         _uiState.update { it.copy(selectedChannel = channel) }
+    }
+
+    fun toggleFavourite(channel: Channel) {
+        viewModelScope.launch(Dispatchers.IO) {
+            channelDao.updateFavourite(channel.id, channel.isFavourite.not())
+        }
     }
 
     fun refreshPlaylist() {
@@ -208,6 +224,7 @@ class IPTVViewModel @Inject constructor(
                 .orEmpty()
 
             IPTVTab.FAVORITES -> buildDirectChannels(filtered)
+                .filterByName(current.channelSearchQuery)
         }
         val selectedChannel = current.selectedChannel
             ?.let { channel -> channels.firstOrNull { it.id == channel.id } }
@@ -324,6 +341,12 @@ class IPTVViewModel @Inject constructor(
         return channels
             .distinctBy { it.id }
             .sortedWith(compareBy { it.name.lowercase() })
+    }
+
+    private fun List<Channel>.filterByName(query: String): List<Channel> {
+        val normalizedQuery = query.trim()
+        if (normalizedQuery.isBlank()) return this
+        return filter { channel -> channel.name.contains(normalizedQuery, ignoreCase = true) }
     }
 
     private fun Channel.hasGroup(value: String?, groupName: String): Boolean {

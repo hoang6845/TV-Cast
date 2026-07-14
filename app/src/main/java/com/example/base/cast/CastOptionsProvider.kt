@@ -8,13 +8,9 @@ import com.google.android.gms.cast.framework.SessionProvider
 class CastOptionsProvider : OptionsProvider {
     override fun getCastOptions(context: Context): CastOptions {
         return CastOptions.Builder()
-            .setReceiverApplicationId(DEFAULT_MEDIA_RECEIVER_ID)
+            .setReceiverApplicationId(CastReceiverIds.DEFAULT_MEDIA)
             .build()
     }
 
     override fun getAdditionalSessionProviders(context: Context): MutableList<SessionProvider>? = null
-
-    companion object {
-        private const val DEFAULT_MEDIA_RECEIVER_ID = "CC1AD845"
-    }
 }

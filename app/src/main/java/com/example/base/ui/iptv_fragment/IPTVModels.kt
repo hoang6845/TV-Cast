@@ -37,6 +37,7 @@ data class IPTVUiState(
     val tab: IPTVTab = IPTVTab.GENRES,
     val filterMode: IPTVFilterMode = IPTVFilterMode.COUNTRY,
     val selectedFilter: String? = null,
+    val channelSearchQuery: String = "",
     val filterOptions: List<IPTVFilterOption> = emptyList(),
     val categories: List<IPTVCategoryItem> = emptyList(),
     val selectedCategory: IPTVCategoryItem? = null,

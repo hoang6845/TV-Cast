@@ -165,6 +165,44 @@
                 android:textSize="@dimen/_9ssp" />
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/channel_search_container"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/_42sdp"
+            android:layout_marginHorizontal="@dimen/_12sdp"
+            android:layout_marginTop="@dimen/_10sdp"
+            android:background="@drawable/bg_iptv_search"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/_10sdp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="@dimen/_18sdp"
+                android:layout_height="@dimen/_18sdp"
+                android:contentDescription="@string/text_search"
+                android:src="@drawable/ic_iptv_search" />
+
+            <EditText
+                android:id="@+id/et_channel_search"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="@dimen/_8sdp"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:fontFamily="@font/inter"
+                android:hint="@string/text_search_channel_name"
+                android:imeOptions="actionSearch"
+                android:includeFontPadding="false"
+                android:inputType="text"
+                android:maxLines="1"
+                android:padding="0dp"
+                android:singleLine="true"
+                android:textColor="@color/white"
+                android:textColorHint="#8F8F96"
+                android:textSize="@dimen/_9ssp" />
+        </LinearLayout>
+
         <FrameLayout
             android:id="@+id/list_container"
             android:layout_width="match_parent"

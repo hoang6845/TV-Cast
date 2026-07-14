@@ -22,6 +22,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import com.example.base.R
+import com.example.base.cast.CastReceiverIds
 import com.example.base.databinding.FragmentCastWebBinding
 import com.example.base.databinding.ItemCastWebSiteBinding
 import com.google.android.gms.cast.MediaInfo
@@ -196,6 +197,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     private fun setupCastButton() {
         runCatching {
             castContext = CastContext.getSharedInstance(requireContext())
+            castContext?.setReceiverApplicationId(CastReceiverIds.DEFAULT_MEDIA)
             CastButtonFactory.setUpMediaRouteButton(requireContext(), binding.btnTopCast)
             updateCastStatusFromSession()
         }.onFailure {

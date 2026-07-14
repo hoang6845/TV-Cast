@@ -21,6 +21,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.base.R
+import com.example.base.cast.CastReceiverIds
 import com.example.base.databinding.FragmentCastMediaBinding
 import com.example.base.media.LocalMediaHttpServer
 import com.google.android.gms.cast.MediaInfo
@@ -218,6 +219,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private fun setupCastButton() {
         runCatching {
             castContext = CastContext.getSharedInstance(requireContext())
+            castContext?.setReceiverApplicationId(CastReceiverIds.DEFAULT_MEDIA)
             CastButtonFactory.setUpMediaRouteButton(requireContext(), binding.btnTopCast)
             updateCastStatusFromSession()
         }.onFailure {
