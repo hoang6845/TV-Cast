@@ -48,4 +48,16 @@
         <item name="android:textSize">@dimen/_11ssp</item>
         <item name="android:textStyle">bold</item>
     </style>
+
+    <style name="MovieAdvisorTab">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:fontFamily">@font/inter</item>
+        <item name="android:gravity">center</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">@dimen/_9ssp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
 </resources>

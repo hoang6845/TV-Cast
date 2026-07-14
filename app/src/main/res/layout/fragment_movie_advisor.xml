@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".ui.movie_advisor.MovieAdvisorFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/top_bar"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_48sdp"
+        android:paddingHorizontal="@dimen/_12sdp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="@dimen/_34sdp"
+            android:layout_height="@dimen/_34sdp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/text_back"
+            android:padding="@dimen/_7sdp"
+            android:src="@drawable/ic_arrow_back_white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="@string/text_movie_advisor"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_12ssp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_top_action"
+            app:layout_constraintStart_toEndOf="@id/btn_back"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/btn_top_action"
+            android:layout_width="@dimen/_52sdp"
+            android:layout_height="@dimen/_34sdp"
+            android:ellipsize="end"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="@string/text_saved"
+            android:textColor="#B7B7BD"
+            android:textSize="@dimen/_9ssp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <ScrollView
+        android:id="@+id/editor_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        android:paddingBottom="@dimen/_18sdp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/top_bar">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/_18sdp">
+
+            <LinearLayout
+                android:id="@+id/tab_container"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_34sdp"
+                android:layout_marginTop="@dimen/_8sdp"
+                android:background="@drawable/bg_iptv_tab_container"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:padding="@dimen/_3sdp">
+
+                <TextView
+                    android:id="@+id/btn_all"
+                    style="@style/MovieAdvisorTab"
+                    android:background="@drawable/bg_iptv_tab_selected"
+                    android:text="@string/text_all"
+                    android:textColor="@color/black" />
+
+                <TextView
+                    android:id="@+id/btn_movies"
+                    style="@style/MovieAdvisorTab"
+                    android:text="@string/text_movies" />
+
+                <TextView
+                    android:id="@+id/btn_series"
+                    style="@style/MovieAdvisorTab"
+                    android:text="@string/text_series" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_18sdp"
+                android:fontFamily="@font/inter"
+                android:includeFontPadding="false"
+                android:text="@string/text_search_options"
+                android:textColor="#8F8F96"
+                android:textSize="@dimen/_9ssp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_8sdp"
+                android:background="@drawable/bg_movie_advisor_input"
+                android:orientation="vertical"
+                android:paddingVertical="@dimen/_4sdp">
+
+                <include
+                    android:id="@+id/row_genres"
+                    layout="@layout/layout_movie_advisor_filter_row" />
+
+                <include
+                    android:id="@+id/row_moods"
+                    layout="@layout/layout_movie_advisor_filter_row" />
+
+                <include
+                    android:id="@+id/row_release_year"
+                    layout="@layout/layout_movie_advisor_filter_row" />
+
+                <include
+                    android:id="@+id/row_rating"
+                    layout="@layout/layout_movie_advisor_filter_row" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_12sdp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/inter"
+                    android:includeFontPadding="false"
+                    android:text="@string/text_description"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/_9ssp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/inter"
+                    android:includeFontPadding="false"
+                    android:text="@string/text_optional"
+                    android:textColor="#8F8F96"
+                    android:textSize="@dimen/_8ssp" />
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/et_description"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_88sdp"
+                android:layout_marginTop="@dimen/_8sdp"
+                android:background="@drawable/bg_movie_advisor_input"
+                android:fontFamily="@font/inter"
+                android:gravity="top|start"
+                android:hint="@string/text_movie_advisor_description_hint"
+                android:inputType="textMultiLine|textCapSentences"
+                android:padding="@dimen/_12sdp"
+                android:textColor="@color/white"
+                android:textColorHint="#5F5F66"
+                android:textSize="@dimen/_10ssp" />
+
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/btn_get_list"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_46sdp"
+                android:layout_marginHorizontal="@dimen/_24sdp"
+                android:layout_marginTop="@dimen/_28sdp"
+                android:layout_marginBottom="@dimen/_18sdp"
+                android:background="@drawable/shape_btn"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/text_get_popular_list"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_11ssp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/result_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/top_bar">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/_12sdp"
+            android:layout_marginTop="@dimen/_8sdp"
+            android:fontFamily="@font/inter"
+            android:lineSpacingExtra="@dimen/_2sdp"
+            android:text="@string/text_movie_advisor_result_intro"
+            android:textColor="#B7B7BD"
+            android:textSize="@dimen/_9ssp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_movie_results"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/_12sdp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="@dimen/_12sdp"
+            tools:itemCount="4"
+            tools:listitem="@layout/item_movie_advisor_result" />
+
+        <TextView
+            android:id="@+id/btn_find_next"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/_42sdp"
+            android:layout_marginHorizontal="@dimen/_36sdp"
+            android:layout_marginTop="@dimen/_4sdp"
+            android:layout_marginBottom="@dimen/_12sdp"
+            android:background="@drawable/bg_iptv_row"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="@string/text_find_next"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_10ssp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/empty_state"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/_24sdp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:text="@string/text_no_matches_found"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_14ssp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_8sdp"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:text="@string/text_movie_advisor_empty_message"
+                android:textColor="#8F8F96"
+                android:textSize="@dimen/_10ssp" />
+
+            <TextView
+                android:id="@+id/btn_edit_filters"
+                android:layout_width="@dimen/_130sdp"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_marginTop="@dimen/_18sdp"
+                android:background="@drawable/bg_iptv_row"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:text="@string/text_edit_filters"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_10ssp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btn_broaden_search"
+                android:layout_width="@dimen/_130sdp"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_marginTop="@dimen/_8sdp"
+                android:background="@drawable/shape_btn"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:text="@string/text_broaden_search"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_10ssp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/error_state"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/_24sdp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:text="@string/text_unable_to_load_movie_data"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_14ssp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_error_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_8sdp"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:textColor="#8F8F96"
+                android:textSize="@dimen/_10ssp"
+                tools:text="Please check your connection and try again." />
+
+            <TextView
+                android:id="@+id/btn_try_again"
+                android:layout_width="@dimen/_130sdp"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_marginTop="@dimen/_18sdp"
+                android:background="@drawable/shape_btn"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:text="@string/text_try_again"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_10ssp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/loading_overlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_iptv_loading_overlay"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="@dimen/_190sdp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_iptv_row"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/_18sdp">
+
+            <ProgressBar
+                android:layout_width="@dimen/_32sdp"
+                android:layout_height="@dimen/_32sdp"
+                android:indeterminateTint="@color/white" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_12sdp"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/text_movie_advisor_loading"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_10ssp" />
+        </LinearLayout>
+    </FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
