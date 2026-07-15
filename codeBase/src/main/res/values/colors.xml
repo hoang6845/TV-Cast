@@ -982,8 +982,8 @@
     <dimen name="_98ssp">98.00sp</dimen>
     <dimen name="_99ssp">99.00sp</dimen>
     <dimen name="_9ssp">9.00sp</dimen>
-    <color name="colorPrimary">#8411CE</color>
-    <color name="colorPrimaryLight">#B1E8FF</color>
+    <color name="colorPrimary">#B99041</color>
+    <color name="colorPrimaryLight">#F4D188</color>
     <color name="colorPrimaryDark">#2196F3</color>
     <color name="colorAccent">#4CCCFB</color>
 

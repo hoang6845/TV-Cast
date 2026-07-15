@@ -48,7 +48,7 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
 //                    hasNavigated = true
 //                    navigate(com.example.base.R.id.introFragment, isPop = true)
 //                }
-                navigate(com.example.base.R.id.homeFragment)
+                navigate(com.example.base.R.id.introFragment)
             }
         }
 

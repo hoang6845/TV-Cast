@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black"
+    android:background="#0E0E0E"
     tools:context=".ui.cast_youtube.CastYoutubeFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -107,14 +107,12 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <ImageButton
+        <ImageView
             android:id="@+id/btn_web_back"
             android:layout_width="@dimen/_42sdp"
             android:layout_height="@dimen/_40sdp"
-            android:background="@drawable/bg_cast_youtube_nav_button"
             android:contentDescription="@string/text_back"
-            android:padding="@dimen/_9sdp"
-            android:src="@drawable/ic_arrow_back_white"
+            android:src="@drawable/ic_previous_pg"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -142,14 +140,12 @@
             app:layout_constraintStart_toEndOf="@id/btn_web_back"
             app:layout_constraintTop_toTopOf="@id/btn_web_back" />
 
-        <ImageButton
+        <ImageView
             android:id="@+id/btn_web_forward"
             android:layout_width="@dimen/_42sdp"
             android:layout_height="@dimen/_40sdp"
-            android:background="@drawable/bg_cast_youtube_nav_button"
             android:contentDescription="@string/text_forward"
-            android:padding="@dimen/_9sdp"
-            android:src="@drawable/ic_arrow_forward_white"
+            android:src="@drawable/ic_next_pg"
             app:layout_constraintBottom_toBottomOf="@id/btn_web_back"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/btn_web_back" />

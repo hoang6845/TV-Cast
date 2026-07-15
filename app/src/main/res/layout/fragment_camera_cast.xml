@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black"
+    android:background="#0E0E0E"
     tools:context=".ui.cast_camera.CameraCastFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -330,16 +330,20 @@
     <TextView
         android:id="@+id/btn_start_casting"
         android:layout_width="0dp"
-        android:layout_height="@dimen/_44sdp"
-        android:layout_marginStart="@dimen/_28sdp"
-        android:layout_marginEnd="@dimen/_28sdp"
-        android:layout_marginBottom="@dimen/_22sdp"
+        android:layout_height="0dp"
+        android:layout_marginHorizontal="@dimen/_40sdp"
+        android:layout_marginBottom="@dimen/_24sdp"
         android:background="@drawable/bg_cast_youtube_action"
         android:clickable="true"
+        android:ellipsize="end"
+        app:layout_constraintDimensionRatio="317:65"
         android:focusable="true"
         android:fontFamily="@font/inter"
         android:gravity="center"
         android:includeFontPadding="false"
+        android:maxLines="1"
+        android:paddingStart="@dimen/_12sdp"
+        android:paddingEnd="@dimen/_12sdp"
         android:text="@string/text_start_casting"
         android:textColor="@color/white"
         android:textSize="@dimen/_12ssp"

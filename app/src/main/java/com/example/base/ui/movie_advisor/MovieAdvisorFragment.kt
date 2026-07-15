@@ -109,9 +109,7 @@ class MovieAdvisorFragment : BaseFragment<FragmentMovieAdvisorBinding, MovieAdvi
         binding.tvTitle.text = getString(
             if (showingResults) R.string.text_movie_list else R.string.text_movie_advisor
         )
-        binding.btnTopAction.text = getString(
-            if (showingResults) R.string.text_save else R.string.text_saved
-        )
+
         binding.editorContainer.isVisible = !showingResults
         binding.resultContainer.isVisible = showingResults
         binding.loadingOverlay.isVisible = resultState == MovieAdvisorResultState.Loading
