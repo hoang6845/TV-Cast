@@ -60,4 +60,42 @@
         <item name="android:textSize">@dimen/_12ssp</item>
         <item name="android:textStyle">bold</item>
     </style>
+    <style name="ThemeOverlay.App.PopupMenu"
+        parent="ThemeOverlay.Material3.Light">
+
+        <!-- Nền popup -->
+        <item name="android:colorBackground">#141416</item>
+
+        <!-- Màu chữ -->
+        <item name="android:textColor">#ffffff</item>
+
+        <!-- Màu khi nhấn -->
+        <item name="colorControlHighlight">#252528</item>
+    </style>
+    <style name="ThemeOverlay.App.CastDialog"
+        parent="ThemeOverlay.Material3.MaterialAlertDialog">
+
+        <!-- Màu nền dialog -->
+        <item name="colorSurface">#141416</item>
+
+        <!-- Màu tiêu đề -->
+        <item name="materialAlertDialogTitleTextStyle">
+            @style/App.CastDialog.Title
+        </item>
+
+        <!-- Màu chữ danh sách -->
+        <item name="materialAlertDialogBodyTextStyle">
+            @style/App.CastDialog.Body
+        </item>
+    </style>
+
+    <style name="App.CastDialog.Title"
+        parent="MaterialAlertDialog.Material3.Title.Text">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="App.CastDialog.Body"
+        parent="MaterialAlertDialog.Material3.Body.Text">
+        <item name="android:textColor">@color/white</item>
+    </style>
 </resources>

@@ -24,6 +24,7 @@ import com.example.base.R
 import com.example.base.cast.CastReceiverIds
 import com.example.base.databinding.FragmentCastMediaBinding
 import com.example.base.media.LocalMediaHttpServer
+import com.example.base.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
 import com.google.android.gms.cast.MediaMetadata
@@ -341,9 +342,14 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             Toast.makeText(requireContext(), R.string.text_select_tv_to_cast, Toast.LENGTH_SHORT).show()
             binding.btnTopCast.performClick()
             mainHandler.postDelayed({
-                if (_binding != null && view != null && currentCastSession()?.isConnected != true) {
+                if (_binding != null &&
+                    view != null &&
+                    pendingCast &&
+                    currentCastSession()?.isConnected != true
+                ) {
                     pendingCast = false
                     updateCastStatusFromSession()
+                    showCastFailureDialog()
                 }
             }, CAST_SELECTION_TIMEOUT_MS)
             updateControls()
@@ -442,11 +448,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     }
 
     private fun showMediaErrorDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.text_something_went_wrong)
-            .setMessage(R.string.text_media_pick_error_message)
-            .setPositiveButton(R.string.text_ok, null)
-            .show()
+        showCastFailureDialog()
         updateControls()
     }
 

@@ -99,6 +99,7 @@
     <string name="text_preparing_to_cast">Preparing to Cast</string>
     <string name="text_something_went_wrong">Something Went Wrong</string>
     <string name="text_media_pick_error_message">Make sure your TV is turned on and connected to the same Wi-Fi. Please try again with your Phone and try again!</string>
+    <string name="text_cast_failure_message">Make sure your TV is turned on and connected to the same Wi-Fi network as your Phone and try again</string>
     <string name="text_ok">OK</string>
     <string name="text_could_not_prepare_media">Could not prepare this media</string>
     <string name="text_could_not_cast_media">Could not cast this media</string>
@@ -140,6 +141,7 @@
     <string name="text_switch_camera">Switch camera</string>
     <string name="text_zoom_half">0.5x</string>
     <string name="text_zoom_one">1x</string>
+    <string name="text_zoom_two">2x</string>
     <string name="text_screen_mirroring">Screen Mirroring</string>
     <string name="text_quality">Quality</string>
     <string name="text_quality_description">Higher quality uses more network bandwidth.</string>
@@ -179,6 +181,9 @@
     <string name="text_no_tvs_found">No TVs found</string>
     <string name="text_enter_pairing_code_title">Enter Pairing Code</string>
     <string name="text_enter_pairing_code_message">Enter the 6-character code shown on %1$s.</string>
+    <string name="text_enter_id_code_title">Enter the ID Code</string>
+    <string name="text_enter_id_code_message">shown on your TV browser</string>
+    <string name="text_pairing_code_help">Don\'t see the code? Go back and repeat the previous steps.</string>
     <string name="text_pairing_code_hint">6-character code</string>
     <string name="text_connect">Connect</string>
     <string name="text_incorrect_pairing_code">Incorrect pairing code</string>
@@ -272,4 +277,21 @@
     <string name="text_movie_advisor_no_saved_lists">No saved lists yet.</string>
     <string name="text_find_next">Find Next</string>
     <string name="text_higher_quality_better_experience">Higher Quality - Better Experience</string>
+    <string name="text_home_connect_guide_desc">Follow the guide below to help us find your TV faster.</string>
+    <string name="text_home_connect_same_wifi_desc">Make sure your TV is on and connected to the same Wi-Fi as your Phone</string>
+    <string name="text_home_connect_step_1">STEP 1</string>
+    <string name="text_home_connect_step_2">STEP 2</string>
+    <string name="text_home_connect_step_3">STEP 3</string>
+    <string name="text_home_connect_step_1_desc">Ensure your TV and Phone are on the same Wi-Fi network</string>
+    <string name="text_home_connect_step_2_desc">Disable VPN, proxies, or similar tools on your Phone or TV</string>
+    <string name="text_home_connect_step_3_desc">If nothing above helps, restart your TV and try again</string>
+    <string name="text_home_connect_tv_browser">Connect via TV Browser</string>
+    <string name="text_home_connect_not_connected">Not Connected</string>
+    <string name="text_home_connect_dont_see_tv">Don\'t see your TV?</string>
+    <string name="text_faq">FAQ</string>
+    <string name="text_still_need_help">Still need help?</string>
+    <string name="text_faq_support_desc">Our support team is ready\nto help</string>
+    <string name="text_support">Support</string>
+    <string name="text_faq_support_subject">TV Cast Support</string>
+    <string name="text_faq_support_email_missing">Please add support email in FaqContent.</string>
 </resources>

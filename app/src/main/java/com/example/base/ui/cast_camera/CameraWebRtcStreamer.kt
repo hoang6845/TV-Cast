@@ -1,6 +1,8 @@
 package com.example.base.ui.cast_camera
 
 import android.content.Context
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import org.json.JSONObject
 import org.webrtc.AudioSource
 import org.webrtc.AudioTrack
@@ -20,9 +22,14 @@ import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import org.webrtc.SurfaceTextureHelper
 import org.webrtc.SurfaceViewRenderer
+import org.webrtc.VideoFrame
 import org.webrtc.VideoCapturer
+import org.webrtc.VideoProcessor
+import org.webrtc.VideoSink
 import org.webrtc.VideoSource
 import org.webrtc.VideoTrack
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraWebRtcStreamer(
@@ -48,6 +55,9 @@ class CameraWebRtcStreamer(
     private var audioTrack: AudioTrack? = null
     private var peerConnection: PeerConnection? = null
     private var isFrontCamera = false
+    private var activeCameraName: String? = null
+    private val cameraEnumerator = Camera2Enumerator(context)
+    private val zoomProcessor = CropZoomVideoProcessor()
 
     init {
         initializeWebRtc(context)
@@ -86,6 +96,7 @@ class CameraWebRtcStreamer(
             eglBase.eglBaseContext
         )
         val createdVideoSource = factory.createVideoSource(false)
+        createdVideoSource.setVideoProcessor(zoomProcessor)
 
         capturer.initialize(
             textureHelper,
@@ -108,6 +119,39 @@ class CameraWebRtcStreamer(
         videoTrack = createdVideoTrack
         audioSource = createdAudioSource
         audioTrack = createdAudioTrack
+    }
+
+    fun getSupportedZoomRatios(useFrontCamera: Boolean): List<Float> {
+        val ratios = mutableListOf(DEFAULT_ZOOM_RATIO, DOUBLE_ZOOM_RATIO)
+        if (!useFrontCamera && findUltraWideBackCameraName() != null) {
+            ratios.add(0, HALF_ZOOM_RATIO)
+        }
+        return ratios
+    }
+
+    fun setZoomRatio(ratio: Float): Boolean {
+        if (videoCapturer == null) return false
+
+        if (ratio < DEFAULT_ZOOM_RATIO) {
+            val ultraWideCamera = findUltraWideBackCameraName() ?: return false
+            if (activeCameraName != ultraWideCamera) {
+                (videoCapturer as? CameraVideoCapturer)?.switchCamera(null, ultraWideCamera)
+                activeCameraName = ultraWideCamera
+            }
+            zoomProcessor.setZoomRatio(DEFAULT_ZOOM_RATIO)
+            return true
+        }
+
+        if (!isFrontCamera) {
+            val defaultBackCamera = findDefaultBackCameraName()
+            if (defaultBackCamera != null && activeCameraName != defaultBackCamera) {
+                (videoCapturer as? CameraVideoCapturer)?.switchCamera(null, defaultBackCamera)
+                activeCameraName = defaultBackCamera
+            }
+        }
+
+        zoomProcessor.setZoomRatio(ratio.coerceIn(DEFAULT_ZOOM_RATIO, DOUBLE_ZOOM_RATIO))
+        return true
     }
 
     fun startCasting() {
@@ -180,7 +224,10 @@ class CameraWebRtcStreamer(
     fun switchCamera(useFrontCamera: Boolean) {
         isFrontCamera = useFrontCamera
         localRenderer.setMirror(useFrontCamera)
-        (videoCapturer as? CameraVideoCapturer)?.switchCamera(null)
+        val targetCamera = findPreferredCameraName(useFrontCamera) ?: return
+        activeCameraName = targetCamera
+        zoomProcessor.setZoomRatio(DEFAULT_ZOOM_RATIO)
+        (videoCapturer as? CameraVideoCapturer)?.switchCamera(null, targetCamera)
     }
 
     fun setAudioEnabled(enabled: Boolean) {
@@ -276,21 +323,75 @@ class CameraWebRtcStreamer(
     }
 
     private fun createCameraCapturer(useFrontCamera: Boolean): VideoCapturer? {
-        val enumerator = Camera2Enumerator(context)
-        val deviceNames = enumerator.deviceNames
-        val preferred = deviceNames.firstOrNull {
-            if (useFrontCamera) {
-                enumerator.isFrontFacing(it)
-            } else {
-                enumerator.isBackFacing(it)
-            }
-        }
+        val deviceNames = cameraEnumerator.deviceNames
+        val preferred = findPreferredCameraName(useFrontCamera)
         val fallback = deviceNames.firstOrNull()
         return listOfNotNull(preferred, fallback)
             .distinct()
             .firstNotNullOfOrNull { name ->
-                runCatching { enumerator.createCapturer(name, null) }.getOrNull()
+                runCatching { cameraEnumerator.createCapturer(name, null) }.getOrNull()?.also {
+                    activeCameraName = name
+                }
             }
+    }
+
+    private fun findPreferredCameraName(useFrontCamera: Boolean): String? {
+        return if (useFrontCamera) {
+            cameraEnumerator.deviceNames.firstOrNull { cameraEnumerator.isFrontFacing(it) }
+        } else {
+            findDefaultBackCameraName()
+                ?: cameraEnumerator.deviceNames.firstOrNull { cameraEnumerator.isBackFacing(it) }
+        }
+    }
+
+    private fun findDefaultBackCameraName(): String? {
+        val backCameras = cameraDescriptors()
+            .filter { !it.isFrontFacing }
+            .sortedBy { abs(it.minFocalLength - DEFAULT_BACK_FOCAL_LENGTH) }
+
+        return backCameras.firstOrNull()?.name
+            ?: cameraEnumerator.deviceNames.firstOrNull { cameraEnumerator.isBackFacing(it) }
+    }
+
+    private fun findUltraWideBackCameraName(): String? {
+        val backCameras = cameraDescriptors()
+            .filter { !it.isFrontFacing }
+            .sortedBy { it.minFocalLength }
+
+        val ultraWide = backCameras.firstOrNull() ?: return null
+        val defaultBack = findDefaultBackCameraName()
+        if (ultraWide.name == defaultBack) return null
+
+        val defaultFocalLength = backCameras
+            .firstOrNull { it.name == defaultBack }
+            ?.minFocalLength
+            ?: return ultraWide.name
+
+        return if (ultraWide.minFocalLength <= defaultFocalLength * ULTRA_WIDE_FOCAL_THRESHOLD) {
+            ultraWide.name
+        } else {
+            null
+        }
+    }
+
+    private fun cameraDescriptors(): List<CameraDescriptor> {
+        val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+            ?: return emptyList()
+
+        return runCatching {
+            cameraEnumerator.deviceNames.mapNotNull { name ->
+                val characteristics = cameraManager.getCameraCharacteristics(name)
+                val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
+                val focalLengths = characteristics.get(
+                    CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
+                )
+                CameraDescriptor(
+                    name = name,
+                    isFrontFacing = facing == CameraCharacteristics.LENS_FACING_FRONT,
+                    minFocalLength = focalLengths?.minOrNull() ?: DEFAULT_BACK_FOCAL_LENGTH
+                )
+            }
+        }.getOrDefault(emptyList())
     }
 
     private open class SimpleSdpObserver : SdpObserver {
@@ -300,8 +401,70 @@ class CameraWebRtcStreamer(
         override fun onSetFailure(error: String) = Unit
     }
 
+    private data class CameraDescriptor(
+        val name: String,
+        val isFrontFacing: Boolean,
+        val minFocalLength: Float
+    )
+
+    private class CropZoomVideoProcessor : VideoProcessor {
+        @Volatile
+        private var zoomRatio = DEFAULT_ZOOM_RATIO
+        private var sink: VideoSink? = null
+
+        fun setZoomRatio(ratio: Float) {
+            zoomRatio = ratio.coerceIn(DEFAULT_ZOOM_RATIO, DOUBLE_ZOOM_RATIO)
+        }
+
+        override fun setSink(sink: VideoSink?) {
+            this.sink = sink
+        }
+
+        override fun onCapturerStarted(success: Boolean) = Unit
+
+        override fun onCapturerStopped() = Unit
+
+        override fun onFrameCaptured(frame: VideoFrame) {
+            val currentSink = sink ?: return
+            val ratio = zoomRatio
+            if (ratio <= DEFAULT_ZOOM_RATIO) {
+                currentSink.onFrame(frame)
+                return
+            }
+
+            val sourceBuffer = frame.buffer
+            val cropWidth = evenDimension((sourceBuffer.width / ratio).roundToInt())
+            val cropHeight = evenDimension((sourceBuffer.height / ratio).roundToInt())
+            val cropX = evenDimension((sourceBuffer.width - cropWidth) / 2)
+            val cropY = evenDimension((sourceBuffer.height - cropHeight) / 2)
+            val zoomedBuffer = sourceBuffer.cropAndScale(
+                cropX,
+                cropY,
+                cropWidth,
+                cropHeight,
+                sourceBuffer.width,
+                sourceBuffer.height
+            )
+            val zoomedFrame = VideoFrame(zoomedBuffer, frame.rotation, frame.timestampNs)
+            try {
+                currentSink.onFrame(zoomedFrame)
+            } finally {
+                zoomedFrame.release()
+            }
+        }
+
+        private fun evenDimension(value: Int): Int {
+            return value.coerceAtLeast(2).let { if (it % 2 == 0) it else it - 1 }
+        }
+    }
+
     companion object {
         private val factoryInitialized = AtomicBoolean(false)
+        private const val HALF_ZOOM_RATIO = 0.5f
+        private const val DEFAULT_ZOOM_RATIO = 1f
+        private const val DOUBLE_ZOOM_RATIO = 2f
+        private const val DEFAULT_BACK_FOCAL_LENGTH = 4f
+        private const val ULTRA_WIDE_FOCAL_THRESHOLD = 0.8f
         private const val STREAM_ID = "camera_cast_stream"
         private const val VIDEO_TRACK_ID = "camera_cast_video"
         private const val AUDIO_TRACK_ID = "camera_cast_audio"

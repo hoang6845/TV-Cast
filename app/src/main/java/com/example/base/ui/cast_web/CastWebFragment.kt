@@ -25,6 +25,7 @@ import com.example.base.R
 import com.example.base.cast.CastReceiverIds
 import com.example.base.databinding.FragmentCastWebBinding
 import com.example.base.databinding.ItemCastWebSiteBinding
+import com.example.base.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
 import com.google.android.gms.cast.MediaMetadata
@@ -69,6 +70,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         override fun onSessionStartFailed(session: CastSession, error: Int) {
             pendingVideo = null
             updateCastStatus(CastConnectionState.Error)
+            showCastFailureDialog()
             updateControls()
         }
 
@@ -301,60 +303,50 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     private fun setupFavoriteSites() {
         configureSite(
             binding.siteYoutube,
-            logo = "YT",
+            logoRes = R.drawable.youtube,
             title = getString(R.string.text_youtube),
-            logoBackground = R.drawable.bg_site_youtube,
             url = YOUTUBE_URL
         )
         configureSite(
             binding.siteFacebook,
-            logo = "f",
+            logoRes = R.drawable.facebook,
             title = getString(R.string.text_facebook),
-            logoBackground = R.drawable.bg_site_facebook,
             url = FACEBOOK_URL
         )
         configureSite(
             binding.siteTed,
-            logo = "TED",
+            logoRes = R.drawable.ted,
             title = getString(R.string.text_ted),
-            logoBackground = R.drawable.bg_site_ted,
-            logoTextColor = Color.parseColor("#E62B1E"),
             url = TED_URL
         )
         configureSite(
             binding.siteVevo,
-            logo = "vevo",
+            logoRes = R.drawable.vevo,
             title = getString(R.string.text_vevo),
-            logoBackground = R.drawable.bg_site_vevo,
             url = VEVO_URL
         )
         configureSite(
             binding.siteTwitch,
-            logo = "tv",
+            logoRes = R.drawable.twich,
             title = getString(R.string.text_twitch),
-            logoBackground = R.drawable.bg_site_twitch,
             url = TWITCH_URL
         )
         configureSite(
             binding.siteVeoh,
-            logo = "veoh",
+            logoRes = R.drawable.veoh,
             title = getString(R.string.text_veoh),
-            logoBackground = R.drawable.bg_site_veoh,
             url = VEOH_URL
         )
     }
 
     private fun configureSite(
         site: ItemCastWebSiteBinding,
-        logo: String,
+        logoRes: Int,
         title: String,
-        logoBackground: Int,
-        url: String,
-        logoTextColor: Int = Color.WHITE
+        url: String
     ) {
-        site.siteLogo.text = logo
-        site.siteLogo.setTextColor(logoTextColor)
-        site.siteLogo.setBackgroundResource(logoBackground)
+        site.siteLogo.setImageResource(logoRes)
+        site.siteLogo.contentDescription = title
         site.siteTitle.text = title
         site.root.setOnClickListener { loadUrl(url) }
     }
@@ -535,9 +527,14 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
             Toast.makeText(requireContext(), R.string.text_select_tv_to_cast, Toast.LENGTH_SHORT).show()
             binding.btnTopCast.performClick()
             mainHandler.postDelayed({
-                if (_binding != null && view != null && currentCastSession()?.isConnected != true) {
+                if (_binding != null &&
+                    view != null &&
+                    pendingVideo === video &&
+                    currentCastSession()?.isConnected != true
+                ) {
                     pendingVideo = null
                     updateCastStatusFromSession()
+                    showCastFailureDialog()
                 }
             }, CAST_SELECTION_TIMEOUT_MS)
             updateControls()

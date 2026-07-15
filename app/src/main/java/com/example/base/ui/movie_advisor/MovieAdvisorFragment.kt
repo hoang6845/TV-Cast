@@ -217,7 +217,34 @@ class MovieAdvisorFragment : BaseFragment<FragmentMovieAdvisorBinding, MovieAdvi
         val sheetBinding = LayoutMovieAdvisorOptionSheetBinding.inflate(layoutInflater)
         val stagedSelection = selected.toMutableSet()
 
-        fun renderOptions() {
+        fun applyOptionState(row: TextView, option: String) {
+            val isSelected = stagedSelection.contains(option)
+            row.setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#D7D7DC"))
+            row.setBackgroundResource(
+                if (isSelected) R.drawable.bg_movie_advisor_option_selected
+                else R.drawable.bg_movie_advisor_option
+            )
+            row.setCompoundDrawablesWithIntrinsicBounds(
+                null,
+                null,
+                if (isSelected) {
+                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_iptv_check)
+                } else {
+                    null
+                },
+                null
+            )
+        }
+
+        fun updateOptionRows() {
+            options.forEachIndexed { index, option ->
+                val row = sheetBinding.optionContainer.getChildAt(index) as? TextView
+                    ?: return@forEachIndexed
+                applyOptionState(row, option)
+            }
+        }
+
+        fun renderOptionsOnce() {
             sheetBinding.optionContainer.removeAllViews()
             options.forEach { option ->
                 val row = layoutInflater.inflate(
@@ -225,23 +252,8 @@ class MovieAdvisorFragment : BaseFragment<FragmentMovieAdvisorBinding, MovieAdvi
                     sheetBinding.optionContainer,
                     false
                 ) as TextView
-                val isSelected = stagedSelection.contains(option)
                 row.text = option
-                row.setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#D7D7DC"))
-                row.setBackgroundResource(
-                    if (isSelected) R.drawable.bg_movie_advisor_option_selected
-                    else R.drawable.bg_movie_advisor_option
-                )
-                row.setCompoundDrawablesWithIntrinsicBounds(
-                    null,
-                    null,
-                    if (isSelected) {
-                        ContextCompat.getDrawable(requireContext(), R.drawable.ic_iptv_check)
-                    } else {
-                        null
-                    },
-                    null
-                )
+                applyOptionState(row, option)
                 row.setOnClickListener {
                     if (multiSelect) {
                         if (option.startsWith("All ")) {
@@ -260,7 +272,7 @@ class MovieAdvisorFragment : BaseFragment<FragmentMovieAdvisorBinding, MovieAdvi
                         stagedSelection.clear()
                         stagedSelection += option
                     }
-                    renderOptions()
+                    updateOptionRows()
                 }
                 sheetBinding.optionContainer.addView(row)
             }
@@ -271,7 +283,7 @@ class MovieAdvisorFragment : BaseFragment<FragmentMovieAdvisorBinding, MovieAdvi
             onDone(stagedSelection)
             dialog.dismiss()
         }
-        renderOptions()
+        renderOptionsOnce()
 
         dialog.setContentView(sheetBinding.root)
         dialog.setOnShowListener {

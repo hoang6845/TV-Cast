@@ -280,7 +280,7 @@
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="@dimen/_72sdp"
+                        android:layout_height="@dimen/_96sdp"
                         android:orientation="horizontal">
 
                         <include
@@ -288,7 +288,7 @@
                             layout="@layout/item_cast_web_site"
                             android:layout_width="0dp"
                             android:layout_height="match_parent"
-                            android:layout_marginEnd="@dimen/_8sdp"
+                            android:layout_marginEnd="@dimen/_10sdp"
                             android:layout_weight="1" />
 
                         <include
@@ -296,7 +296,7 @@
                             layout="@layout/item_cast_web_site"
                             android:layout_width="0dp"
                             android:layout_height="match_parent"
-                            android:layout_marginEnd="@dimen/_8sdp"
+                            android:layout_marginEnd="@dimen/_10sdp"
                             android:layout_weight="1" />
 
                         <include
@@ -309,8 +309,8 @@
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="@dimen/_72sdp"
-                        android:layout_marginTop="@dimen/_8sdp"
+                        android:layout_height="@dimen/_96sdp"
+                        android:layout_marginTop="@dimen/_12sdp"
                         android:orientation="horizontal">
 
                         <include
@@ -318,7 +318,7 @@
                             layout="@layout/item_cast_web_site"
                             android:layout_width="0dp"
                             android:layout_height="match_parent"
-                            android:layout_marginEnd="@dimen/_8sdp"
+                            android:layout_marginEnd="@dimen/_10sdp"
                             android:layout_weight="1" />
 
                         <include
@@ -326,7 +326,7 @@
                             layout="@layout/item_cast_web_site"
                             android:layout_width="0dp"
                             android:layout_height="match_parent"
-                            android:layout_marginEnd="@dimen/_8sdp"
+                            android:layout_marginEnd="@dimen/_10sdp"
                             android:layout_weight="1" />
 
                         <include

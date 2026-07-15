@@ -24,6 +24,7 @@ import androidx.core.view.updatePadding
 import com.example.base.R
 import com.example.base.cast.CastReceiverIds
 import com.example.base.databinding.FragmentCameraCastBinding
+import com.example.base.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.Cast
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
@@ -35,6 +36,7 @@ import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
 import org.json.JSONObject
 import org.webrtc.SurfaceViewRenderer
+import kotlin.math.abs
 
 class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastViewModel>(),
     CameraWebRtcStreamer.Listener {
@@ -51,11 +53,13 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     private var isCasting = false
     private var isStartingCast = false
     private var isReconnecting = false
-    private var microphoneMuted = true
+    private var microphoneMuted = false
     private var microphonePermissionDenied = false
     private var torchEnabled = false
     private var useFrontCamera = false
     private var cameraReady = false
+    private var currentZoomRatio = DEFAULT_ZOOM_RATIO
+    private var supportedZoomRatios = listOf(DEFAULT_ZOOM_RATIO, DOUBLE_ZOOM_RATIO)
     private var toolbarBaseHeight = 0
     private var bottomButtonBaseMargin = 0
 
@@ -197,6 +201,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         binding.btnSwitchCamera.setOnClickListener { switchCamera() }
         binding.btnZoomHalf.setOnClickListener { setZoom(HALF_ZOOM_RATIO) }
         binding.btnZoomOne.setOnClickListener { setZoom(DEFAULT_ZOOM_RATIO) }
+        binding.btnZoomTwo.setOnClickListener { setZoom(DOUBLE_ZOOM_RATIO) }
         onBackPressed(Runnable { handleBackPressed() })
     }
 
@@ -338,8 +343,21 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     private fun setupPreviewGestures() {
         scaleDetector = ScaleGestureDetector(
             requireContext(),
-            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {}
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    if (!cameraReady) return false
+                    val minZoom = supportedZoomRatios.minOrNull() ?: DEFAULT_ZOOM_RATIO
+                    val maxZoom = supportedZoomRatios.maxOrNull() ?: DOUBLE_ZOOM_RATIO
+                    val nextZoom = (currentZoomRatio * detector.scaleFactor).coerceIn(minZoom, maxZoom)
+                    val snappedZoom = if (nextZoom < DEFAULT_ZOOM_RATIO) HALF_ZOOM_RATIO else nextZoom
+                    return applyZoom(snappedZoom)
+                }
+            }
         )
+        binding.previewCard.setOnTouchListener { _, event ->
+            scaleDetector?.onTouchEvent(event)
+            false
+        }
     }
 
     private fun hasCameraPermission(): Boolean {
@@ -460,6 +478,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
             cameraReady = true
             binding.cameraLoading.isVisible = false
             updateCameraCapabilities()
+            promptForMicrophoneIfNeeded()
             updateControls()
         }.onFailure {
             showCameraStartError()
@@ -490,12 +509,37 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     private fun updateCameraCapabilities() {
         binding.btnFlash.isEnabled = false
         binding.btnFlash.alpha = 0.45f
-        binding.btnZoomHalf.isVisible = false
+        supportedZoomRatios = webRtcStreamer?.getSupportedZoomRatios(useFrontCamera)
+            ?: listOf(DEFAULT_ZOOM_RATIO, DOUBLE_ZOOM_RATIO)
+        if (supportedZoomRatios.none { isSameZoom(it, currentZoomRatio) }) {
+            currentZoomRatio = DEFAULT_ZOOM_RATIO
+            webRtcStreamer?.setZoomRatio(currentZoomRatio)
+        }
+        binding.btnZoomHalf.isVisible = supportedZoomRatios.any { isSameZoom(it, HALF_ZOOM_RATIO) }
+        binding.btnZoomOne.isVisible = supportedZoomRatios.any { isSameZoom(it, DEFAULT_ZOOM_RATIO) }
+        binding.btnZoomTwo.isVisible = supportedZoomRatios.any { isSameZoom(it, DOUBLE_ZOOM_RATIO) }
         torchEnabled = false
     }
 
     private fun toggleTorch() {
         Toast.makeText(requireContext(), R.string.text_camera_ready, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun promptForMicrophoneIfNeeded() {
+        if (microphoneMuted || hasMicrophonePermission() || microphonePermissionDenied) return
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setMessage(R.string.text_microphone_permission_required)
+            .setNegativeButton(R.string.text_not_now) { _, _ ->
+                microphoneMuted = true
+                microphonePermissionDenied = true
+                webRtcStreamer?.setAudioEnabled(false)
+                updateControls()
+            }
+            .setPositiveButton(R.string.text_allow_microphone) { _, _ ->
+                microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+            .show()
     }
 
     private fun toggleMicrophone() {
@@ -533,7 +577,10 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         binding.cameraLoading.isVisible = true
         binding.cameraLoadingText.setText(R.string.text_switching_camera)
         useFrontCamera = !useFrontCamera
+        currentZoomRatio = DEFAULT_ZOOM_RATIO
         webRtcStreamer?.switchCamera(useFrontCamera)
+        updateCameraCapabilities()
+        updateZoomButtons(currentZoomRatio)
         mainHandler.postDelayed({
             if (_binding != null && view != null) {
                 binding.cameraLoading.isVisible = false
@@ -543,15 +590,41 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun setZoom(ratio: Float) {
-        updateZoomButtons(ratio)
+        applyZoom(ratio)
     }
 
-    private fun updateZoomButtons(ratio: Float = DEFAULT_ZOOM_RATIO) {
-        val isHalf = ratio < 0.75f
-        tintBackground(binding.btnZoomHalf, if (isHalf) ACTIVE_CONTROL_COLOR else INACTIVE_ZOOM_COLOR)
-        tintBackground(binding.btnZoomOne, if (!isHalf) ACTIVE_CONTROL_COLOR else INACTIVE_ZOOM_COLOR)
+    private fun applyZoom(ratio: Float): Boolean {
+        val supportsRatio = supportedZoomRatios.any { isSameZoom(it, ratio) } ||
+            ratio in DEFAULT_ZOOM_RATIO..DOUBLE_ZOOM_RATIO
+        if (!cameraReady || !supportsRatio) return false
+        val applied = webRtcStreamer?.setZoomRatio(ratio) == true
+        if (!applied) return false
+
+        currentZoomRatio = ratio
+        updateZoomButtons(ratio)
+        return true
+    }
+
+    private fun updateZoomButtons(ratio: Float = currentZoomRatio) {
+        tintBackground(
+            binding.btnZoomHalf,
+            if (isSameZoom(ratio, HALF_ZOOM_RATIO)) ACTIVE_CONTROL_COLOR else INACTIVE_ZOOM_COLOR
+        )
+        tintBackground(
+            binding.btnZoomOne,
+            if (isSameZoom(ratio, DEFAULT_ZOOM_RATIO)) ACTIVE_CONTROL_COLOR else INACTIVE_ZOOM_COLOR
+        )
+        tintBackground(
+            binding.btnZoomTwo,
+            if (isSameZoom(ratio, DOUBLE_ZOOM_RATIO)) ACTIVE_CONTROL_COLOR else INACTIVE_ZOOM_COLOR
+        )
         binding.btnZoomHalf.setTextColor(Color.WHITE)
         binding.btnZoomOne.setTextColor(Color.WHITE)
+        binding.btnZoomTwo.setTextColor(Color.WHITE)
+    }
+
+    private fun isSameZoom(first: Float, second: Float): Boolean {
+        return abs(first - second) < ZOOM_EPSILON
     }
 
     private fun handleMainAction() {
@@ -699,19 +772,11 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun showNoDevicesDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.text_no_cast_devices_found)
-            .setMessage(R.string.text_no_cast_devices_found_message)
-            .setPositiveButton(R.string.text_try_again) { _, _ -> startCastFlow() }
-            .show()
+        showCastFailureDialog()
     }
 
     private fun showConnectFailedDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.text_could_not_connect_tv)
-            .setNegativeButton(R.string.text_cancel, null)
-            .setPositiveButton(R.string.text_retry) { _, _ -> startCastFlow() }
-            .show()
+        showCastFailureDialog()
     }
 
     private fun showConnectionLostDialog() {
@@ -835,6 +900,8 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         private const val KEY_CAMERA_PERMISSION_ASKED = "camera_permission_asked"
         private const val DEFAULT_ZOOM_RATIO = 1f
         private const val HALF_ZOOM_RATIO = 0.5f
+        private const val DOUBLE_ZOOM_RATIO = 2f
+        private const val ZOOM_EPSILON = 0.01f
         private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
         private const val RECEIVER_READY_DELAY_MS = 700L
         private const val RECONNECT_TIMEOUT_MS = 5_000L

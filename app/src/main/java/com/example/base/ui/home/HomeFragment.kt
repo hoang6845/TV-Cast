@@ -1,12 +1,24 @@
 package com.example.base.ui.home
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.view.View
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.viewpager2.widget.ViewPager2
 import com.example.base.R
 import com.example.base.databinding.FragmentHomeBinding
+import com.example.base.databinding.LayoutHomeHowToConnectSheetBinding
 import com.example.base.model.entity.ItemFunc
 import com.example.base.ui.cast_media.CastMediaFragment
+import com.example.base.ui.intro.ViewPager2Adapter
 import com.example.base.utils.AppConstants
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.navigate
@@ -69,11 +81,21 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     private val adapter: HomeFuncAdapter by lazy {
         HomeFuncAdapter()
     }
+
     override fun initView() {
+        adjustInsetsForBottomNavigation(binding.icSetting)
         setUpAdapter()
     }
 
     override fun initListener() {
+        binding.btnHowToConnect.setOnClickListener {
+            showHowToConnectSheet()
+        }
+
+        binding.icHelp.setOnClickListener {
+            navigate(R.id.faqFragment)
+        }
+
         binding.icSetting.setOnClickListener {
 
         }
@@ -82,9 +104,9 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     override fun initData() {
     }
 
-    fun setUpAdapter(){
+    fun setUpAdapter() {
         adapter.onClickItem { item, position ->
-            when (item.type){
+            when (item.type) {
                 AppConstants.TYPE_MIRROR -> navigate(R.id.screenMirroringFragment)
                 AppConstants.TYPE_CAST_MEDIA -> showCastMediaChooser()
                 AppConstants.TYPE_CAMERA_CAST -> navigate(R.id.cameraCastFragment)
@@ -109,7 +131,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     }
 
     private fun showCastMediaChooser() {
-        MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(
+            requireContext(),
+            R.style.ThemeOverlay_App_CastDialog
+        )
             .setTitle(R.string.text_cast_media)
             .setItems(
                 arrayOf(
@@ -130,5 +155,106 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
                 )
             }
             .show()
+    }
+
+    private fun showHowToConnectSheet() {
+        val dialog = BottomSheetDialog(requireContext())
+        val sheetBinding = LayoutHomeHowToConnectSheetBinding.inflate(layoutInflater)
+        val descriptions = listOf(
+            getString(R.string.text_home_connect_guide_desc),
+            getString(R.string.text_home_connect_same_wifi_desc)
+        )
+        val autoSlideHandler = Handler(Looper.getMainLooper())
+        var slideForward = true
+
+        fun updateDots(position: Int) {
+            sheetBinding.layoutDots.removeAllViews()
+            repeat(descriptions.size) { index ->
+                sheetBinding.layoutDots.addView(createDot(index == position))
+            }
+        }
+
+        val pageChangeCallback = object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                sheetBinding.tvDescription.text = descriptions[position]
+                updateDots(position)
+            }
+        }
+
+        val autoSlideRunnable = object : Runnable {
+            override fun run() {
+                if (!dialog.isShowing) return
+
+                val currentItem = sheetBinding.viewPager.currentItem
+                val nextItem = if (currentItem == 0 && slideForward) {
+                    1
+                } else {
+                    slideForward = !slideForward
+                    0
+                }
+
+                sheetBinding.viewPager.setCurrentItem(nextItem, true)
+                autoSlideHandler.postDelayed(this, AUTO_SLIDE_INTERVAL_MS)
+            }
+        }
+
+        sheetBinding.viewPager.adapter = ViewPager2Adapter(
+            items = listOf(
+                R.layout.item_home_connect_steps,
+                R.layout.item_home_connect_browser
+            ),
+            getLayoutResId = { item, _ -> item },
+            bindView = { _, _, _ -> }
+        )
+        sheetBinding.viewPager.offscreenPageLimit = 2
+        sheetBinding.viewPager.registerOnPageChangeCallback(pageChangeCallback)
+        updateDots(0)
+
+        dialog.setContentView(sheetBinding.root)
+        dialog.setOnShowListener {
+            val bottomSheet = dialog.findViewById<View>(
+                com.google.android.material.R.id.design_bottom_sheet
+            ) ?: return@setOnShowListener
+
+            bottomSheet.setBackgroundColor(Color.TRANSPARENT)
+            bottomSheet.layoutParams = bottomSheet.layoutParams.apply {
+                height = (resources.displayMetrics.heightPixels * BOTTOM_SHEET_HEIGHT_RATIO).toInt()
+            }
+
+            BottomSheetBehavior.from(bottomSheet).apply {
+                peekHeight =
+                    (resources.displayMetrics.heightPixels * BOTTOM_SHEET_HEIGHT_RATIO).toInt()
+                skipCollapsed = true
+                state = BottomSheetBehavior.STATE_EXPANDED
+            }
+
+            autoSlideHandler.postDelayed(autoSlideRunnable, AUTO_SLIDE_INTERVAL_MS)
+        }
+        dialog.setOnDismissListener {
+            autoSlideHandler.removeCallbacksAndMessages(null)
+            sheetBinding.viewPager.unregisterOnPageChangeCallback(pageChangeCallback)
+        }
+        dialog.show()
+    }
+
+    private fun createDot(isSelected: Boolean): View {
+        return View(requireContext()).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(if (isSelected) Color.WHITE else Color.parseColor("#757579"))
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._7sdp),
+                resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._7sdp)
+            ).apply {
+                marginStart = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._3sdp)
+                marginEnd = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._3sdp)
+            }
+        }
+    }
+
+    companion object {
+        private const val AUTO_SLIDE_INTERVAL_MS = 2500L
+        private const val BOTTOM_SHEET_HEIGHT_RATIO = 0.8f
     }
 }

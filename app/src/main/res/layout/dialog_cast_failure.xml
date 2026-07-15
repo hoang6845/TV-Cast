@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="@dimen/_250sdp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_cast_failure_dialog"
+    android:gravity="center_horizontal"
+    android:layout_marginHorizontal="@dimen/_20sdp"
+    android:orientation="vertical"
+    android:paddingTop="@dimen/_18sdp">
+
+    <FrameLayout
+        android:layout_width="@dimen/_116sdp"
+        android:layout_height="@dimen/_68sdp"
+        android:background="@drawable/bg_cast_failure_image_panel"
+        android:padding="@dimen/_8sdp">
+
+        <ImageView
+            android:id="@+id/image_error"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/text_something_went_wrong"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_something_wrong" />
+    </FrameLayout>
+
+    <View
+        android:layout_width="@dimen/_28sdp"
+        android:layout_height="@dimen/_2sdp"
+        android:layout_marginTop="@dimen/_8sdp"
+        android:background="#8A8A8A" />
+
+    <TextView
+        android:id="@+id/text_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_22sdp"
+        android:layout_marginTop="@dimen/_18sdp"
+        android:layout_marginEnd="@dimen/_22sdp"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/text_something_went_wrong"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_14ssp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/text_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_24sdp"
+        android:layout_marginTop="@dimen/_8sdp"
+        android:layout_marginEnd="@dimen/_24sdp"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:lineSpacingExtra="@dimen/_1sdp"
+        android:text="@string/text_cast_failure_message"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_10ssp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="@dimen/_26sdp"
+        android:background="#242424" />
+
+    <TextView
+        android:id="@+id/button_ok"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_46sdp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/text_ok"
+        android:textColor="#0A84FF"
+        android:textSize="@dimen/_13ssp"
+        android:textStyle="bold" />
+</LinearLayout>

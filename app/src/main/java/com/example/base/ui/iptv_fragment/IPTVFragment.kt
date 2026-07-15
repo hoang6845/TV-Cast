@@ -22,6 +22,7 @@ import com.example.base.R
 import com.example.base.databinding.FragmentIPTVBinding
 import com.example.base.databinding.LayoutIptvFilterSheetBinding
 import com.example.base.model.entity.Channel
+import com.example.base.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.CastMediaControlIntent
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
@@ -447,11 +448,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
             }
 
             override fun onSessionStartFailed(session: CastSession, error: Int) {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.text_failed_to_connect_to_cast_device,
-                    Toast.LENGTH_SHORT
-                ).show()
+                showCastFailureDialog()
             }
 
             override fun onSessionSuspended(session: CastSession, reason: Int) = Unit

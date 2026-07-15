@@ -11,6 +11,11 @@
         android:label="fragment_home"
         tools:layout="@layout/fragment_home" />
     <fragment
+        android:id="@+id/faqFragment"
+        android:name="com.example.base.ui.faq.FaqFragment"
+        android:label="FaqFragment"
+        tools:layout="@layout/fragment_faq" />
+    <fragment
         android:id="@+id/castYoutubeFragment"
         android:name="com.example.base.ui.cast_youtube.CastYoutubeFragment"
         android:label="CastYoutubeFragment"

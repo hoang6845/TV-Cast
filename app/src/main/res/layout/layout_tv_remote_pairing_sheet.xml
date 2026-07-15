@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_tv_remote_pairing_sheet"
+    android:paddingHorizontal="@dimen/_24sdp"
+    android:paddingTop="@dimen/_18sdp"
+    android:paddingBottom="@dimen/_14sdp">
+
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/text_enter_id_code_title"
+        android:textColor="#F0C35D"
+        android:textSize="@dimen/_10ssp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_subtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_2sdp"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/text_enter_id_code_message"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_8ssp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_title" />
+
+    <EditText
+        android:id="@+id/input_pairing_code"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_54sdp"
+        android:layout_marginStart="@dimen/_10sdp"
+        android:layout_marginTop="@dimen/_18sdp"
+        android:layout_marginEnd="@dimen/_10sdp"
+        android:background="@drawable/bg_tv_remote_pairing_input"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:hint="XXX XXX"
+        android:includeFontPadding="false"
+        android:inputType="textCapCharacters"
+        android:maxLines="1"
+        android:paddingHorizontal="@dimen/_16sdp"
+        android:selectAllOnFocus="false"
+        android:singleLine="true"
+        android:textColor="@color/white"
+        android:textColorHint="#BDBDC4"
+        android:textCursorDrawable="@null"
+        android:textSize="@dimen/_20ssp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_subtitle"
+        tools:text="223 688" />
+
+    <TextView
+        android:id="@+id/tv_error"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_6sdp"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:textColor="#FF7878"
+        android:textSize="@dimen/_8ssp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@id/input_pairing_code"
+        app:layout_constraintStart_toStartOf="@id/input_pairing_code"
+        app:layout_constraintTop_toBottomOf="@id/input_pairing_code"
+        tools:text="@string/text_pairing_code_format_error"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/layout_help"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_4sdp"
+        android:layout_marginTop="@dimen/_38sdp"
+        android:layout_marginEnd="@dimen/_4sdp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="@id/input_pairing_code"
+        app:layout_constraintStart_toStartOf="@id/input_pairing_code"
+        app:layout_constraintTop_toBottomOf="@id/input_pairing_code">
+
+        <ImageView
+            android:layout_width="@dimen/_12sdp"
+            android:layout_height="@dimen/_12sdp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_tv_remote_pairing_info" />
+
+        <TextView
+            android:id="@+id/tv_help"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/_6sdp"
+            android:layout_weight="1"
+            android:fontFamily="@font/inter"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="@dimen/_1sdp"
+            android:text="@string/text_pairing_code_help"
+            android:textColor="#A1A1A8"
+            android:textSize="@dimen/_7ssp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/btn_next"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_44sdp"
+        android:layout_marginStart="@dimen/_4sdp"
+        android:layout_marginTop="@dimen/_16sdp"
+        android:layout_marginEnd="@dimen/_4sdp"
+        android:background="@drawable/bg_tv_remote_pairing_next"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/text_next"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_10ssp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="@id/input_pairing_code"
+        app:layout_constraintStart_toStartOf="@id/input_pairing_code"
+        app:layout_constraintTop_toBottomOf="@id/layout_help" />
+
+    <LinearLayout
+        android:id="@+id/layout_dots"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/_8sdp"
+        android:layout_marginTop="@dimen/_8sdp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_next">
+
+        <View
+            android:layout_width="@dimen/_3sdp"
+            android:layout_height="@dimen/_3sdp"
+            android:background="@drawable/bg_home_connect_handle" />
+
+        <View
+            android:layout_width="@dimen/_3sdp"
+            android:layout_height="@dimen/_3sdp"
+            android:layout_marginStart="@dimen/_3sdp"
+            android:background="@drawable/bg_home_connect_handle" />
+
+        <View
+            android:layout_width="@dimen/_3sdp"
+            android:layout_height="@dimen/_3sdp"
+            android:layout_marginStart="@dimen/_3sdp"
+            android:background="@drawable/bg_home_connect_handle" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

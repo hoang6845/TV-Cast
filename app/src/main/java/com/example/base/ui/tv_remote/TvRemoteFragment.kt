@@ -2,15 +2,20 @@ package com.example.base.ui.tv_remote
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.text.Editable
 import android.text.InputFilter
 import android.text.InputType
+import android.text.TextWatcher
 import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.Toast
@@ -31,10 +36,15 @@ import com.example.base.tvremote.TvRemoteDevice
 import com.example.base.tvremote.TvRemoteException
 import com.example.base.tvremote.TvRemoteKey
 import com.example.base.tvremote.TvRemotePairingRequiredException
+import com.example.base.ui.common.showCastFailureDialog
+import com.example.base.databinding.LayoutTvRemotePairingSheetBinding
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
+import java.util.Locale
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -325,41 +335,85 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     private fun showPairingDialog(device: TvRemoteDevice) {
         if (isScanning) return
 
-        val codeInput = EditText(requireContext()).apply {
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
-            filters = arrayOf(InputFilter.AllCaps(), InputFilter.LengthFilter(PAIRING_CODE_LENGTH))
-            hint = getString(R.string.text_pairing_code_hint)
-            setSingleLine(true)
-            setPadding(32, 16, 32, 16)
+        val sheetBinding = LayoutTvRemotePairingSheetBinding.inflate(layoutInflater)
+        val codeInput = sheetBinding.inputPairingCode
+        var formattingCode = false
+
+        val dialog = BottomSheetDialog(requireContext()).apply {
+            setContentView(sheetBinding.root)
         }
 
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(getString(R.string.text_enter_pairing_code_title))
-            .setMessage(getString(R.string.text_enter_pairing_code_message, device.name))
-            .setView(codeInput)
-            .setNegativeButton(R.string.text_cancel, null)
-            .setPositiveButton(R.string.text_connect, null)
-            .show()
+        codeInput.apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+            filters = arrayOf(InputFilter.AllCaps(), InputFilter.LengthFilter(PAIRING_CODE_DISPLAY_LENGTH))
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
-        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val code = codeInput.text.toString().trim()
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    sheetBinding.tvError.isVisible = false
+                }
+
+                override fun afterTextChanged(editable: Editable?) {
+                    if (formattingCode || editable == null) return
+                    val cleanCode = editable.toString()
+                        .replace(" ", "")
+                        .take(PAIRING_CODE_LENGTH)
+                        .uppercase(Locale.US)
+                    val formattedCode = cleanCode.chunked(PAIRING_CODE_GROUP_LENGTH).joinToString(" ")
+                    if (formattedCode != editable.toString()) {
+                        formattingCode = true
+                        setText(formattedCode)
+                        setSelection(formattedCode.length)
+                        formattingCode = false
+                    }
+                }
+            })
+        }
+
+        sheetBinding.btnNext.setOnClickListener {
+            val code = codeInput.text.toString().replace(" ", "").trim()
             if (!PAIRING_CODE_REGEX.matches(code)) {
-                codeInput.error = getString(R.string.text_pairing_code_format_error)
+                sheetBinding.tvError.text = getString(R.string.text_pairing_code_format_error)
+                sheetBinding.tvError.isVisible = true
                 return@setOnClickListener
             }
             viewLifecycleOwner.lifecycleScope.launch {
                 try {
                     controller.finishPairing(code)
                     dialog.dismiss()
+                    hideKeyboard(codeInput)
                     controller.connect(device)
                 } catch (error: Throwable) {
-                    codeInput.error = error.message ?: getString(R.string.text_incorrect_pairing_code)
+                    sheetBinding.tvError.text = error.message ?: getString(R.string.text_incorrect_pairing_code)
+                    sheetBinding.tvError.isVisible = true
                 }
             }
         }
 
-        codeInput.requestFocus()
-        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+        dialog.setOnShowListener {
+            dialog.window?.setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or
+                        WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            )
+            val bottomSheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            bottomSheet?.setBackgroundColor(Color.TRANSPARENT)
+            bottomSheet?.layoutParams?.let { params ->
+                params.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                bottomSheet.layoutParams = params
+            }
+            bottomSheet?.let { sheet ->
+                BottomSheetBehavior.from(sheet).apply {
+                    skipCollapsed = true
+                    state = BottomSheetBehavior.STATE_EXPANDED
+                }
+            }
+            codeInput.post {
+                codeInput.requestFocus()
+                requireContext().getSystemService<InputMethodManager>()
+                    ?.showSoftInput(codeInput, InputMethodManager.SHOW_IMPLICIT)
+            }
+        }
+        dialog.show()
     }
 
     private fun renderRemote() {
@@ -632,11 +686,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
 
     private fun showConnectionError(error: Throwable) {
         if (!canUseBinding()) return
-        Toast.makeText(
-            requireContext(),
-            error.message ?: getString(R.string.text_could_not_connect_tv),
-            Toast.LENGTH_LONG
-        ).show()
+        showCastFailureDialog()
         Log.d("renderState", "renderState: ${error.message}")
 
         isConnected = false
@@ -695,6 +745,8 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         private const val SCAN_TIMEOUT_MS = 12_000L
         private const val COMMAND_DEBOUNCE_MS = 180L
         private const val PAIRING_CODE_LENGTH = 6
+        private const val PAIRING_CODE_DISPLAY_LENGTH = 7
+        private const val PAIRING_CODE_GROUP_LENGTH = 3
         private const val TOUCH_TAP_SLOP = 32
         private val PAIRING_CODE_REGEX = Regex("^[0-9A-Fa-f]{6}$")
     }

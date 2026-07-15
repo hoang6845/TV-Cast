@@ -209,6 +209,22 @@
                     android:textColor="@color/white"
                     android:textSize="@dimen/_7ssp"
                     android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btn_zoom_two"
+                    android:layout_width="@dimen/_30sdp"
+                    android:layout_height="@dimen/_24sdp"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:background="@drawable/bg_camera_zoom_chip"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:fontFamily="@font/inter"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="@string/text_zoom_two"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/_7ssp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout

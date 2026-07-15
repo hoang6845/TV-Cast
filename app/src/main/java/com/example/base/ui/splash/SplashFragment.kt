@@ -119,13 +119,13 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
             hasNavigated = true
 
             if (AppMonetization.premium.isSubscribed()) {
-                navigate(com.example.base.R.id.homeFragment, isPop = true)
+                navigate(com.example.base.R.id.introFragment, isPop = true)
             } else {
                 val bundle = Bundle().apply {
                     putBoolean("isFromSplash", true)
                 }
 
-                navigate(com.example.base.R.id.homeFragment, bundle, isPop = true)
+                navigate(com.example.base.R.id.introFragment, bundle, isPop = true)
             }
         }
     }

@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,6 +16,7 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import com.example.base.R
 import com.example.base.databinding.FragmentScreenMirroringBinding
+import com.example.base.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
@@ -48,6 +48,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         markMirroringAfterSettings = false
         pendingMirroring = false
         isPreparing = false
+        isReconnecting = false
         isMirroring = shouldMarkMirroring
         updateCastStatus(
             if (shouldMarkMirroring) {
@@ -62,6 +63,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     private val castSessionListener = object : SessionManagerListener<CastSession> {
         override fun onSessionStarting(session: CastSession) {
             updateCastStatus(CastConnectionState.Connecting)
+            updateControls()
         }
 
         override fun onSessionStarted(session: CastSession, sessionId: String) {
@@ -138,11 +140,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         binding.btnStartMirroring.setOnClickListener { handleMainAction() }
         binding.helpChip.setOnClickListener { showHelpDialog() }
         binding.btnTopCast.setOnClickListener {
-            if (isMirroring) {
-                openSystemCastSettings(markMirroringOnReturn = true)
-            } else {
-                startMirroringFlow()
-            }
+            openSystemCastSettings(markMirroringOnReturn = isMirroring)
         }
         binding.rowHigh.setOnClickListener { selectQuality(MirroringQuality.HIGH) }
         binding.rowMedium.setOnClickListener { selectQuality(MirroringQuality.MEDIUM) }
@@ -258,7 +256,8 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     private fun startMirroringFlow() {
         pendingMirroring = true
         isPreparing = true
-        updateControls(selectingTv = true)
+        updateCastStatus(CastConnectionState.Connecting)
+        updateControls()
         openSystemCastSettings(markMirroringOnReturn = true)
     }
 
@@ -271,6 +270,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
             pendingMirroring = false
             isPreparing = false
             isMirroring = false
+            isReconnecting = false
             updateCastStatus(CastConnectionState.Error)
             updateControls()
             if (error is ActivityNotFoundException) {
@@ -296,6 +296,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         isPreparing = false
         isMirroring = false
         isReconnecting = false
+        updateCastStatusFromSession()
         updateControls()
         openSystemCastSettings(markMirroringOnReturn = false)
     }
@@ -324,41 +325,23 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
             .show()
     }
 
-    private fun showCastSettingsUnavailableDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.text_something_went_wrong)
-            .setMessage(R.string.text_could_not_open_cast_settings)
-            .setPositiveButton(R.string.text_ok, null)
-            .show()
-    }
-
     private fun showNoDevicesDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.text_no_cast_devices_found)
-            .setMessage(R.string.text_no_cast_devices_found_message)
-            .setNegativeButton(R.string.text_cancel, null)
-            .setPositiveButton(R.string.text_try_again) { _, _ -> startMirroringFlow() }
-            .show()
+        showCastFailureDialog()
     }
 
     private fun showConnectFailedDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.text_could_not_connect_tv)
-            .setMessage(R.string.text_select_tv_for_mirroring)
-            .setNegativeButton(R.string.text_cancel, null)
-            .setPositiveButton(R.string.text_retry) { _, _ -> startMirroringFlow() }
-            .show()
+        showCastFailureDialog()
+    }
+
+    private fun showCastSettingsUnavailableDialog() {
+        showCastFailureDialog(messageRes = R.string.text_could_not_open_cast_settings)
     }
 
     private fun showConnectionLostDialog() {
         MaterialAlertDialogBuilder(requireContext())
             .setMessage(R.string.text_connection_lost_mirroring_stopped)
             .setNegativeButton(R.string.text_close, null)
-            .setPositiveButton(R.string.text_choose_another_tv) { _, _ ->
-                pendingMirroring = true
-                updateControls(selectingTv = true)
-                openSystemCastSettings(markMirroringOnReturn = true)
-            }
+            .setPositiveButton(R.string.text_choose_another_tv) { _, _ -> startMirroringFlow() }
             .show()
     }
 
