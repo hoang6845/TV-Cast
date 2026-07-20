@@ -5,14 +5,17 @@ import android.database.Cursor
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Log
 import java.io.BufferedReader
 import java.io.Closeable
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.Inet4Address
+import java.net.HttpURLConnection
 import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.URL
 import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -49,15 +52,33 @@ class LocalMediaHttpServer(
     fun register(uri: Uri, mimeType: String): String? {
         if (!start()) return null
 
-        val host = findLocalIpv4Address(context) ?: return null
-        val port = serverSocket?.localPort ?: return null
         val token = UUID.randomUUID().toString()
         entries[token] = Entry(
-            uri = uri,
+            source = MediaSource.LocalUri(uri),
             mimeType = mimeType,
             size = uri.querySize(context)
         )
-        return "http://$host:$port/media/$token"
+        return buildMediaUrl(token)?.also {
+            Log.d(TAG, "Registered local media token=$token url=$it mime=$mimeType")
+        }
+    }
+
+    fun registerRemoteUrl(
+        url: String,
+        mimeType: String,
+        requestHeaders: Map<String, String> = emptyMap()
+    ): String? {
+        if (!start()) return null
+
+        val token = UUID.randomUUID().toString()
+        entries[token] = Entry(
+            source = MediaSource.RemoteUrl(url, requestHeaders.sanitizedRemoteHeaders()),
+            mimeType = mimeType,
+            size = null
+        )
+        return buildMediaUrl(token)?.also {
+            Log.d(TAG, "Registered remote media token=$token proxyUrl=$it upstream=$url mime=$mimeType")
+        }
     }
 
     fun clear() {
@@ -69,6 +90,7 @@ class LocalMediaHttpServer(
             val client = runCatching { socket.accept() }.getOrNull() ?: break
             executor?.execute {
                 runCatching { handle(client) }
+                    .onFailure { Log.e(TAG, "Failed to handle media request", it) }
             }
         }
     }
@@ -93,11 +115,25 @@ class LocalMediaHttpServer(
             val parts = requestLine.split(" ")
             val method = parts.getOrNull(0).orEmpty()
             val path = parts.getOrNull(1).orEmpty()
+            Log.d(TAG, "Incoming media request method=$method path=$path")
             val token = path.substringAfter("/media/", missingDelimiterValue = "")
                 .substringBefore("?")
+
+            if (method.equals("OPTIONS", ignoreCase = true)) {
+                client.writeOptionsStatus()
+                return
+            }
+
             val entry = entries[token]
             if (entry == null || token.isBlank()) {
                 client.writeStatus(404, "Not Found")
+                return
+            }
+
+            if (!method.equals("GET", ignoreCase = true) &&
+                !method.equals("HEAD", ignoreCase = true)
+            ) {
+                client.writeStatus(405, "Method Not Allowed")
                 return
             }
 
@@ -105,6 +141,11 @@ class LocalMediaHttpServer(
             val start = range?.first ?: 0L
             val end = range?.second ?: entry.size?.minus(1)
             val contentLength = end?.let { it - start + 1 }
+
+            if (entry.source is MediaSource.RemoteUrl) {
+                handleRemote(client, method, entry, headers)
+                return
+            }
 
             val statusLine = if (range != null && entry.size != null) {
                 "HTTP/1.1 206 Partial Content"
@@ -115,6 +156,7 @@ class LocalMediaHttpServer(
             val output = client.getOutputStream()
             val header = buildString {
                 append(statusLine).append("\r\n")
+                appendCorsHeaders()
                 append("Content-Type: ").append(entry.mimeType).append("\r\n")
                 append("Accept-Ranges: bytes\r\n")
                 append("Connection: close\r\n")
@@ -134,13 +176,136 @@ class LocalMediaHttpServer(
             output.write(header.toByteArray())
 
             if (!method.equals("HEAD", ignoreCase = true)) {
-                context.contentResolver.openInputStream(entry.uri)?.use { input ->
+                val source = entry.source as MediaSource.LocalUri
+                context.contentResolver.openInputStream(source.uri)?.use { input ->
                     input.skipFully(start)
                     input.copyLimitedTo(output, contentLength)
                 }
             }
             output.flush()
         }
+    }
+
+    private fun handleRemote(
+        client: Socket,
+        method: String,
+        entry: Entry,
+        headers: Map<String, String>
+    ) {
+        val source = entry.source as MediaSource.RemoteUrl
+        val connection = (URL(source.url).openConnection() as HttpURLConnection).apply {
+            instanceFollowRedirects = true
+            connectTimeout = REMOTE_CONNECT_TIMEOUT_MS
+            readTimeout = REMOTE_READ_TIMEOUT_MS
+            requestMethod = if (method.equals("HEAD", ignoreCase = true)) "HEAD" else "GET"
+            setRequestProperty("User-Agent", REMOTE_USER_AGENT)
+            setRequestProperty("Accept", "*/*")
+            setRequestProperty("Accept-Encoding", "identity")
+            source.requestHeaders.forEach { (name, value) ->
+                setRequestProperty(name, value)
+            }
+            headers["range"]?.let { setRequestProperty("Range", it) }
+        }
+
+        try {
+            val responseCode = connection.responseCode
+            val responseMessage = connection.responseMessage ?: "OK"
+            Log.d(
+                TAG,
+                "Upstream response url=${source.url} code=$responseCode " +
+                    "message=$responseMessage contentType=${connection.contentType}"
+            )
+            val responseStream = runCatching { connection.inputStream }
+                .getOrElse { connection.errorStream }
+
+            if (responseStream == null) {
+                client.writeStatus(502, "Bad Gateway")
+                return
+            }
+
+            val upstreamContentType = connection.contentType
+                ?.substringBefore(";")
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?: entry.mimeType
+
+            val shouldRewritePlaylist = !method.equals("HEAD", ignoreCase = true) &&
+                isPlaylist(source.url, upstreamContentType)
+
+            if (shouldRewritePlaylist) {
+                responseStream.use { input ->
+                    val playlist = input.bufferedReader().readText()
+                    val rewritten = rewritePlaylist(
+                        playlist,
+                        source.url,
+                        source.requestHeaders
+                    ).toByteArray()
+                    Log.d(
+                        TAG,
+                        "Rewrote playlist url=${source.url} originalBytes=${playlist.length} " +
+                            "rewrittenBytes=${rewritten.size}"
+                    )
+                    val output = client.getOutputStream()
+                    output.write(
+                        buildString {
+                            append("HTTP/1.1 200 OK\r\n")
+                            appendCorsHeaders()
+                            append("Content-Type: ").append(upstreamContentType).append("\r\n")
+                            append("Accept-Ranges: bytes\r\n")
+                            append("Connection: close\r\n")
+                            append("Cache-Control: no-cache\r\n")
+                            append("Content-Length: ").append(rewritten.size).append("\r\n")
+                            append("\r\n")
+                        }.toByteArray()
+                    )
+                    output.write(rewritten)
+                    output.flush()
+                }
+                return
+            }
+
+            val output = client.getOutputStream()
+            output.write(
+                buildString {
+                    append("HTTP/1.1 ")
+                        .append(responseCode)
+                        .append(' ')
+                        .append(responseMessage)
+                        .append("\r\n")
+                    appendCorsHeaders()
+                    append("Content-Type: ").append(upstreamContentType).append("\r\n")
+                    append("Accept-Ranges: ")
+                        .append(connection.getHeaderField("Accept-Ranges") ?: "bytes")
+                        .append("\r\n")
+                    connection.getHeaderField("Content-Range")?.let {
+                        append("Content-Range: ").append(it).append("\r\n")
+                    }
+                    val contentLength = connection.getHeaderField("Content-Length")
+                    if (!contentLength.isNullOrBlank()) {
+                        append("Content-Length: ").append(contentLength).append("\r\n")
+                    }
+                    append("Connection: close\r\n")
+                    append("Cache-Control: no-cache\r\n")
+                    append("\r\n")
+                }.toByteArray()
+            )
+
+            if (!method.equals("HEAD", ignoreCase = true)) {
+                responseStream.use { it.copyLimitedTo(output, null) }
+            } else {
+                responseStream.close()
+            }
+            output.flush()
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun StringBuilder.appendCorsHeaders() {
+        append("Access-Control-Allow-Origin: *\r\n")
+        append("Access-Control-Allow-Methods: GET, HEAD, OPTIONS\r\n")
+        append("Access-Control-Allow-Headers: Range, Content-Type, Origin, Accept\r\n")
+        append("Access-Control-Expose-Headers: Content-Length, Content-Range, Accept-Ranges\r\n")
     }
 
     private fun parseRange(rawRange: String, size: Long?): Pair<Long, Long?>? {
@@ -163,9 +328,34 @@ class LocalMediaHttpServer(
 
     private fun Socket.writeStatus(code: Int, message: String) {
         getOutputStream().write(
-            "HTTP/1.1 $code $message\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+            buildString {
+                append("HTTP/1.1 ").append(code).append(' ').append(message).append("\r\n")
+                appendCorsHeaders()
+                append("Connection: close\r\n")
+                append("Content-Length: 0\r\n")
+                append("\r\n")
+            }
                 .toByteArray()
         )
+    }
+
+    private fun Socket.writeOptionsStatus() {
+        getOutputStream().write(
+            buildString {
+                append("HTTP/1.1 204 No Content\r\n")
+                appendCorsHeaders()
+                append("Connection: close\r\n")
+                append("Content-Length: 0\r\n")
+                append("\r\n")
+            }
+                .toByteArray()
+        )
+    }
+
+    private fun buildMediaUrl(token: String): String? {
+        val host = findLocalIpv4Address(context) ?: return null
+        val port = serverSocket?.localPort ?: return null
+        return "http://$host:$port/media/$token"
     }
 
     override fun close() {
@@ -178,16 +368,30 @@ class LocalMediaHttpServer(
     }
 
     private data class Entry(
-        val uri: Uri,
+        val source: MediaSource,
         val mimeType: String,
         val size: Long?
     )
+
+    private sealed class MediaSource {
+        data class LocalUri(val uri: Uri) : MediaSource()
+        data class RemoteUrl(
+            val url: String,
+            val requestHeaders: Map<String, String>
+        ) : MediaSource()
+    }
 
     private fun Uri.querySize(context: Context): Long? {
         return queryOpenableColumn(context, OpenableColumns.SIZE)?.toLongOrNull()
     }
 
     companion object {
+        private const val REMOTE_CONNECT_TIMEOUT_MS = 15_000
+        private const val REMOTE_READ_TIMEOUT_MS = 30_000
+        private const val REMOTE_USER_AGENT =
+            "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
+        private const val TAG = "LocalMediaServer"
+
         fun queryDisplayName(context: Context, uri: Uri): String {
             return uri.queryOpenableColumn(context, OpenableColumns.DISPLAY_NAME)
                 ?: uri.lastPathSegment
@@ -215,7 +419,93 @@ class LocalMediaHttpServer(
                 ?.hostAddress
         }
     }
+
+    private fun isPlaylist(url: String, contentType: String): Boolean {
+        val lowerUrl = url.lowercase()
+        val lowerType = contentType.lowercase()
+        return lowerUrl.contains(".m3u8") ||
+            lowerType.contains("mpegurl") ||
+            lowerType.contains("vnd.apple.mpegurl")
+    }
+
+    private fun rewritePlaylist(
+        playlist: String,
+        baseUrl: String,
+        requestHeaders: Map<String, String>
+    ): String {
+        return playlist
+            .lineSequence()
+            .map { line ->
+                when {
+                    line.trimStart().startsWith("#") ->
+                        rewriteUriAttributes(line, baseUrl, requestHeaders)
+                    line.isBlank() -> line
+                    else -> proxyPlaylistUrl(line, baseUrl, requestHeaders) ?: line
+                }
+            }
+            .joinToString("\n")
+    }
+
+    private fun rewriteUriAttributes(
+        line: String,
+        baseUrl: String,
+        requestHeaders: Map<String, String>
+    ): String {
+        return line.replace(URI_ATTRIBUTE_REGEX) { match ->
+            val quote = match.groups[1]?.value.orEmpty()
+            val uri = match.groups[2]?.value.orEmpty()
+            val rewritten = proxyPlaylistUrl(uri, baseUrl, requestHeaders) ?: uri
+            "URI=$quote$rewritten$quote"
+        }
+    }
+
+    private fun proxyPlaylistUrl(
+        url: String,
+        baseUrl: String,
+        requestHeaders: Map<String, String>
+    ): String? {
+        val trimmed = url.trim()
+        if (trimmed.startsWith("data:", ignoreCase = true)) return null
+
+        val resolved = runCatching { URL(URL(baseUrl), trimmed).toString() }.getOrNull()
+            ?: return null
+        return registerRemoteUrl(resolved, inferMimeType(resolved), requestHeaders)
+    }
+
+    private fun inferMimeType(url: String): String {
+        val cleanUrl = url.lowercase().substringBefore("#").substringBefore("?")
+        return when {
+            cleanUrl.endsWith(".m3u8") -> "application/x-mpegURL"
+            cleanUrl.endsWith(".mpd") -> "application/dash+xml"
+            cleanUrl.endsWith(".ts") -> "video/mp2t"
+            cleanUrl.endsWith(".webm") -> "video/webm"
+            cleanUrl.endsWith(".mp3") -> "audio/mpeg"
+            cleanUrl.endsWith(".m4a") -> "audio/mp4"
+            else -> "video/mp4"
+        }
+    }
 }
+
+private fun Map<String, String>.sanitizedRemoteHeaders(): Map<String, String> {
+    if (isEmpty()) return emptyMap()
+
+    return mapNotNull { (rawName, rawValue) ->
+        val name = rawName.trim()
+        val value = rawValue.trim()
+        if (name.isBlank() || value.isBlank()) return@mapNotNull null
+
+        when (name.lowercase()) {
+            "authorization",
+            "cookie",
+            "origin",
+            "referer",
+            "user-agent" -> name to value
+            else -> null
+        }
+    }.toMap()
+}
+
+private val URI_ATTRIBUTE_REGEX = Regex("""URI=("?)([^",]+)\1""")
 
 private fun Uri.queryOpenableColumn(context: Context, column: String): String? {
     val cursor: Cursor = context.contentResolver.query(

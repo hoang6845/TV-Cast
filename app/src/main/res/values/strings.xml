@@ -61,6 +61,9 @@
     <string name="text_youtube_required">YouTube is required</string>
     <string name="text_youtube_required_message">YouTube is required to cast this video.</string>
     <string name="text_install_youtube">Install YouTube</string>
+    <string name="text_back_to_youtube">Back to YouTube</string>
+    <string name="text_use_youtube_cast_button">Use the Cast button in the YouTube player to select your TV.</string>
+    <string name="text_youtube_embed_unavailable">This video cannot be played in the YouTube player. Try another video.</string>
     <string name="text_web_page_not_supported">This link cannot be opened</string>
     <string name="text_could_not_open_youtube">Could not open YouTube</string>
     <string name="text_cast_web_videos">Cast Web Videos</string>

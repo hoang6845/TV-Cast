@@ -110,7 +110,6 @@ dependencies {
     kapt ("com.google.dagger:hilt-compiler:2.56")
     kapt ("androidx.hilt:hilt-compiler:1.2.0")
     implementation ("androidx.hilt:hilt-work:1.2.0")
-    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.2")
     implementation("com.google.android.gms:play-services-cast-framework:21.4.0")
     implementation("androidx.mediarouter:mediarouter:1.6.0")
     implementation("androidx.camera:camera-camera2:1.4.1")

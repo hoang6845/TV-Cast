@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
@@ -28,6 +29,7 @@ import com.example.base.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
 import com.google.android.gms.cast.MediaMetadata
+import com.google.android.gms.cast.Cast
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
@@ -37,6 +39,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
+import org.json.JSONObject
 import hoang.dqm.codebase.R as CodeBaseR
 
 class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewModel>() {
@@ -57,6 +60,10 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private var player: ExoPlayer? = null
     private var toolbarBaseHeight = 0
     private var bottomButtonBaseMargin = 0
+
+    private val receiverMessageCallback = Cast.MessageReceivedCallback { _, _, message ->
+        logReceiverMessage(message)
+    }
 
     private val videoProgressRunnable = object : Runnable {
         override fun run() {
@@ -92,6 +99,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
         override fun onSessionStarted(session: CastSession, sessionId: String) {
             updateCastStatus(CastConnectionState.Connected)
+            setReceiverDebugCallback(session)
             if (pendingCast) {
                 pendingCast = false
                 castSelectedMedia()
@@ -109,6 +117,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         }
 
         override fun onSessionEnded(session: CastSession, error: Int) {
+            removeReceiverDebugCallback(session)
             pendingCast = false
             isCasting = false
             updateCastStatus(CastConnectionState.Disconnected)
@@ -121,6 +130,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
         override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
             updateCastStatus(CastConnectionState.Connected)
+            setReceiverDebugCallback(session)
             updateControls()
         }
 
@@ -188,6 +198,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
     override fun onDestroyView() {
         mainHandler.removeCallbacksAndMessages(null)
+        currentCastSession()?.let(::removeReceiverDebugCallback)
         player?.release()
         player = null
         mediaServer.close()
@@ -220,7 +231,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private fun setupCastButton() {
         runCatching {
             castContext = CastContext.getSharedInstance(requireContext())
-            castContext?.setReceiverApplicationId(CastReceiverIds.DEFAULT_MEDIA)
+            castContext?.setReceiverApplicationId(CastReceiverIds.CUSTOM_RECEIVER)
             CastButtonFactory.setUpMediaRouteButton(requireContext(), binding.btnTopCast)
             updateCastStatusFromSession()
         }.onFailure {
@@ -368,6 +379,12 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         binding.preparingOverlay.isVisible = true
         isCasting = true
         updateControls()
+        setReceiverDebugCallback(session)
+        sendReceiverPing(session)
+        Log.d(
+            TAG,
+            "Loading cast media url=$castUrl mime=${selected.mimeType} isPhoto=${selected.isPhoto}"
+        )
 
         val metadata = MediaMetadata(
             if (selected.isPhoto) MediaMetadata.MEDIA_TYPE_PHOTO else MediaMetadata.MEDIA_TYPE_MOVIE
@@ -399,6 +416,11 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
                     binding.preparingOverlay.isVisible = false
                     isCasting = result.status.isSuccess
+                    Log.d(
+                        TAG,
+                        "Cast media load result success=${result.status.isSuccess} " +
+                            "code=${result.status.statusCode} message=${result.status.statusMessage}"
+                    )
                     if (!result.status.isSuccess) {
                         Toast.makeText(
                             requireContext(),
@@ -492,8 +514,59 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         return castContext?.sessionManager?.currentCastSession
     }
 
+    private fun setReceiverDebugCallback(session: CastSession) {
+        runCatching {
+            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
+            session.setMessageReceivedCallbacks(RECEIVER_NAMESPACE, receiverMessageCallback)
+            sendReceiverPing(session)
+        }.onFailure {
+            Log.e(TAG, "Could not set receiver debug callback", it)
+        }
+    }
+
+    private fun removeReceiverDebugCallback(session: CastSession) {
+        runCatching {
+            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
+        }
+    }
+
+    private fun sendReceiverPing(session: CastSession) {
+        runCatching {
+            session.sendMessage(
+                RECEIVER_NAMESPACE,
+                JSONObject().put("type", "PING").toString()
+            )
+        }.onFailure {
+            Log.e(TAG, "Could not ping receiver", it)
+        }
+    }
+
+    private fun logReceiverMessage(rawMessage: String) {
+        Log.d(TAG, "Receiver message: $rawMessage")
+    }
+
     private fun handleBackPressed() {
+        if (currentCastSession()?.isConnected == true) {
+            showDisconnectBeforeExitDialog()
+            return
+        }
         popBackStack()
+    }
+
+    private fun showDisconnectBeforeExitDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setMessage(R.string.text_stop_casting_message)
+            .setPositiveButton(R.string.text_disconnect) { _, _ ->
+                currentCastSession()?.remoteMediaClient?.stop()
+                castContext?.sessionManager?.endCurrentSession(true)
+                pendingCast = false
+                isCasting = false
+                binding.preparingOverlay.isVisible = false
+                updateControls()
+                popBackStack()
+            }
+            .setNegativeButton(R.string.text_cancel, null)
+            .show()
     }
 
     private data class SelectedMedia(
@@ -517,6 +590,8 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         private const val MAX_PHOTOS = 20
         private const val VIDEO_PROGRESS_INTERVAL_MS = 500L
         private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
+        private const val RECEIVER_NAMESPACE = "urn:x-cast:com.example.camera.webrtc"
+        private const val TAG = "CastMediaDebug"
     }
 }
 

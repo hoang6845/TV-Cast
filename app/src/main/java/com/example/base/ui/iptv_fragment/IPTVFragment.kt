@@ -6,6 +6,7 @@ import android.app.AlertDialog
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.net.Uri
+import android.util.Log
 import android.view.View
 import android.view.animation.LinearInterpolator
 import android.widget.Toast
@@ -19,11 +20,14 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.base.R
+import com.example.base.cast.CastReceiverIds
 import com.example.base.databinding.FragmentIPTVBinding
 import com.example.base.databinding.LayoutIptvFilterSheetBinding
+import com.example.base.media.LocalMediaHttpServer
 import com.example.base.model.entity.Channel
 import com.example.base.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.CastMediaControlIntent
+import com.google.android.gms.cast.Cast
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
 import com.google.android.gms.cast.MediaMetadata
@@ -38,6 +42,7 @@ import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
 import hoang.dqm.codebase.utils.collectLatestFlow
+import org.json.JSONObject
 
 @AndroidEntryPoint
 class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
@@ -61,6 +66,11 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     private var castContext: CastContext? = null
     private var castSession: CastSession? = null
     private var sessionManagerListener: SessionManagerListener<CastSession>? = null
+    private val mediaServer by lazy { LocalMediaHttpServer(requireContext().applicationContext) }
+
+    private val receiverMessageCallback = Cast.MessageReceivedCallback { _, _, message ->
+        logReceiverMessage(message)
+    }
 
     override fun initView() {
         adjustInsetsForBottomNavigation(binding.topBar)
@@ -378,6 +388,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     private fun setupCast() {
         try {
             castContext = CastContext.getSharedInstance(requireContext())
+            castContext?.setReceiverApplicationId(CastReceiverIds.CUSTOM_RECEIVER)
             setupSessionManagerListener()
         } catch (e: Exception) {
             castContext = null
@@ -417,7 +428,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         val selector = androidx.mediarouter.media.MediaRouteSelector.Builder()
             .addControlCategory(
                 CastMediaControlIntent.categoryForCast(
-                    CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID
+                    CastReceiverIds.CUSTOM_RECEIVER
                 )
             )
             .build()
@@ -431,6 +442,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         sessionManagerListener = object : SessionManagerListener<CastSession> {
             override fun onSessionStarted(session: CastSession, sessionId: String) {
                 castSession = session
+                setReceiverDebugCallback(session)
                 currentUiState.selectedChannel?.let { loadMediaOnCast(it) }
                 player?.pause()
                 updateCastIcon(connected = true)
@@ -438,10 +450,12 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
 
             override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
                 castSession = session
+                setReceiverDebugCallback(session)
                 updateCastIcon(connected = true)
             }
 
             override fun onSessionEnded(session: CastSession, error: Int) {
+                removeReceiverDebugCallback(session)
                 castSession = null
                 player?.play()
                 updateCastIcon(connected = false)
@@ -461,29 +475,81 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
 
     private fun loadMediaOnCast(channel: Channel) {
         val remoteClient: RemoteMediaClient = castSession?.remoteMediaClient ?: return
+        val contentType = inferCastContentType(channel.url)
+        val castUrl = mediaServer.registerRemoteUrl(channel.url, contentType) ?: run {
+            Toast.makeText(requireContext(), R.string.text_could_not_prepare_media, Toast.LENGTH_SHORT).show()
+            return
+        }
+        castSession?.let {
+            setReceiverDebugCallback(it)
+            sendReceiverPing(it)
+        }
+        Log.d(
+            TAG,
+            "Loading IPTV on Cast originalUrl=${channel.url} castUrl=$castUrl contentType=$contentType"
+        )
         val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE).apply {
             putString(MediaMetadata.KEY_TITLE, channel.name)
         }
 
-        val contentType = when {
-            channel.url.lowercase().contains(".m3u8") -> "application/x-mpegurl"
-            channel.url.lowercase().endsWith(".mp4") -> "video/mp4"
-            else -> "video/mp4"
-        }
+        val streamType = inferCastStreamType(channel.url)
 
-        val mediaInfo = MediaInfo.Builder(channel.url)
-            .setStreamType(MediaInfo.STREAM_TYPE_LIVE)
+        val mediaInfo = MediaInfo.Builder(castUrl)
+            .setStreamType(streamType)
             .setContentType(contentType)
             .setMetadata(metadata)
             .build()
 
-        val requestData = MediaLoadRequestData.Builder()
+        val requestBuilder = MediaLoadRequestData.Builder()
             .setMediaInfo(mediaInfo)
             .setAutoplay(true)
-            .setCurrentTime(player?.currentPosition ?: 0L)
-            .build()
 
-        remoteClient.load(requestData)
+        if (streamType != MediaInfo.STREAM_TYPE_LIVE) {
+            requestBuilder.setCurrentTime(player?.currentPosition ?: 0L)
+        }
+
+        remoteClient.load(requestBuilder.build())
+            .setResultCallback { result ->
+                activity?.runOnUiThread {
+                    if (view == null) return@runOnUiThread
+                    Log.d(
+                        TAG,
+                        "IPTV cast load result success=${result.status.isSuccess} " +
+                            "code=${result.status.statusCode} message=${result.status.statusMessage}"
+                    )
+                    if (result.status.isSuccess) {
+                        player?.pause()
+                    } else {
+                        showCastFailureDialog()
+                    }
+                }
+            }
+    }
+
+    private fun inferCastStreamType(url: String): Int {
+        val lower = url.lowercase()
+        return when {
+            lower.contains(".m3u8") || lower.startsWith("rtmp://") || lower.startsWith("rtsp://") ->
+                MediaInfo.STREAM_TYPE_LIVE
+            else -> MediaInfo.STREAM_TYPE_BUFFERED
+        }
+    }
+
+    private fun inferCastContentType(url: String): String {
+        val cleanUrl = url.lowercase().substringBefore("#").substringBefore("?")
+        return when {
+            cleanUrl.endsWith(".m3u8") || cleanUrl.contains(".m3u8/") ->
+                "application/x-mpegURL"
+            cleanUrl.endsWith(".mpd") || cleanUrl.contains(".mpd/") ->
+                "application/dash+xml"
+            cleanUrl.endsWith(".webm") || cleanUrl.contains(".webm/") ->
+                "video/webm"
+            cleanUrl.endsWith(".mp3") || cleanUrl.contains(".mp3/") ->
+                "audio/mpeg"
+            cleanUrl.endsWith(".m4a") || cleanUrl.contains(".m4a/") ->
+                "audio/mp4"
+            else -> "video/mp4"
+        }
     }
 
     private fun updateCastIcon(connected: Boolean) {
@@ -504,9 +570,24 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     private fun handleBackPress() {
         if (currentUiState.selectedCategory != null) {
             viewModel.closeCategory()
+        } else if (castSession?.isConnected == true) {
+            showDisconnectBeforeExitDialog()
         } else {
             popBackStack()
         }
+    }
+
+    private fun showDisconnectBeforeExitDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.text_casting_to_tv_plain))
+            .setMessage(getString(R.string.text_stop_casting_message))
+            .setPositiveButton(getString(R.string.text_disconnect)) { _, _ ->
+                castSession?.remoteMediaClient?.stop()
+                castContext?.sessionManager?.endCurrentSession(true)
+                popBackStack()
+            }
+            .setNegativeButton(getString(R.string.text_cancel), null)
+            .show()
     }
 
     override fun onResume() {
@@ -528,8 +609,41 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
 
     override fun onDestroyView() {
         stopRefreshAnimation()
+        castSession?.let(::removeReceiverDebugCallback)
         releasePlayer()
+        mediaServer.close()
         super.onDestroyView()
+    }
+
+    private fun setReceiverDebugCallback(session: CastSession) {
+        runCatching {
+            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
+            session.setMessageReceivedCallbacks(RECEIVER_NAMESPACE, receiverMessageCallback)
+            sendReceiverPing(session)
+        }.onFailure {
+            Log.e(TAG, "Could not set receiver debug callback", it)
+        }
+    }
+
+    private fun removeReceiverDebugCallback(session: CastSession) {
+        runCatching {
+            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
+        }
+    }
+
+    private fun sendReceiverPing(session: CastSession) {
+        runCatching {
+            session.sendMessage(
+                RECEIVER_NAMESPACE,
+                JSONObject().put("type", "PING").toString()
+            )
+        }.onFailure {
+            Log.e(TAG, "Could not ping receiver", it)
+        }
+    }
+
+    private fun logReceiverMessage(rawMessage: String) {
+        Log.d(TAG, "Receiver message: $rawMessage")
     }
 
     private fun releasePlayer() {
@@ -541,5 +655,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     companion object {
         private const val FILTER_MODE_COUNTRY = 1
         private const val FILTER_MODE_LANGUAGE = 2
+        private const val RECEIVER_NAMESPACE = "urn:x-cast:com.example.camera.webrtc"
+        private const val TAG = "IPTVDebug"
     }
 }

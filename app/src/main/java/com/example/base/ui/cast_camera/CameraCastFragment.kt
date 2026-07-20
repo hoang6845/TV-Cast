@@ -245,7 +245,6 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         webRtcStreamer?.release()
         webRtcStreamer = null
         localRenderer = null
-        castContext?.setReceiverApplicationId(CastReceiverIds.DEFAULT_MEDIA)
         super.onDestroyView()
     }
 

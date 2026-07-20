@@ -77,6 +77,8 @@
 
         <!-- Màu nền dialog -->
         <item name="colorSurface">#141416</item>
+        <item name="colorSurfaceContainerHigh">#141416</item>
+        <item name="backgroundTint">#141416</item>
 
         <!-- Màu tiêu đề -->
         <item name="materialAlertDialogTitleTextStyle">
