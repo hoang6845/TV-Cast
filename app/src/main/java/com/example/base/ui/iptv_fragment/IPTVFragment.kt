@@ -313,7 +313,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
 
     private fun startRefreshAnimation() {
         if (refreshAnimator?.isRunning == true) return
-        refreshAnimator = ObjectAnimator.ofFloat(binding.btnTopAction, View.ROTATION, 0f, 360f)
+        refreshAnimator = ObjectAnimator.ofFloat(binding.btnTopAction, View.ROTATION, 0f, -360f)
             .apply {
                 duration = 900L
                 repeatCount = ValueAnimator.INFINITE

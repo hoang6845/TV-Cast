@@ -57,6 +57,10 @@
         <activity
             android:name=".ui.language_activity.LanguageActivity"
             android:exported="false" />
+        <service
+            android:name=".ui.screen_mirroring.ScreenMirroringForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/ads_app_id" />

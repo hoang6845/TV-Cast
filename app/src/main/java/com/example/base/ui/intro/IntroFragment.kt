@@ -40,7 +40,7 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
 
     @SuppressLint("CutPasteId")
     override fun initView() {
-        adjustInsetsForBottomNavigation(binding.viewPager2)
+//        adjustInsetsForBottomNavigation(binding.viewPager2)
 
         slides = listOf(
             SlideItem(

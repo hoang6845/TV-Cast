@@ -3,6 +3,7 @@ package com.example.base
 import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.example.base.ui.home.HomeFragment
 import com.example.base.utils.AdsConstants
 import com.example.base.utils.AppConstants
 import com.example.base.utils.ThemeManager
@@ -42,6 +43,7 @@ class MainApplication : BaseApplication(), Configuration.Provider {
             policy = AppConstants.policy,
             emailFeedback = "",
             term = AppConstants.term,
+            homeClass = HomeFragment::class.java
         )
     }
 

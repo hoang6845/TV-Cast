@@ -18,6 +18,8 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -36,7 +38,6 @@ import com.example.base.tvremote.TvRemoteDevice
 import com.example.base.tvremote.TvRemoteException
 import com.example.base.tvremote.TvRemoteKey
 import com.example.base.tvremote.TvRemotePairingRequiredException
-import com.example.base.ui.common.showCastFailureDialog
 import com.example.base.databinding.LayoutTvRemotePairingSheetBinding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -120,9 +121,8 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         binding.btnBack.setOnClickListener { handleBackPressed() }
         binding.btnRefresh.setOnClickListener { startScan() }
         binding.btnMore.setOnClickListener { showDeviceMenu() }
-        binding.rowLivingRoom.setOnClickListener { connectToDiscoveredDevice(0) }
-        binding.rowBedroom.setOnClickListener { connectToDiscoveredDevice(1) }
-        binding.rowOffice.setOnClickListener { connectToDiscoveredDevice(2) }
+        binding.btnEnterTvIp.setOnClickListener { showManualIpDialog() }
+        binding.btnEnterTvIpFromList.setOnClickListener { showManualIpDialog() }
 
         binding.btnPower.setOnClickListener { showPowerDialog() }
         binding.btnInput.setOnClickListener { showInputDialog() }
@@ -221,24 +221,28 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
             getString(R.string.text_tv_remote_same_wifi_hint)
         }
         binding.deviceList.isVisible = !isScanning && discoveredDevices.isNotEmpty()
+        binding.btnEnterTvIpFromList.isVisible = !isScanning && discoveredDevices.isNotEmpty()
         binding.emptyContainer.isVisible = !isScanning && discoveredDevices.isEmpty()
         bindDeviceRows()
     }
 
     private fun bindDeviceRows() {
         if (!canUseBinding()) return
-        val rows = listOf(
-            Triple(binding.rowLivingRoom, binding.livingRoomName, binding.livingRoomMeta),
-            Triple(binding.rowBedroom, binding.bedroomName, binding.bedroomMeta),
-            Triple(binding.rowOffice, binding.officeName, binding.officeMeta)
-        )
-        rows.forEachIndexed { index, row ->
-            val device = discoveredDevices.getOrNull(index)
-            row.first.isVisible = device != null
-            if (device != null) {
-                row.second.text = device.name
-                row.third.text = device.subtitle
+        binding.deviceList.removeAllViews()
+        discoveredDevices.forEachIndexed { index, device ->
+            val row = layoutInflater.inflate(
+                R.layout.item_tv_remote_device,
+                binding.deviceList,
+                false
+            )
+            row.findViewById<TextView>(R.id.device_name).text = device.name
+            row.findViewById<TextView>(R.id.device_meta).text = device.subtitle
+            row.setOnClickListener { connectToDevice(device) }
+            (row.layoutParams as? LinearLayout.LayoutParams)?.let { params ->
+                params.topMargin = if (index == 0) 0 else (10 * resources.displayMetrics.density).toInt()
+                row.layoutParams = params
             }
+            binding.deviceList.addView(row)
         }
     }
 
@@ -304,11 +308,6 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         }
     }
 
-    private fun connectToDiscoveredDevice(index: Int) {
-        val device = discoveredDevices.getOrNull(index) ?: return
-        connectToDevice(device)
-    }
-
     private fun connectToDevice(device: TvRemoteDevice) {
         selectedDevice = device
         viewLifecycleOwner.lifecycleScope.launch {
@@ -321,6 +320,38 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
                 showConnectionError(error)
             }
         }
+    }
+
+    private fun showManualIpDialog() {
+        val input = EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_PHONE
+            hint = getString(R.string.text_tv_ip_hint)
+            filters = arrayOf(InputFilter.LengthFilter(MAX_MANUAL_HOST_LENGTH))
+            setSingleLine(true)
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.text_enter_tv_ip_title)
+            .setMessage(R.string.text_enter_tv_ip_message)
+            .setView(input)
+            .setNegativeButton(R.string.text_cancel, null)
+            .setPositiveButton(R.string.text_connect) { _, _ ->
+                val host = input.text?.toString()?.trim().orEmpty()
+                if (host.isBlank()) {
+                    Toast.makeText(requireContext(), R.string.text_invalid_tv_ip, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                connectToDevice(
+                    TvRemoteDevice(
+                        id = "manual:$host",
+                        name = host,
+                        host = host,
+                        remotePort = DEFAULT_ANDROID_TV_REMOTE_PORT,
+                        pairPort = TvRemoteDevice.DEFAULT_PAIRING_PORT
+                    )
+                )
+            }
+            .show()
     }
 
     private suspend fun beginPairing(device: TvRemoteDevice) {
@@ -686,8 +717,12 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
 
     private fun showConnectionError(error: Throwable) {
         if (!canUseBinding()) return
-        showCastFailureDialog()
         Log.d("renderState", "renderState: ${error.message}")
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.text_connection_lost)
+            .setMessage(error.message ?: getString(R.string.text_cast_failure_message))
+            .setPositiveButton(R.string.text_ok, null)
+            .show()
 
         isConnected = false
         isReconnecting = false
@@ -744,6 +779,8 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     companion object {
         private const val SCAN_TIMEOUT_MS = 12_000L
         private const val COMMAND_DEBOUNCE_MS = 180L
+        private const val DEFAULT_ANDROID_TV_REMOTE_PORT = 6466
+        private const val MAX_MANUAL_HOST_LENGTH = 253
         private const val PAIRING_CODE_LENGTH = 6
         private const val PAIRING_CODE_DISPLAY_LENGTH = 7
         private const val PAIRING_CODE_GROUP_LENGTH = 3

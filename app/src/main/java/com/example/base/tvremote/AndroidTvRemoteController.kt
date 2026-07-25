@@ -8,6 +8,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.InetSocketAddress
+import java.net.Socket
 
 class AndroidTvRemoteController(
     context: Context,
@@ -42,6 +44,13 @@ class AndroidTvRemoteController(
         onStateChanged(TvRemoteConnectionState.Connecting(device.name))
         runCatching { remoteSession?.close() }
         remoteSession = null
+        val ports = checkRemotePorts(device)
+        if (!ports.remoteOpen && !ports.pairingOpen) {
+            throw TvRemoteException(appContext.getString(com.example.base.R.string.text_tv_remote_service_unavailable))
+        }
+        if (!ports.remoteOpen && ports.pairingOpen) {
+            throw TvRemotePairingRequiredException()
+        }
         val socketFactory = certificateStore.sslContext().socketFactory
         val socket = try {
             socketFactory.createAndroidTvSocket(device.host, device.remotePort)
@@ -72,6 +81,9 @@ class AndroidTvRemoteController(
         onStateChanged(TvRemoteConnectionState.Pairing(device.name))
         runCatching { pairingSession?.close() }
         pairingSession = null
+        if (!isTcpPortOpen(device.host, device.pairPort)) {
+            throw TvRemoteException(appContext.getString(com.example.base.R.string.text_tv_remote_pairing_unavailable))
+        }
         val socket = certificateStore.sslContext().socketFactory
             .createAndroidTvSocket(device.host, device.pairPort)
         val session = AndroidTvPairingSession(socket, certificateStore.certificate())
@@ -128,6 +140,22 @@ class AndroidTvRemoteController(
         return remoteSession ?: throw TvRemoteException("TV is not connected")
     }
 
+    private fun checkRemotePorts(device: TvRemoteDevice): RemotePorts {
+        return RemotePorts(
+            remoteOpen = isTcpPortOpen(device.host, device.remotePort),
+            pairingOpen = isTcpPortOpen(device.host, device.pairPort)
+        )
+    }
+
+    private fun isTcpPortOpen(host: String, port: Int): Boolean {
+        return runCatching {
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress(host, port), PORT_CHECK_TIMEOUT_MS)
+            }
+            true
+        }.getOrDefault(false)
+    }
+
     private suspend fun reconnectAfterConnectionLoss(device: TvRemoteDevice, error: Throwable?) {
         onStateChanged(TvRemoteConnectionState.Reconnecting(device.name))
         var delayMs = 1_000L
@@ -149,5 +177,11 @@ class AndroidTvRemoteController(
 
     companion object {
         private const val AUTO_RECONNECT_ATTEMPTS = 3
+        private const val PORT_CHECK_TIMEOUT_MS = 1_000
     }
+
+    private data class RemotePorts(
+        val remoteOpen: Boolean,
+        val pairingOpen: Boolean
+    )
 }

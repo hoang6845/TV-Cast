@@ -78,9 +78,9 @@ class InterstitialAdUtils internal constructor(
         }
         // Cho layout phủ lên system bars
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        // Ẩn status bar + navigation bar, swipe để hiện tạm thời
+        // Ẩn status bar khi show ad, giữ navigation bar của thiết bị luôn hiện.
         WindowInsetsControllerCompat(window, window.decorView).let { ctrl ->
-            ctrl.hide(WindowInsetsCompat.Type.systemBars())
+            ctrl.hide(WindowInsetsCompat.Type.statusBars())
             ctrl.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }

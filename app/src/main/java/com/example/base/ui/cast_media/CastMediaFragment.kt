@@ -76,7 +76,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS)
     ) { uris ->
         if (uris.isEmpty()) {
-            showMediaErrorDialog()
+            updateControls()
         } else {
             setPhotos(uris)
         }
@@ -86,7 +86,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri == null) {
-            showMediaErrorDialog()
+            updateControls()
         } else {
             setVideo(uri)
         }
@@ -159,6 +159,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         binding.btnStartCasting.setOnClickListener { handleCastButton() }
         binding.photoPreview.setOnClickListener { openPicker() }
         binding.videoPlayer.setOnClickListener { openPicker() }
+        binding.emptyMediaContainer.setOnClickListener { openPicker() }
         onBackPressed(Runnable { handleBackPressed() })
     }
 
@@ -249,7 +250,10 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         binding.photoPreview.isVisible = isPhotoMode
         binding.photoList.isVisible = isPhotoMode
         binding.videoPlayer.isVisible = !isPhotoMode
-        binding.videoTimeRow.isVisible = !isPhotoMode
+        binding.videoTimeRow.isVisible = false
+        binding.emptyMediaTitle.text = getString(
+            if (isPhotoMode) R.string.text_select_photos_to_cast else R.string.text_select_video_to_cast
+        )
     }
 
     private fun setupPhotoList() {
@@ -333,6 +337,11 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     }
 
     private fun handleCastButton() {
+        if (currentSelection() == null) {
+            openPicker()
+            return
+        }
+
         if (isCasting) {
             showStopCastingDialog()
         } else {
@@ -343,7 +352,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private fun castSelectedMedia() {
         val selected = currentSelection()
         if (selected == null) {
-            showMediaErrorDialog()
+            openPicker()
             return
         }
 
@@ -469,20 +478,20 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         updateControls()
     }
 
-    private fun showMediaErrorDialog() {
-        showCastFailureDialog()
-        updateControls()
-    }
-
     private fun updateControls() {
         if (_binding == null || view == null) return
 
         val hasMedia = currentSelection() != null
-        binding.btnStartCasting.isEnabled = hasMedia || isCasting
-        binding.btnStartCasting.alpha = if (hasMedia || isCasting) 1f else 0.65f
+        binding.emptyMediaContainer.isVisible = !hasMedia
+        binding.photoList.isVisible = mode == MODE_PHOTO && photos.isNotEmpty()
+        binding.videoTimeRow.isVisible = mode == MODE_VIDEO && videoUri != null
+        binding.btnStartCasting.isEnabled = true
+        binding.btnStartCasting.alpha = 1f
         binding.btnStartCasting.text = when {
             isCasting -> getString(R.string.text_stop_casting)
             pendingCast -> getString(R.string.text_connecting_to_tv)
+            !hasMedia && mode == MODE_PHOTO -> getString(R.string.text_select_photos)
+            !hasMedia -> getString(R.string.text_select_video)
             else -> getString(R.string.text_start_casting)
         }
         binding.btnStartCasting.setBackgroundResource(

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="@dimen/_280sdp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_cast_failure_dialog"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/_16sdp"
+    android:paddingTop="@dimen/_18sdp"
+    android:paddingEnd="@dimen/_16sdp"
+    android:paddingBottom="@dimen/_12sdp">
+
+    <TextView
+        android:id="@+id/text_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/text_cast_media"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_15ssp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/text_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_8sdp"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/text_choose_media_type"
+        android:textColor="#9F9FA1"
+        android:textSize="@dimen/_10ssp" />
+
+    <LinearLayout
+        android:id="@+id/option_photos"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_54sdp"
+        android:layout_marginTop="@dimen/_18sdp"
+        android:background="@drawable/bg_cast_youtube_nav_button"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/_14sdp"
+        android:paddingEnd="@dimen/_14sdp">
+
+        <ImageView
+            android:layout_width="@dimen/_26sdp"
+            android:layout_height="@dimen/_26sdp"
+            android:contentDescription="@string/text_cast_photos"
+            android:src="@drawable/ic_media" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/_12sdp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="@font/inter"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="@string/text_cast_photos"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_12ssp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/option_video"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_54sdp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:background="@drawable/bg_cast_youtube_nav_button"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/_14sdp"
+        android:paddingEnd="@dimen/_14sdp">
+
+        <ImageView
+            android:layout_width="@dimen/_26sdp"
+            android:layout_height="@dimen/_26sdp"
+            android:contentDescription="@string/text_cast_video"
+            android:src="@drawable/ic_cast_youtube" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/_12sdp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="@font/inter"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="@string/text_cast_video"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_12ssp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/button_cancel"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_44sdp"
+        android:layout_marginTop="@dimen/_8sdp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/text_cancel"
+        android:textColor="#0A84FF"
+        android:textSize="@dimen/_12ssp"
+        android:textStyle="bold"
+        tools:ignore="TextViewEdits" />
+</LinearLayout>

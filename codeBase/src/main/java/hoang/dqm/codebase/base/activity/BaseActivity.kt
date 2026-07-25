@@ -261,7 +261,7 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
     }
 
     protected fun isHideNavBar(): Boolean {
-        return true
+        return false
     }
 
     protected fun currentLanguage(): String {

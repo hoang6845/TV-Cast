@@ -2,6 +2,7 @@ package hoang.dqm.codebase.data
 
 import android.os.Parcelable
 import androidx.annotation.Keep
+import androidx.fragment.app.Fragment
 import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
 
@@ -24,5 +25,10 @@ data class AppInfo(
     val emailFeedback: String,
     @SerializedName("term")
     val term: String,
+    @SerializedName("home_class")
+    val homeClass: Class<out Fragment>,
 ) : Parcelable {
+    fun isHomeClass(keyClass: String): Boolean {
+        return keyClass == homeClass.name
+    }
 }

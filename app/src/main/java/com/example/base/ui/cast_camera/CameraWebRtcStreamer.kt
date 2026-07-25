@@ -3,6 +3,7 @@ package com.example.base.ui.cast_camera
 import android.content.Context
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import com.example.base.webrtc.WebRtcInitializer
 import org.json.JSONObject
 import org.webrtc.AudioSource
 import org.webrtc.AudioTrack
@@ -30,7 +31,6 @@ import org.webrtc.VideoSource
 import org.webrtc.VideoTrack
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraWebRtcStreamer(
     private val context: Context,
@@ -60,7 +60,7 @@ class CameraWebRtcStreamer(
     private val zoomProcessor = CropZoomVideoProcessor()
 
     init {
-        initializeWebRtc(context)
+        WebRtcInitializer.initialize(context)
 
         localRenderer.init(eglBase.eglBaseContext, null)
         localRenderer.setEnableHardwareScaler(true)
@@ -179,6 +179,7 @@ class CameraWebRtcStreamer(
                                 sendSignal(
                                     JSONObject()
                                         .put("type", "OFFER")
+                                        .put("streamKind", "camera")
                                         .put("sdp", description.description)
                                 )
                             }
@@ -459,7 +460,6 @@ class CameraWebRtcStreamer(
     }
 
     companion object {
-        private val factoryInitialized = AtomicBoolean(false)
         private const val HALF_ZOOM_RATIO = 0.5f
         private const val DEFAULT_ZOOM_RATIO = 1f
         private const val DOUBLE_ZOOM_RATIO = 2f
@@ -472,14 +472,5 @@ class CameraWebRtcStreamer(
         private const val VIDEO_HEIGHT = 720
         private const val VIDEO_FPS = 30
         private const val STUN_SERVER = "stun:stun.l.google.com:19302"
-
-        private fun initializeWebRtc(context: Context) {
-            if (factoryInitialized.compareAndSet(false, true)) {
-                PeerConnectionFactory.initialize(
-                    PeerConnectionFactory.InitializationOptions.builder(context)
-                        .createInitializationOptions()
-                )
-            }
-        }
     }
 }

@@ -403,7 +403,7 @@ class PreloadInterstitialAdManager(
         }
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).let { ctrl ->
-            ctrl.hide(WindowInsetsCompat.Type.systemBars())
+            ctrl.hide(WindowInsetsCompat.Type.statusBars())
             ctrl.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }

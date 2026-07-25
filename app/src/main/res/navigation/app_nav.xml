@@ -64,4 +64,9 @@
         android:name="com.example.base.ui.intro.IntroFragment"
         android:label="fragment_intro"
         tools:layout="@layout/fragment_intro" />
+    <fragment
+        android:id="@+id/settingFragment"
+        android:name="com.example.base.ui.setting.SettingFragment"
+        android:label="fragment_setting"
+        tools:layout="@layout/fragment_setting" />
 </navigation>

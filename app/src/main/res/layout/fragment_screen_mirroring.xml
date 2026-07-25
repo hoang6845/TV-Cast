@@ -47,14 +47,13 @@
             app:layout_constraintStart_toEndOf="@id/btn_back"
             app:layout_constraintTop_toTopOf="@id/btn_back" />
 
-        <ImageButton
+        <androidx.mediarouter.app.MediaRouteButton
             android:id="@+id/btn_top_cast"
             android:layout_width="@dimen/_40sdp"
             android:layout_height="@dimen/_40sdp"
-            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/text_cast_to_tv"
             android:padding="@dimen/_8sdp"
-            android:src="@drawable/ic_cast_screen_white"
+            android:theme="@style/CastWebMediaRouteButtonTheme"
             app:layout_constraintBottom_toBottomOf="@id/btn_back"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/btn_back" />

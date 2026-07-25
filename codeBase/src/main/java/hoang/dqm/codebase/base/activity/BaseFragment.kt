@@ -17,7 +17,9 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewbinding.ViewBinding
 import com.google.android.gms.ads.nativead.NativeAd
+import hoang.dqm.codebase.base.application.appInfo
 import hoang.dqm.codebase.base.viewmodel.BaseViewModel
+import hoang.dqm.codebase.service.session.saveFirst
 import hoang.dqm.codebase.utils.AppMonetization
 import hoang.dqm.codebase.utils.BindingReflex
 import hoang.dqm.codebase.utils.ads
@@ -105,9 +107,9 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
                 isLoaded = true
             }
 //            logApp("onViewCreated $this")
-//            if (appInfo().isHomeClass(this::class.java.name)) {
-//                saveFirst(false)
-//            }
+            if (appInfo().isHomeClass(this::class.java.name)) {
+                saveFirst(false)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }

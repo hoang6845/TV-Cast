@@ -4,13 +4,15 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.view.View
+import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.viewpager2.widget.ViewPager2
 import com.example.base.R
+import com.example.base.databinding.DialogCastMediaChooserBinding
 import com.example.base.databinding.FragmentHomeBinding
 import com.example.base.databinding.LayoutHomeHowToConnectSheetBinding
 import com.example.base.model.entity.ItemFunc
@@ -83,7 +85,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     }
 
     override fun initView() {
-        adjustInsetsForBottomNavigation(binding.icSetting)
+        adjustInsetsForBottomNavigation(binding.top)
         setUpAdapter()
     }
 
@@ -97,7 +99,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
         }
 
         binding.icSetting.setOnClickListener {
-
+            navigate(R.id.settingFragment)
         }
     }
 
@@ -131,30 +133,39 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     }
 
     private fun showCastMediaChooser() {
-        MaterialAlertDialogBuilder(
-            requireContext(),
-            R.style.ThemeOverlay_App_CastDialog
-        )
-            .setTitle(R.string.text_cast_media)
-            .setItems(
-                arrayOf(
-                    getString(R.string.text_cast_photos),
-                    getString(R.string.text_cast_video)
-                )
-            ) { _, which ->
-                val mode = if (which == 0) {
-                    CastMediaFragment.MODE_PHOTO
-                } else {
-                    CastMediaFragment.MODE_VIDEO
+        val chooserBinding = DialogCastMediaChooserBinding.inflate(layoutInflater)
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(chooserBinding.root)
+            .create()
+
+        fun openCastMedia(mode: String) {
+            dialog.dismiss()
+            navigate(
+                R.id.castMediaFragment,
+                Bundle().apply {
+                    putString(CastMediaFragment.ARG_MODE, mode)
                 }
-                navigate(
-                    R.id.castMediaFragment,
-                    Bundle().apply {
-                        putString(CastMediaFragment.ARG_MODE, mode)
-                    }
-                )
-            }
-            .show()
+            )
+        }
+
+        chooserBinding.optionPhotos.setOnClickListener {
+            openCastMedia(CastMediaFragment.MODE_PHOTO)
+        }
+        chooserBinding.optionVideo.setOnClickListener {
+            openCastMedia(CastMediaFragment.MODE_VIDEO)
+        }
+        chooserBinding.buttonCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.setOnShowListener {
+            dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            dialog.window?.setLayout(
+                resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._280sdp),
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        dialog.show()
     }
 
     private fun showHowToConnectSheet() {

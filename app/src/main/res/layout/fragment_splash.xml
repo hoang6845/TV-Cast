@@ -105,5 +105,9 @@
         app:trackCornerRadius="@dimen/_40sdp"
         app:trackThickness="@dimen/_12dp" />
 
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/splash" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

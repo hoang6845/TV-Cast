@@ -28,6 +28,7 @@ import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
@@ -200,6 +201,7 @@ class CastYoutubeFragment : BaseFragment<FragmentCastYoutubeBinding, CastYoutube
     }
 
     override fun onDestroyView() {
+        disconnectYoutubeCastingOnExit(updateUi = false)
         mainHandler.removeCallbacksAndMessages(null)
         currentCastSession()?.let(::removeReceiverCallback)
         binding.webView.apply {
@@ -515,6 +517,33 @@ class CastYoutubeFragment : BaseFragment<FragmentCastYoutubeBinding, CastYoutube
         updateControls()
     }
 
+    private fun disconnectYoutubeCastingOnExit(updateUi: Boolean = true) {
+        val session = currentCastSession()
+        if (session?.isConnected == true) {
+            runCatching {
+                session.sendMessage(
+                    CastReceiverIds.YOUTUBE_NAMESPACE,
+                    JSONObject().put("action", ACTION_STOP_YOUTUBE).toString()
+                )
+            }.onFailure {
+                Log.e(TAG, "Could not send YouTube stop message before exit", it)
+            }
+            removeReceiverCallback(session)
+            castContext?.sessionManager?.endCurrentSession(true)
+        }
+
+        pendingCastVideoId = null
+        isCasting = false
+        lastCastVideoId = null
+        pendingAutoCastVideoId = null
+        mainHandler.removeCallbacks(autoCastChangedVideoRunnable)
+        stopTimelinePolling()
+        if (updateUi) {
+            updateCastStatus(CastConnectionState.Disconnected)
+            updateControls()
+        }
+    }
+
     private fun sendYoutubeSeek(seconds: Float) {
         val session = currentCastSession()
         if (session?.isConnected != true) return
@@ -729,9 +758,22 @@ class CastYoutubeFragment : BaseFragment<FragmentCastYoutubeBinding, CastYoutube
     private fun handleBackPressed() {
         if (binding.webView.canGoBack()) {
             binding.webView.goBack()
+        } else if (currentCastSession()?.isConnected == true) {
+            showDisconnectBeforeExitDialog()
         } else {
             popBackStack()
         }
+    }
+
+    private fun showDisconnectBeforeExitDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setMessage(R.string.text_stop_casting_message)
+            .setPositiveButton(R.string.text_disconnect) { _, _ ->
+                disconnectYoutubeCastingOnExit()
+                popBackStack()
+            }
+            .setNegativeButton(R.string.text_cancel, null)
+            .show()
     }
 
     private enum class CastConnectionState {

@@ -200,6 +200,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     }
 
     override fun onDestroyView() {
+        disconnectCastingOnExit(updateUi = false)
         mainHandler.removeCallbacksAndMessages(null)
 
         binding.webView.apply {
@@ -750,6 +751,20 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         updateControls()
     }
 
+    private fun disconnectCastingOnExit(updateUi: Boolean = true) {
+        if (currentCastSession()?.isConnected != true) return
+
+        currentCastSession()?.remoteMediaClient?.stop()
+        castContext?.sessionManager?.endCurrentSession(true)
+        pendingVideo = null
+        isCasting = false
+        resetCastingState()
+        if (updateUi) {
+            updateCastStatus(CastConnectionState.Disconnected)
+            updateControls()
+        }
+    }
+
     private fun resetCastingState() {
         lastCastVideoKey = null
         pendingAutoCastVideoKey = null
@@ -994,9 +1009,22 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     private fun handleBackPressed() {
         if (binding.webView.isVisible && binding.webView.canGoBack()) {
             binding.webView.goBack()
+        } else if (currentCastSession()?.isConnected == true) {
+            showDisconnectBeforeExitDialog()
         } else {
             popBackStack()
         }
+    }
+
+    private fun showDisconnectBeforeExitDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setMessage(R.string.text_stop_casting_message)
+            .setPositiveButton(R.string.text_disconnect) { _, _ ->
+                disconnectCastingOnExit()
+                popBackStack()
+            }
+            .setNegativeButton(R.string.text_cancel, null)
+            .show()
     }
 
     private fun String.toVideoTypeLabel(): String {
