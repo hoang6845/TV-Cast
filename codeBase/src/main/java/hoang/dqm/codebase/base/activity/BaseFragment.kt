@@ -209,6 +209,39 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
             insets
         }
     }
+
+    protected fun adjustInsetsForBottomMargin(viewBottom: View) {
+        val initialBottomMargin = (viewBottom.layoutParams as? ViewGroup.MarginLayoutParams)
+            ?.bottomMargin
+            ?: 0
+        ViewCompat.setOnApplyWindowInsetsListener(viewBottom) { view, insets ->
+            try {
+                val params = view.layoutParams as ViewGroup.MarginLayoutParams
+                val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+                params.bottomMargin = initialBottomMargin + navigationBars.bottom
+                view.layoutParams = params
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(viewBottom)
+    }
+
+    protected fun adjustInsetsForBottomPadding(viewBottom: View) {
+        val initialBottomPadding = viewBottom.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(viewBottom) { view, insets ->
+            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop,
+                view.paddingRight,
+                initialBottomPadding + navigationBars.bottom
+            )
+            insets
+        }
+        ViewCompat.requestApplyInsets(viewBottom)
+    }
     private fun updateLastTimeLoadBannerNativeAd(interval: Long) {
         lastTimeLoadBannerNativeAd = interval
     }

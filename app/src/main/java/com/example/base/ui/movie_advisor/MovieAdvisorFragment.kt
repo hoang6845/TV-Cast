@@ -26,6 +26,9 @@ class MovieAdvisorFragment : BaseFragment<FragmentMovieAdvisorBinding, MovieAdvi
 
     override fun initView() {
         adjustInsetsForBottomNavigation(binding.topBar)
+        adjustInsetsForBottomPadding(binding.editorContainer)
+        adjustInsetsForBottomPadding(binding.rvMovieResults)
+        adjustInsetsForBottomMargin(binding.btnFindNext)
         setupFilterRows()
         binding.rvMovieResults.layoutManager = LinearLayoutManager(requireContext())
         binding.rvMovieResults.adapter = resultAdapter

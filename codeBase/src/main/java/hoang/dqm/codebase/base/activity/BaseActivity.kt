@@ -3,6 +3,7 @@ package hoang.dqm.codebase.base.activity
 import android.content.Context
 import android.content.IntentFilter
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
@@ -247,6 +248,39 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
         }
     }
 
+    protected fun adjustInsetsForBottomMargin(viewBottom: View) {
+        val initialBottomMargin = (viewBottom.layoutParams as? ViewGroup.MarginLayoutParams)
+            ?.bottomMargin
+            ?: 0
+        ViewCompat.setOnApplyWindowInsetsListener(viewBottom) { view, insets ->
+            try {
+                val params = view.layoutParams as ViewGroup.MarginLayoutParams
+                val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+                params.bottomMargin = initialBottomMargin + navigationBars.bottom
+                view.layoutParams = params
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(viewBottom)
+    }
+
+    protected fun adjustInsetsForBottomPadding(viewBottom: View) {
+        val initialBottomPadding = viewBottom.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(viewBottom) { view, insets ->
+            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop,
+                view.paddingRight,
+                initialBottomPadding + navigationBars.bottom
+            )
+            insets
+        }
+        ViewCompat.requestApplyInsets(viewBottom)
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus && isHideNavBar()) {
@@ -269,16 +303,17 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
     }
 
     protected fun updateStatusBarAppearance() {
-        val isDarkMode = (resources.configuration.uiMode and
-                android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-                android.content.res.Configuration.UI_MODE_NIGHT_YES
-
-        // Set màu chữ/icon
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = !isDarkMode
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
         }
 
-        // Set nền status bar bằng cách thêm scrim view
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
+
         val decorView = window.decorView as ViewGroup
         var statusBarView = decorView.findViewWithTag<View>("status_bar_scrim")
 
@@ -294,10 +329,8 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
             }
         }
 
-        val color = if (isDarkMode) android.graphics.Color.BLACK else android.graphics.Color.WHITE
-        statusBarView.setBackgroundColor(color)
+        statusBarView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
 
-        // Set đúng height = status bar height
         ViewCompat.setOnApplyWindowInsetsListener(statusBarView) { view, insets ->
             view.layoutParams.height = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
             view.requestLayout()

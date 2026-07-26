@@ -15,6 +15,6 @@ open class BaseAdUtils internal constructor(
      * Returns false if user is premium (premium user should not see ads)
      */
     internal val appAllowShowAd: Boolean
-        get() = !premiumManager.isSubscribed()
+        get() = !premiumManager.isSubscribed() && false
 
 }

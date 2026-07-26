@@ -323,6 +323,7 @@
     <string name="text_home_connect_step_3_desc">If nothing above helps, restart your TV and try again</string>
     <string name="text_home_connect_tv_browser">Connect via TV Browser</string>
     <string name="text_home_connect_not_connected">Not Connected</string>
+    <string name="text_home_connect_available_to_connect">Available to connect</string>
     <string name="text_home_connect_dont_see_tv">Don\'t see your TV?</string>
     <string name="text_faq">FAQ</string>
     <string name="text_still_need_help">Still need help?</string>

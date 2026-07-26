@@ -17,6 +17,7 @@ class FaqFragment : BaseFragment<FragmentFaqBinding, FaqViewModel>() {
 
     override fun initView() {
         adjustInsetsForBottomNavigation(binding.topBar)
+        adjustInsetsForBottomMargin(binding.supportCard)
         binding.rvFaq.layoutManager = LinearLayoutManager(requireContext())
         binding.rvFaq.adapter = faqAdapter
         faqAdapter.submitList(FaqContent.items)

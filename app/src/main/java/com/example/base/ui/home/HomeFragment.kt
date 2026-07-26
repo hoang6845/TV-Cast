@@ -1,24 +1,30 @@
 package com.example.base.ui.home
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.core.view.isVisible
+import androidx.mediarouter.media.MediaRouteSelector
+import androidx.mediarouter.media.MediaRouter
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.viewpager2.widget.ViewPager2
 import com.example.base.R
+import com.example.base.cast.CastReceiverIds
 import com.example.base.databinding.DialogCastMediaChooserBinding
 import com.example.base.databinding.FragmentHomeBinding
+import com.example.base.databinding.ItemHomeConnectBrowserBinding
 import com.example.base.databinding.LayoutHomeHowToConnectSheetBinding
 import com.example.base.model.entity.ItemFunc
 import com.example.base.ui.cast_media.CastMediaFragment
 import com.example.base.ui.intro.ViewPager2Adapter
 import com.example.base.utils.AppConstants
+import com.google.android.gms.cast.CastMediaControlIntent
+import com.google.android.gms.cast.framework.CastContext
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -86,6 +92,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
 
     override fun initView() {
         adjustInsetsForBottomNavigation(binding.top)
+        adjustInsetsForBottomMargin(binding.rvHomeFunc)
         setUpAdapter()
     }
 
@@ -171,12 +178,17 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     private fun showHowToConnectSheet() {
         val dialog = BottomSheetDialog(requireContext())
         val sheetBinding = LayoutHomeHowToConnectSheetBinding.inflate(layoutInflater)
+        val mediaRouter = MediaRouter.getInstance(requireContext())
+        val castRouteSelector = MediaRouteSelector.Builder()
+            .addControlCategory(
+                CastMediaControlIntent.categoryForCast(CastReceiverIds.CUSTOM_RECEIVER)
+            )
+            .build()
         val descriptions = listOf(
             getString(R.string.text_home_connect_guide_desc),
             getString(R.string.text_home_connect_same_wifi_desc)
         )
-        val autoSlideHandler = Handler(Looper.getMainLooper())
-        var slideForward = true
+        var browserPageBinding: ItemHomeConnectBrowserBinding? = null
 
         fun updateDots(position: Int) {
             sheetBinding.layoutDots.removeAllViews()
@@ -192,20 +204,59 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
             }
         }
 
-        val autoSlideRunnable = object : Runnable {
-            override fun run() {
-                if (!dialog.isShowing) return
-
-                val currentItem = sheetBinding.viewPager.currentItem
-                val nextItem = if (currentItem == 0 && slideForward) {
-                    1
-                } else {
-                    slideForward = !slideForward
-                    0
+        fun availableCastRoutes(): List<MediaRouter.RouteInfo> {
+            return mediaRouter.routes
+                .filter { route ->
+                    route.isEnabled &&
+                        !route.isDefaultOrBluetooth &&
+                        route.matchesSelector(castRouteSelector)
                 }
+                .distinctBy { route -> route.id.ifBlank { route.name.toString() } }
+        }
 
-                sheetBinding.viewPager.setCurrentItem(nextItem, true)
-                autoSlideHandler.postDelayed(this, AUTO_SLIDE_INTERVAL_MS)
+        fun bindAvailableDevices() {
+            val pageBinding = browserPageBinding ?: return
+            val routes = availableCastRoutes()
+            pageBinding.layoutAvailableDevicesScroll.isVisible = routes.isNotEmpty()
+            pageBinding.layoutAvailableDevices.removeAllViews()
+
+            routes.forEachIndexed { index, route ->
+                val row = layoutInflater.inflate(
+                    R.layout.item_tv_remote_device,
+                    pageBinding.layoutAvailableDevices,
+                    false
+                )
+                row.findViewById<TextView>(R.id.device_name).text = route.name
+                row.findViewById<TextView>(R.id.device_meta).text =
+                    route.description?.toString()?.takeIf { it.isNotBlank() }
+                        ?: getString(R.string.text_home_connect_available_to_connect)
+                row.setOnClickListener {
+                    route.select()
+                    dialog.dismiss()
+                }
+                row.layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._66sdp)
+                ).apply {
+                    topMargin = if (index == 0) 0 else {
+                        resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._8sdp)
+                    }
+                }
+                pageBinding.layoutAvailableDevices.addView(row)
+            }
+        }
+
+        val mediaRouterCallback = object : MediaRouter.Callback() {
+            override fun onRouteAdded(router: MediaRouter, route: MediaRouter.RouteInfo) {
+                bindAvailableDevices()
+            }
+
+            override fun onRouteRemoved(router: MediaRouter, route: MediaRouter.RouteInfo) {
+                bindAvailableDevices()
+            }
+
+            override fun onRouteChanged(router: MediaRouter, route: MediaRouter.RouteInfo) {
+                bindAvailableDevices()
             }
         }
 
@@ -215,7 +266,16 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
                 R.layout.item_home_connect_browser
             ),
             getLayoutResId = { item, _ -> item },
-            bindView = { _, _, _ -> }
+            bindView = { view, _, position ->
+                if (position == HOW_TO_CONNECT_BROWSER_TAB_POSITION) {
+                    browserPageBinding = ItemHomeConnectBrowserBinding.bind(view)
+                    browserPageBinding?.layoutHelpChip?.setOnClickListener {
+                        dialog.dismiss()
+                        navigate(R.id.faqFragment)
+                    }
+                    bindAvailableDevices()
+                }
+            }
         )
         sheetBinding.viewPager.offscreenPageLimit = 2
         sheetBinding.viewPager.registerOnPageChangeCallback(pageChangeCallback)
@@ -238,11 +298,19 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
                 skipCollapsed = true
                 state = BottomSheetBehavior.STATE_EXPANDED
             }
-
-            autoSlideHandler.postDelayed(autoSlideRunnable, AUTO_SLIDE_INTERVAL_MS)
         }
+        runCatching {
+            CastContext.getSharedInstance(requireContext())
+                .setReceiverApplicationId(CastReceiverIds.CUSTOM_RECEIVER)
+        }
+        mediaRouter.addCallback(
+            castRouteSelector,
+            mediaRouterCallback,
+            MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY or
+                MediaRouter.CALLBACK_FLAG_UNFILTERED_EVENTS
+        )
         dialog.setOnDismissListener {
-            autoSlideHandler.removeCallbacksAndMessages(null)
+            mediaRouter.removeCallback(mediaRouterCallback)
             sheetBinding.viewPager.unregisterOnPageChangeCallback(pageChangeCallback)
         }
         dialog.show()
@@ -265,7 +333,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     }
 
     companion object {
-        private const val AUTO_SLIDE_INTERVAL_MS = 2500L
+        private const val HOW_TO_CONNECT_BROWSER_TAB_POSITION = 1
         private const val BOTTOM_SHEET_HEIGHT_RATIO = 0.8f
     }
 }

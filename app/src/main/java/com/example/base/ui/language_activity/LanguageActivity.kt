@@ -31,6 +31,7 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
 
     override fun initView() {
         adjustInsetsForBottomNavigation(binding.main)
+        adjustInsetsForBottomMargin(binding.viewNativeAd)
 
         isFromSplash = intent.extras?.getBoolean("isFromSplash") ?: false
 

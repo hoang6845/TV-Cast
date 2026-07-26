@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/myColorSurface"
+    android:background="#0E0E0E"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".ui.setting.SettingFragment">
 
@@ -19,10 +19,9 @@
             android:layout_height="@dimen/_40sdp"
             android:layout_centerVertical="true"
             android:foreground="?actionBarItemBackground"
-            android:padding="@dimen/_6sdp"
-            android:src="@drawable/btn_back"
+            android:src="@drawable/ic_close_iap"
             app:tint="@color/white"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <androidx.appcompat.widget.AppCompatTextView
@@ -57,6 +56,7 @@
             android:layout_marginEnd="@dimen/_12sdp"
             android:src="@drawable/ic_help"
             android:id="@+id/guide_help"
+            android:visibility="gone"
             app:tint="?attr/myColorOnSurface"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btn_premium"
@@ -331,6 +331,7 @@
 
                 <androidx.appcompat.widget.LinearLayoutCompat
                     android:id="@+id/llFeedback"
+                    android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:foreground="?selectableItemBackground"

@@ -79,6 +79,7 @@
         android:layout_marginBottom="@dimen/_18sdp"
         android:background="@drawable/bg_faq_support_card"
         android:paddingHorizontal="@dimen/_14sdp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -115,22 +116,33 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tv_still_need_help" />
 
-        <TextView
+        <LinearLayout
             android:id="@+id/btn_support"
             android:layout_width="@dimen/_86sdp"
             android:layout_height="@dimen/_36sdp"
             android:background="@drawable/bg_faq_support_button"
-            android:drawableStart="@drawable/ic_support_send"
-            android:drawablePadding="@dimen/_5sdp"
-            android:fontFamily="@font/inter"
-            android:gravity="center"
             android:includeFontPadding="false"
-            android:text="@string/text_support"
-            android:textColor="@color/white"
-            android:textSize="@dimen/_9ssp"
-            android:textStyle="bold"
+            android:gravity="center"
+            android:orientation="horizontal"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent" >
+
+            <ImageView
+                android:layout_width="@dimen/_16sdp"
+                android:layout_height="@dimen/_16sdp"
+                android:src="@drawable/ic_support_send"
+                android:layout_marginEnd="@dimen/_4sdp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/text_support"
+                android:textColor="@color/white"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:textSize="@dimen/_9ssp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

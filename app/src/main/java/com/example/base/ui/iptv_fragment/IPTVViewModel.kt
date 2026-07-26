@@ -132,9 +132,10 @@ class IPTVViewModel @Inject constructor(
         _uiState.update { it.copy(selectedChannel = channel) }
     }
 
-    fun toggleFavourite(channel: Channel) {
+    fun toggleFavourite(channel: Channel, isFavourite: Boolean = channel.isFavourite.not()) {
+        applyFavouriteState(channel.id, isFavourite)
         viewModelScope.launch(Dispatchers.IO) {
-            channelDao.updateFavourite(channel.id, channel.isFavourite.not())
+            channelDao.updateFavourite(channel.id, isFavourite)
         }
     }
 
@@ -256,6 +257,21 @@ class IPTVViewModel @Inject constructor(
         return when (tab) {
             IPTVTab.GENRES -> allChannels
             IPTVTab.FAVORITES -> allChannels.filter { it.isFavourite }
+        }
+    }
+
+    private fun applyFavouriteState(channelId: String, isFavourite: Boolean) {
+        var changed = false
+        allChannels = allChannels.map { channel ->
+            if (channel.id == channelId && channel.isFavourite != isFavourite) {
+                changed = true
+                channel.copy(isFavourite = isFavourite)
+            } else {
+                channel
+            }
+        }
+        if (changed) {
+            rebuildUiState()
         }
     }
 

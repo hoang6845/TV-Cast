@@ -19,6 +19,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.base.R
 import com.example.base.cast.CastReceiverIds
 import com.example.base.databinding.FragmentIPTVBinding
@@ -54,7 +55,9 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     private val channelAdapter by lazy {
         IPTVChannelAdapter(
             onClick = { channel -> viewModel.selectChannel(channel) },
-            onFavouriteClick = { channel -> viewModel.toggleFavourite(channel) }
+            onFavouriteClick = { channel, isFavourite ->
+                viewModel.toggleFavourite(channel, isFavourite)
+            }
         )
     }
 
@@ -74,6 +77,9 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
 
     override fun initView() {
         adjustInsetsForBottomNavigation(binding.topBar)
+        adjustInsetsForBottomPadding(binding.rvCategories)
+        adjustInsetsForBottomPadding(binding.rvChannels)
+        adjustInsetsForBottomMargin(binding.playerContainer)
         setupRecyclerViews()
         setupCast()
     }
@@ -116,6 +122,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         binding.rvCategories.adapter = categoryAdapter
 
         binding.rvChannels.layoutManager = GridLayoutManager(requireContext(), 3)
+        (binding.rvChannels.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
         binding.rvChannels.adapter = channelAdapter
     }
 
