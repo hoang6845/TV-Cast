@@ -171,6 +171,9 @@
     <string name="text_screen_sharing_permission_required">Screen sharing permission is required to start mirroring.</string>
     <string name="text_stop_screen_mirroring_title">Stop screen mirroring?</string>
     <string name="text_stop_screen_mirroring_message">The live screen feed will stop playing on your TV.</string>
+    <string name="text_stop_system_mirroring_message">Open the system screen mirroring controls to stop this session.</string>
+    <string name="text_open_system_mirroring_controls">Open system controls</string>
+    <string name="text_system_mirroring_unavailable">System screen mirroring is not available on this device.</string>
     <string name="text_select_tv_for_mirroring">Select a TV to start screen mirroring.</string>
     <string name="text_could_not_open_cast_settings">Could not open Android Cast settings on this device.</string>
     <string name="text_mirroring_help_title">Screen Mirroring Help</string>

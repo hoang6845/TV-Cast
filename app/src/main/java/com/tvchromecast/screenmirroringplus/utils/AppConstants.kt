@@ -12,6 +12,16 @@ object AppConstants {
         ChannelGroupSource.COUNTRY to COUNTRY_URL
     )
     const val TYPE_MIRROR = "mirror"
+    /**
+     * Select the screen mirroring implementation.
+     *
+     * Change [SCREEN_MIRRORING_OPTION] to [SCREEN_MIRRORING_OPTION_SYSTEM] to open
+     * Android's own screen-mirroring controls instead of streaming through the custom
+     * Cast/WebRTC receiver.
+     */
+    const val SCREEN_MIRRORING_OPTION_CAST = "cast"
+    const val SCREEN_MIRRORING_OPTION_SYSTEM = "system"
+    const val SCREEN_MIRRORING_OPTION = SCREEN_MIRRORING_OPTION_SYSTEM
     const val TYPE_CAST_MEDIA = "cast_media"
     const val TYPE_CAMERA_CAST = "camera_cast"
     const val TYPE_TRY_TV_REMOTE = "try_tv_remote"
