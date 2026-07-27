@@ -14,6 +14,7 @@ import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.view.Display
 import android.view.Surface
 import android.view.ViewGroup
@@ -33,6 +34,7 @@ import com.example.base.R
 import com.example.base.cast.CastReceiverIds
 import com.example.base.databinding.FragmentScreenMirroringBinding
 import com.example.base.ui.common.showCastFailureDialog
+import com.example.base.utils.AppConstants
 import com.google.android.gms.cast.Cast
 import com.google.android.gms.cast.CastMediaControlIntent
 import com.google.android.gms.cast.framework.CastButtonFactory
@@ -71,16 +73,24 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     private var toolbarBaseHeight = 0
     private var bottomButtonBaseMargin = 0
 
+    private val usesSystemMirroring: Boolean
+        get() = AppConstants.SCREEN_MIRRORING_OPTION ==
+            AppConstants.SCREEN_MIRRORING_OPTION_SYSTEM
+
     private val screenCapturePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val data = result.data
         if (result.resultCode == Activity.RESULT_OK && data != null) {
             mediaProjectionData = data
-            beginScreenMirroring()
+            if (usesSystemMirroring) {
+                syncMirroringState()
+            } else {
+                beginScreenMirroring()
+            }
         } else {
             resetPendingMirroring()
-            updateCastStatusFromSession()
+            syncMirroringState()
             showPermissionDeniedDialog()
         }
     }
@@ -292,30 +302,34 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
     override fun onStart() {
         super.onStart()
-        castContext?.sessionManager?.addSessionManagerListener(
-            castSessionListener,
-            CastSession::class.java
-        )
+        if (!usesSystemMirroring) {
+            castContext?.sessionManager?.addSessionManagerListener(
+                castSessionListener,
+                CastSession::class.java
+            )
+        }
         mediaRouter?.addCallback(
             castRouteSelector,
             mediaRouterCallback,
             MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY or
                 MediaRouter.CALLBACK_FLAG_UNFILTERED_EVENTS
         )
-        updateCastStatusFromSession()
+        syncMirroringState()
     }
 
     override fun onResume() {
         super.onResume()
-        updateCastStatusFromSession()
+        syncMirroringState()
     }
 
     override fun onStop() {
         mediaRouter?.removeCallback(mediaRouterCallback)
-        castContext?.sessionManager?.removeSessionManagerListener(
-            castSessionListener,
-            CastSession::class.java
-        )
+        if (!usesSystemMirroring) {
+            castContext?.sessionManager?.removeSessionManagerListener(
+                castSessionListener,
+                CastSession::class.java
+            )
+        }
         super.onStop()
     }
 
@@ -388,6 +402,13 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
     private fun setupCastButton() {
         mediaRouter = MediaRouter.getInstance(requireContext())
+        if (usesSystemMirroring) {
+            binding.btnTopCast.isVisible = false
+            syncMirroringState()
+            return
+        }
+
+        binding.btnTopCast.isVisible = true
         runCatching {
             castContext = CastContext.getSharedInstance(requireContext())
             castContext?.setReceiverApplicationId(CastReceiverIds.CAMERA_WEBRTC)
@@ -403,6 +424,11 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
     private fun handleMediaRouteChanged() {
         if (_binding == null || view == null) return
+
+        if (usesSystemMirroring) {
+            syncMirroringState()
+            return
+        }
 
         if (!hasConnectedCastRoute() && (isMirroring || isPreparing || isReconnecting)) {
             handleExternalRouteDisconnected()
@@ -484,6 +510,11 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     private fun startMirroringFlow() {
         isStoppingMirroring = false
 
+        if (usesSystemMirroring) {
+            startSystemMirroringFlow()
+            return
+        }
+
         if (currentCastSession()?.isConnected != true) {
             startCastFlow()
             return
@@ -508,6 +539,31 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         }
 
         beginScreenMirroring()
+    }
+
+    private fun startSystemMirroringFlow() {
+        if (hasSystemMirroringSession()) {
+            syncMirroringState()
+            return
+        }
+
+        pendingMirroring = true
+        isPreparing = false
+        isReconnecting = false
+        updateControls(selectingTv = true)
+
+        runCatching {
+            startActivity(Intent(Settings.ACTION_CAST_SETTINGS))
+        }.onFailure {
+            resetPendingMirroring()
+            updateCastStatus(CastConnectionState.Error)
+            Toast.makeText(
+                requireContext(),
+                R.string.text_system_mirroring_unavailable,
+                Toast.LENGTH_SHORT
+            ).show()
+            updateControls()
+        }
     }
 
     private fun startCastFlow() {
@@ -664,13 +720,51 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     private fun showStopMirroringDialog() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.text_stop_screen_mirroring_title)
-            .setMessage(R.string.text_stop_screen_mirroring_message)
+            .setMessage(
+                if (usesSystemMirroring) {
+                    R.string.text_stop_system_mirroring_message
+                } else {
+                    R.string.text_stop_screen_mirroring_message
+                }
+            )
             .setNegativeButton(R.string.text_cancel, null)
-            .setPositiveButton(R.string.text_stop_mirroring) { _, _ -> stopMirroring() }
+            .setPositiveButton(
+                if (usesSystemMirroring) {
+                    R.string.text_open_system_mirroring_controls
+                } else {
+                    R.string.text_stop_mirroring
+                }
+            ) { _, _ ->
+                if (usesSystemMirroring) {
+                    openSystemMirroringControls()
+                } else {
+                    stopMirroring()
+                }
+            }
             .show()
     }
 
+    private fun openSystemMirroringControls() {
+        runCatching {
+            startActivity(Intent(Settings.ACTION_CAST_SETTINGS))
+        }.onFailure {
+            Toast.makeText(
+                requireContext(),
+                R.string.text_system_mirroring_unavailable,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     private fun stopMirroring(updateUi: Boolean = true, endSession: Boolean = false) {
+        if (usesSystemMirroring) {
+            resetMirroringState()
+            if (updateUi) {
+                syncMirroringState()
+            }
+            return
+        }
+
         isStoppingMirroring = true
         val connectedSession = currentCastSession()
         sendStopToReceiver()
@@ -743,7 +837,8 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
             isPreparing ||
             pendingMirroring ||
             isReconnecting ||
-            hasConnectedCastRoute()
+            hasConnectedCastRoute() ||
+            (usesSystemMirroring && hasSystemMirroringSession())
 
         binding.btnStartMirroring.isEnabled = !pendingMirroring && !isReconnecting
         binding.btnStartMirroring.alpha = if (binding.btnStartMirroring.isEnabled) 1f else 0.72f
@@ -764,6 +859,9 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
         val deviceName = connectedDeviceName()
         binding.statusText.text = when {
+            usesSystemMirroring && isMirroring -> {
+                getString(R.string.text_mirroring_to_tv, connectedDeviceName())
+            }
             isMirroring -> {
                 val quality = selectedQualityLabel()
                 val sound = getString(
@@ -781,12 +879,39 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun updateCastStatusFromSession() {
+        if (usesSystemMirroring) {
+            syncSystemMirroringState()
+            return
+        }
+
         val state = when {
             hasConnectedCastRoute() -> CastConnectionState.Connected
             isSelectedRouteConnecting() -> CastConnectionState.Connecting
             else -> CastConnectionState.Disconnected
         }
         updateCastStatus(state)
+        updateControls()
+    }
+
+    private fun syncMirroringState() {
+        if (usesSystemMirroring) {
+            syncSystemMirroringState()
+        } else {
+            updateCastStatusFromSession()
+        }
+    }
+
+    private fun syncSystemMirroringState() {
+        if (hasSystemMirroringSession()) {
+            pendingMirroring = false
+            isPreparing = false
+            isMirroring = true
+            isReconnecting = false
+            updateCastStatus(CastConnectionState.Connected)
+        } else {
+            resetMirroringState()
+            updateCastStatus(CastConnectionState.Disconnected)
+        }
         updateControls()
     }
 
@@ -860,13 +985,13 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         displayListener = object : DisplayManager.DisplayListener {
             override fun onDisplayAdded(displayId: Int) {
                 if (displayId != Display.DEFAULT_DISPLAY) {
-                    updateCastStatusFromSession()
+                    syncMirroringState()
                 }
             }
 
             override fun onDisplayRemoved(displayId: Int) {
                 if (displayId != Display.DEFAULT_DISPLAY) {
-                    updateCastStatusFromSession()
+                    syncMirroringState()
                 }
             }
 
@@ -877,7 +1002,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
                             applyLiveConfig()
                         }
                     }
-                    else -> updateCastStatusFromSession()
+                    else -> syncMirroringState()
                 }
             }
         }.also { displayManager.registerDisplayListener(it, mainHandler) }
@@ -917,6 +1042,10 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         return currentCastSession()?.isConnected != true &&
             selectedNonLocalRoute() == null &&
             activePresentationDisplay() != null
+    }
+
+    private fun hasSystemMirroringSession(): Boolean {
+        return activePresentationDisplay() != null
     }
 
     private fun activePresentationDisplay(): Display? {
@@ -964,10 +1093,26 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         if (isMirroring || isPreparing || isReconnecting) {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.text_stop_screen_mirroring_title)
-                .setMessage(R.string.text_stop_screen_mirroring_message)
+                .setMessage(
+                    if (usesSystemMirroring) {
+                        R.string.text_stop_system_mirroring_message
+                    } else {
+                        R.string.text_stop_screen_mirroring_message
+                    }
+                )
                 .setNegativeButton(R.string.text_cancel, null)
-                .setPositiveButton(R.string.text_stop_mirroring) { _, _ ->
-                    stopMirroring(endSession = true)
+                .setPositiveButton(
+                    if (usesSystemMirroring) {
+                        R.string.text_open_system_mirroring_controls
+                    } else {
+                        R.string.text_stop_mirroring
+                    }
+                ) { _, _ ->
+                    if (usesSystemMirroring) {
+                        openSystemMirroringControls()
+                    } else {
+                        stopMirroring(endSession = true)
+                    }
                     popBackStack()
                 }
                 .show()
