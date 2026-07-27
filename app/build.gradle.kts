@@ -27,11 +27,11 @@ keystoreProperties.forEach { key, value ->
     println("KEY = $key | VALUE = $value")
 }
 android {
-    namespace = "com.example.base"
+    namespace = "com.tvchromecast.screenmirroringplus"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.base"
+        applicationId = "com.tvchromecast.screenmirroringplus"
         minSdk = 28
         targetSdk = 36
         versionCode = 1

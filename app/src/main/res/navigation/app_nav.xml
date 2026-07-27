@@ -7,66 +7,66 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.base.ui.home.HomeFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.home.HomeFragment"
         android:label="fragment_home"
         tools:layout="@layout/fragment_home" />
     <fragment
         android:id="@+id/faqFragment"
-        android:name="com.example.base.ui.faq.FaqFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.faq.FaqFragment"
         android:label="FaqFragment"
         tools:layout="@layout/fragment_faq" />
     <fragment
         android:id="@+id/castYoutubeFragment"
-        android:name="com.example.base.ui.cast_youtube.CastYoutubeFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.cast_youtube.CastYoutubeFragment"
         android:label="CastYoutubeFragment"
         tools:layout="@layout/fragment_cast_youtube" />
     <fragment
         android:id="@+id/castWebFragment"
-        android:name="com.example.base.ui.cast_web.CastWebFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.cast_web.CastWebFragment"
         android:label="CastWebFragment"
         tools:layout="@layout/fragment_cast_web" />
     <fragment
         android:id="@+id/castMediaFragment"
-        android:name="com.example.base.ui.cast_media.CastMediaFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.cast_media.CastMediaFragment"
         android:label="CastMediaFragment"
         tools:layout="@layout/fragment_cast_media" />
     <fragment
         android:id="@+id/cameraCastFragment"
-        android:name="com.example.base.ui.cast_camera.CameraCastFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.cast_camera.CameraCastFragment"
         android:label="CameraCastFragment"
         tools:layout="@layout/fragment_camera_cast" />
     <fragment
         android:id="@+id/screenMirroringFragment"
-        android:name="com.example.base.ui.screen_mirroring.ScreenMirroringFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.screen_mirroring.ScreenMirroringFragment"
         android:label="ScreenMirroringFragment"
         tools:layout="@layout/fragment_screen_mirroring" />
     <fragment
         android:id="@+id/tvRemoteFragment"
-        android:name="com.example.base.ui.tv_remote.TvRemoteFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.tv_remote.TvRemoteFragment"
         android:label="TvRemoteFragment"
         tools:layout="@layout/fragment_tv_remote" />
     <fragment
         android:id="@+id/iptvFragment"
-        android:name="com.example.base.ui.iptv_fragment.IPTVFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.iptv_fragment.IPTVFragment"
         android:label="IPTVFragment"
         tools:layout="@layout/fragment_i_p_t_v" />
     <fragment
         android:id="@+id/movieAdvisorFragment"
-        android:name="com.example.base.ui.movie_advisor.MovieAdvisorFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.movie_advisor.MovieAdvisorFragment"
         android:label="MovieAdvisorFragment"
         tools:layout="@layout/fragment_movie_advisor" />
     <fragment
         android:id="@+id/splashFragment"
-        android:name="com.example.base.ui.splash.SplashFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.splash.SplashFragment"
         android:label="SplashFragment" />
     <fragment
         android:id="@+id/introFragment"
-        android:name="com.example.base.ui.intro.IntroFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.intro.IntroFragment"
         android:label="fragment_intro"
         tools:layout="@layout/fragment_intro" />
     <fragment
         android:id="@+id/settingFragment"
-        android:name="com.example.base.ui.setting.SettingFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.setting.SettingFragment"
         android:label="fragment_setting"
         tools:layout="@layout/fragment_setting" />
 </navigation>
