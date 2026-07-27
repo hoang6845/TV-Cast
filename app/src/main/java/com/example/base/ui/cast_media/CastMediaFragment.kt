@@ -35,6 +35,10 @@ import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.gms.common.images.WebImage
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DecodeFormat
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
@@ -280,7 +284,11 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private fun setPhotos(uris: List<Uri>) {
         photos = uris
         selectedPhotoIndex = 0
-        binding.photoPreview.setImageURI(uris.first())
+        binding.photoPreview.loadLocalPhoto(
+            uri = uris.first(),
+            widthPx = PHOTO_PREVIEW_MAX_SIZE_PX,
+            heightPx = PHOTO_PREVIEW_MAX_SIZE_PX
+        )
         photoAdapter.submit(uris, selectedPhotoIndex)
         if (isCasting) {
             castSelectedMedia()
@@ -291,7 +299,11 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private fun selectPhoto(position: Int) {
         val uri = photos.getOrNull(position) ?: return
         selectedPhotoIndex = position
-        binding.photoPreview.setImageURI(uri)
+        binding.photoPreview.loadLocalPhoto(
+            uri = uri,
+            widthPx = PHOTO_PREVIEW_MAX_SIZE_PX,
+            heightPx = PHOTO_PREVIEW_MAX_SIZE_PX
+        )
         photoAdapter.submit(photos, selectedPhotoIndex)
         if (isCasting) {
             castSelectedMedia()
@@ -597,6 +609,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         const val MODE_PHOTO = "photo"
         const val MODE_VIDEO = "video"
         private const val MAX_PHOTOS = 20
+        private const val PHOTO_PREVIEW_MAX_SIZE_PX = 2048
         private const val VIDEO_PROGRESS_INTERVAL_MS = 500L
         private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
         private const val RECEIVER_NAMESPACE = "urn:x-cast:com.example.camera.webrtc"
@@ -637,7 +650,11 @@ private class PhotoThumbAdapter(
     }
 
     override fun onBindViewHolder(holder: PhotoThumbViewHolder, position: Int) {
-        holder.imageView.setImageURI(items[position])
+        holder.imageView.loadLocalPhoto(
+            uri = items[position],
+            widthPx = holder.imageView.layoutParams.width,
+            heightPx = holder.imageView.layoutParams.height
+        )
         holder.imageView.background = androidx.core.content.ContextCompat.getDrawable(
             holder.imageView.context,
             if (position == selectedIndex) {
@@ -649,9 +666,27 @@ private class PhotoThumbAdapter(
         holder.imageView.setOnClickListener { onClick(position) }
     }
 
+    override fun onViewRecycled(holder: PhotoThumbViewHolder) {
+        Glide.with(holder.imageView).clear(holder.imageView)
+        super.onViewRecycled(holder)
+    }
+
     override fun getItemCount(): Int = items.size
 
     class PhotoThumbViewHolder(
         val imageView: ImageView
     ) : RecyclerView.ViewHolder(imageView)
+}
+
+private fun ImageView.loadLocalPhoto(uri: Uri, widthPx: Int, heightPx: Int) {
+    Glide.with(this)
+        .load(uri)
+        .override(widthPx.coerceAtLeast(1), heightPx.coerceAtLeast(1))
+        .downsample(DownsampleStrategy.AT_MOST)
+        .format(DecodeFormat.PREFER_RGB_565)
+        .centerCrop()
+        .thumbnail(0.1f)
+        .diskCacheStrategy(DiskCacheStrategy.NONE)
+        .skipMemoryCache(false)
+        .into(this)
 }
