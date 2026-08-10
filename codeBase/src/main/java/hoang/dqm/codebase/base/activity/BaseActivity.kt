@@ -5,6 +5,7 @@ import android.content.IntentFilter
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -154,23 +155,46 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        releaseLog("BaseActivity.onCreate: ${javaClass.name} before super")
         super.onCreate(savedInstanceState)
+        releaseLog("BaseActivity.onCreate: ${javaClass.name} after super")
         try {
+            releaseLog("BaseActivity.onCreate: addActivity")
             ActivityManager.addActivity(this)
-            lifecycle.addObserver(viewModel)
-            setContentView(binding.root)
+            releaseLog("BaseActivity.onCreate: resolve viewModel")
+            val resolvedViewModel = viewModel
+            releaseLog("BaseActivity.onCreate: viewModel=${resolvedViewModel.javaClass.name}")
+            releaseLog("BaseActivity.onCreate: add lifecycle observer")
+            lifecycle.addObserver(resolvedViewModel)
+            releaseLog("BaseActivity.onCreate: resolve binding")
+            val resolvedBinding = binding
+            releaseLog("BaseActivity.onCreate: binding=${resolvedBinding.javaClass.name}, root=${resolvedBinding.root.javaClass.name}")
+            releaseLog("BaseActivity.onCreate: setContentView")
+            setContentView(resolvedBinding.root)
+            releaseLog("BaseActivity.onCreate: setContentView done")
+            releaseLog("BaseActivity.onCreate: isHideNavBar=${isHideNavBar()}")
             if (isHideNavBar()) {
+                releaseLog("BaseActivity.onCreate: hideNavBar")
                 hideNavBar()
             }
+            releaseLog("BaseActivity.onCreate: initView start")
             initView()
+            releaseLog("BaseActivity.onCreate: initView done")
+            releaseLog("BaseActivity.onCreate: initListener start")
             initListener()
+            releaseLog("BaseActivity.onCreate: initListener done")
+            releaseLog("BaseActivity.onCreate: initData start")
             initData()
+            releaseLog("BaseActivity.onCreate: initData done")
             val className = this@BaseActivity::class.java.name
 //            if (appInfo().isDebug) {
 //                logApp("SCREEN_APP $className")
 //            }
+            releaseLog("BaseActivity.onCreate: onBackPressedDispatcher start")
             onBackPressedDispatcher()
+            releaseLog("BaseActivity.onCreate: onBackPressedDispatcher done class=$className")
         } catch (e: Exception) {
+            Log.e(TAG_RELEASE, "BaseActivity.onCreate failed: ${javaClass.name} ${e.javaClass.name}: ${e.message}", e)
             e.printStackTrace()
         }
     }
@@ -429,5 +453,13 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
 //                }
 //            }
 //        )
+    }
+
+    private fun releaseLog(message: String) {
+        Log.i(TAG_RELEASE, message)
+    }
+
+    private companion object {
+        const val TAG_RELEASE = "TVCastReleaseLog"
     }
 }

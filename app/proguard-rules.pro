@@ -47,6 +47,12 @@
 
 -keep class hoang.dqm.codebase.utils.BindingReflex { *; }
 
+# BaseActivity/BaseFragment đọc generic ViewBinding/ViewModel bằng reflection.
+# Nếu R8 tối ưu/strip metadata của các subclass này, release có thể fail trước setContentView.
+-keep class * extends hoang.dqm.codebase.base.activity.BaseActivity { *; }
+-keep class * extends hoang.dqm.codebase.base.activity.BaseFragment { *; }
+-keep class * extends hoang.dqm.codebase.base.viewmodel.BaseViewModel { *; }
+
 -keepclassmembers class * implements androidx.viewbinding.ViewBinding {
     public static *** bind(android.view.View);
     public static *** inflate(android.view.LayoutInflater);
