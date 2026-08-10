@@ -45,14 +45,28 @@ class MainActivity : BaseMainActivity<ActivityMainBinding, MainViewModel>() {
     override val graphResId: Int
         get() = com.tvchromecast.screenmirroringplus.R.navigation.app_nav
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        releaseLog("MainActivity.onCreate: before super, savedState=${savedInstanceState != null}")
+        super.onCreate(savedInstanceState)
+        releaseLog(
+            "MainActivity.onCreate: after super, nav=${destinationName(navController?.currentDestination?.id)}"
+        )
+    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun initView() {
+        releaseLog("MainActivity.initView: before super, graphResId=${destinationName(graphResId)}")
         super.initView()
+        releaseLog(
+            "MainActivity.initView: after super, navControllerReady=${navController != null}, current=${destinationName(navController?.currentDestination?.id)}"
+        )
         showSystemNavigationBar()
         updateStatusBarAppearance()
 
-        navController?.addOnDestinationChangedListener { _, _, _ ->
+        navController?.addOnDestinationChangedListener { _, destination, arguments ->
+            releaseLog(
+                "MainActivity.destinationChanged: id=${destinationName(destination.id)}, label=${destination.label}, args=${arguments?.keySet()?.joinToString().orEmpty()}"
+            )
             AppMusicPlayer.checkAndPlay()
         }
     }
@@ -60,8 +74,10 @@ class MainActivity : BaseMainActivity<ActivityMainBinding, MainViewModel>() {
 
 
     override fun initData() {
+        releaseLog("MainActivity.initData")
         super.initData()
         subscribeEventNetwork { online ->
+            releaseLog("MainActivity.networkEvent: online=$online")
             runOnUiThread {
                 binding.layoutNoInternet.root.isVisible = online.not()
             }
@@ -69,42 +85,60 @@ class MainActivity : BaseMainActivity<ActivityMainBinding, MainViewModel>() {
         binding.layoutNoInternet.buttonSetting.singleClick { openSettingNetWork() }
 
         viewModel.isLoading.observe {
+            releaseLog("MainActivity.loadingChanged: isLoading=$it")
             binding.loading.loadingView.isVisible = it
         }
     }
 
     override fun initListener() {
+        releaseLog("MainActivity.initListener")
         super.initListener()
 
     }
 
+    override fun onStart() {
+        releaseLog("MainActivity.onStart: before super")
+        super.onStart()
+        releaseLog("MainActivity.onStart: after super, nav=${destinationName(navController?.currentDestination?.id)}")
+    }
 
     override fun onResume() {
+        releaseLog("MainActivity.onResume: before super")
         super.onResume()
         updateStatusBarAppearance()
+        releaseLog("MainActivity.onResume: nav=${destinationName(navController?.currentDestination?.id)}")
 
         try {
             if (navController?.currentDestination == null) return
 //            AppMusicPlayer.checkAndPlay()
 
         } catch (ex: Exception) {
+            releaseLog("MainActivity.onResume: exception=${ex.message}")
             ex.printStackTrace()
         }
     }
 
     override fun onPause() {
+        releaseLog("MainActivity.onPause")
         super.onPause()
         AppMusicPlayer.stop()
         AppMusicPlayer.stopFxMusicPlayer()
     }
 
+    override fun onStop() {
+        releaseLog("MainActivity.onStop")
+        super.onStop()
+    }
+
     override fun onDestroy() {
+        releaseLog("MainActivity.onDestroy")
         AppMusicPlayer.releaseBackgroundMusic()
         AppMusicPlayer.releaseFxMusic()
         super.onDestroy()
     }
 
     override fun handleBackExit() {
+        releaseLog("MainActivity.handleBackExit: nav=${destinationName(navController?.currentDestination?.id)}")
         super.handleBackExit()
     }
 
@@ -114,6 +148,7 @@ class MainActivity : BaseMainActivity<ActivityMainBinding, MainViewModel>() {
         Log.d("LangDebug", "Saved languageCode = ${appPref.languageCode}")
         Log.d("LangDebug", "Device default = ${Locale.getDefault().language}")
         Log.d("LangDebug", "Final locale used = $locale ${Locale(locale)}")
+        releaseLog("MainActivity.attachBaseContext: saved=${appPref.languageCode}, final=$locale")
 
         val localeUpdatedContext: ContextWrapper =
             ContextUtils.updateLocale(context, Locale(locale))
@@ -127,5 +162,19 @@ class MainActivity : BaseMainActivity<ActivityMainBinding, MainViewModel>() {
 
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.show(WindowInsetsCompat.Type.navigationBars())
+        releaseLog("MainActivity.showSystemNavigationBar")
+    }
+
+    private fun destinationName(id: Int?): String {
+        if (id == null) return "null"
+        return runCatching { resources.getResourceEntryName(id) }.getOrElse { id.toString() }
+    }
+
+    private fun releaseLog(message: String) {
+        Log.i(TAG, message)
+    }
+
+    private companion object {
+        const val TAG = "TVCastReleaseLog"
     }
 }

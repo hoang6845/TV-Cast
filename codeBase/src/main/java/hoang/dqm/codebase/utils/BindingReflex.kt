@@ -8,7 +8,6 @@ import androidx.viewbinding.ViewBinding
 import java.lang.RuntimeException
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
-import java.util.*
 
 object BindingReflex {
 
@@ -23,22 +22,14 @@ object BindingReflex {
     fun <V : ViewBinding> reflexViewBinding(aClass: Class<*>, from: LayoutInflater?): V {
         var exception: java.lang.Exception? = null
         try {
-            val actualTypeArguments =
-                (Objects.requireNonNull(aClass.genericSuperclass) as ParameterizedType).actualTypeArguments
-            for (i in actualTypeArguments.indices) {
-                var tClass: Class<Any>? = null
-                try {
-                    if (actualTypeArguments[i] is Class<*>) {
-                        tClass = actualTypeArguments[i] as Class<Any>
-                    }
-                    if (tClass != null && ViewBinding::class.java.isAssignableFrom(tClass)) {
-                        val inflate = tClass.getMethod("inflate", LayoutInflater::class.java)
-                        return inflate.invoke(null, from) as V
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    exception = e
-                }
+            val tClass = findViewBindingClass(aClass)
+                ?: throw IllegalStateException("Can not find ViewBinding generic type for ${aClass.name}")
+            try {
+                val inflate = tClass.getMethod("inflate", LayoutInflater::class.java)
+                return inflate.invoke(null, from) as V
+            } catch (e: Exception) {
+                e.printStackTrace()
+                exception = e
             }
         } catch (e: NoSuchMethodException) {
             exception = e
@@ -65,37 +56,19 @@ object BindingReflex {
     ): V {
         var exception: java.lang.Exception? = null
         try {
-            val actualTypeArguments =
-                (Objects.requireNonNull(aClass.genericSuperclass) as? ParameterizedType)?.actualTypeArguments
-            if (actualTypeArguments != null) {
-                for (i in actualTypeArguments.indices) {
-                    val tClass: Class<Any>
-                    try {
-                        tClass = actualTypeArguments[i] as Class<Any>
-                    } catch (e: Exception) {
-                        continue
-                    }
-                    if (ViewBinding::class.java.isAssignableFrom(tClass)) {
-                        val inflate = tClass.getDeclaredMethod(
-                            "inflate",
-                            LayoutInflater::class.java,
-                            ViewGroup::class.java,
-                            Boolean::class.javaPrimitiveType
-                        )
-                        return inflate.invoke(null, from, viewGroup, b) as V
-                    }
-                }
-                try {
-                    return reflexViewBinding<ViewBinding>(
-                        aClass.superclass,
-                        from,
-                        viewGroup,
-                        b
-                    ) as V
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    exception = e
-                }
+            val tClass = findViewBindingClass(aClass)
+                ?: throw IllegalStateException("Can not find ViewBinding generic type for ${aClass.name}")
+            try {
+                val inflate = tClass.getDeclaredMethod(
+                    "inflate",
+                    LayoutInflater::class.java,
+                    ViewGroup::class.java,
+                    Boolean::class.javaPrimitiveType
+                )
+                return inflate.invoke(null, from, viewGroup, b) as V
+            } catch (e: Exception) {
+                e.printStackTrace()
+                exception = e
             }
         } catch (e: NoSuchMethodException) {
             exception = e
@@ -113,6 +86,23 @@ object BindingReflex {
             exception?.printStackTrace()
         }
         throw exception ?: RuntimeException("Error binding")
+    }
+
+    private fun findViewBindingClass(aClass: Class<*>): Class<Any>? {
+        var currentClass: Class<*>? = aClass
+        while (currentClass != null && currentClass != Any::class.java) {
+            val genericSuperclass = currentClass.genericSuperclass
+            if (genericSuperclass is ParameterizedType) {
+                genericSuperclass.actualTypeArguments.forEach { type ->
+                    val tClass = type as? Class<*> ?: return@forEach
+                    if (ViewBinding::class.java.isAssignableFrom(tClass)) {
+                        return tClass as Class<Any>
+                    }
+                }
+            }
+            currentClass = currentClass.superclass
+        }
+        return null
     }
 
 }

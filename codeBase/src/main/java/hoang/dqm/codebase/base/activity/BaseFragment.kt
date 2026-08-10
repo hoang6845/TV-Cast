@@ -45,7 +45,18 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
 
     @Suppress("UNCHECKED_CAST")
     private fun <KClass> genericViewModel(): Class<KClass> {
-        return (javaClass.genericSuperclass as ParameterizedType).actualTypeArguments[1] as Class<KClass>
+        var currentClass: Class<*>? = javaClass
+        while (currentClass != null && currentClass != Any::class.java) {
+            val genericSuperclass = currentClass.genericSuperclass
+            if (genericSuperclass is ParameterizedType) {
+                val genericType = genericSuperclass.actualTypeArguments.getOrNull(1)
+                if (genericType is Class<*>) {
+                    return genericType as Class<KClass>
+                }
+            }
+            currentClass = currentClass.superclass
+        }
+        throw IllegalStateException("Can not find ViewModel generic type for ${javaClass.name}")
     }
 
     protected open val viewModelFactory: ViewModelProvider.Factory
@@ -167,15 +178,19 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
     }
 
     fun showInterstitialAd(onAdsClosed: () -> Unit) {
-        (activity as? AppCompatActivity)?.let { activity ->
-            AppMonetization.ads.interstitialAdUtils.showAd(
-                activity,
-                onAdsClosed = {
-                    onAdsClosed()
-                },
-                onAdsShowed = {}
-            )
-        }
+        // Ads disabled for now: continue the flow without showing interstitial.
+        onAdsClosed()
+        return
+
+//        (activity as? AppCompatActivity)?.let { activity ->
+//            AppMonetization.ads.interstitialAdUtils.showAd(
+//                activity,
+//                onAdsClosed = {
+//                    onAdsClosed()
+//                },
+//                onAdsShowed = {}
+//            )
+//        }
     }
 
     fun showRewardedAd(
@@ -184,15 +199,19 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
         onLoadFailed: () -> Unit = {},
         onRewarded: (com.google.android.gms.ads.rewarded.RewardItem) -> Unit
     ) {
-        (activity as? AppCompatActivity)?.let { activity ->
-            AppMonetization.ads.rewardedAdUtils.showRewardedAd(
-                activity = activity,
-                onAdShowed = onAdShowed,
-                onAdDismissed = onAdDismissed,
-                onLoadFailed = onLoadFailed,
-                onRewarded = onRewarded
-            )
-        }
+        // Ads disabled for now: no rewarded request.
+        onLoadFailed()
+        return
+
+//        (activity as? AppCompatActivity)?.let { activity ->
+//            AppMonetization.ads.rewardedAdUtils.showRewardedAd(
+//                activity = activity,
+//                onAdShowed = onAdShowed,
+//                onAdDismissed = onAdDismissed,
+//                onLoadFailed = onLoadFailed,
+//                onRewarded = onRewarded
+//            )
+//        }
     }
 
     protected fun adjustInsetsForBottomNavigation(viewBottom: View) {
@@ -255,28 +274,32 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
         adId: Int ,
         updateTimeout: Boolean = true
     ) {
-        if (viewModel.isSubscribed || System.currentTimeMillis() - lastTimeLoadBannerNativeAd < 10.seconds.inWholeMilliseconds) {
-            return
-        }
-        if (updateTimeout) {
-            updateLastTimeLoadBannerNativeAd(System.currentTimeMillis())
-        }
-        AppMonetization.ads.singleNativeAdUtils.loadAd(
-            activity = requireActivity(),
-            adId = getString(adId),
-            numberOfAdsToLoad = 1,
-            onLoadFailed = { stringFail ->
-                updateLastTimeLoadBannerNativeAd(0L)
+        // Ads disabled for now: keep native container hidden and skip request.
+        viewNativeAd.visibility = View.GONE
+        return
 
-            },
-            onAdLoaded = {
-                nativeAd?.destroy()
-                nativeAd = it
-                if (isAdded && view != null) {
-                    viewNativeAd.populate(it)
-                }
-            }
-        )
+//        if (viewModel.isSubscribed || System.currentTimeMillis() - lastTimeLoadBannerNativeAd < 10.seconds.inWholeMilliseconds) {
+//            return
+//        }
+//        if (updateTimeout) {
+//            updateLastTimeLoadBannerNativeAd(System.currentTimeMillis())
+//        }
+//        AppMonetization.ads.singleNativeAdUtils.loadAd(
+//            activity = requireActivity(),
+//            adId = getString(adId),
+//            numberOfAdsToLoad = 1,
+//            onLoadFailed = { stringFail ->
+//                updateLastTimeLoadBannerNativeAd(0L)
+//
+//            },
+//            onAdLoaded = {
+//                nativeAd?.destroy()
+//                nativeAd = it
+//                if (isAdded && view != null) {
+//                    viewNativeAd.populate(it)
+//                }
+//            }
+//        )
     }
     
     /**
@@ -296,52 +319,56 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
         adId: Int,
         updateTimeout: Boolean = false
     ) {
-        // Check premium user
-        if (viewModel.isSubscribed) {
-            return
-        }
-        
-        // Check timeout
-        if (System.currentTimeMillis() - lastTimeLoadBannerNativeAd < 10.seconds.inWholeMilliseconds) {
-            return
-        }
-        
-        val adKey = getString(adId)
-        
-        // Kiểm tra xem ad đã được preload chưa
-        if (AppMonetization.ads.preloadNativeManagement.isLoaded(adKey)) {
-            // Lấy ad từ pool (với backup)
-            val preloadedAd = AppMonetization.ads.preloadNativeManagement.getNativeAdOrBackup(
-                adKey = adKey,
-                removeAfterGet = true // Remove để tránh show duplicate
-            )
-            
-            if (preloadedAd != null && isAdded && view != null) {
-                // Show ad ngay lập tức
-                nativeAd?.destroy()
-                nativeAd = preloadedAd
-                viewNativeAd.populate(preloadedAd)
-                
-                // Update timeout nếu cần
-                if (updateTimeout) {
-                    updateLastTimeLoadBannerNativeAd(System.currentTimeMillis())
-                }
-                
-                // Reload lại ad cho lần sau
-                AppMonetization.ads.preloadNativeManagement.load(
-                    activity = requireActivity(),
-                    adKey = adKey,
-                    numberOfAds = 1
-                )
-                
-                Log.d("BaseFragment", "Showed preloaded native ad: $adKey")
-                return
-            }
-        }
-        
-        // Fallback: Load mới nếu pool rỗng
-        Log.d("BaseFragment", "Preloaded ad not available, loading new ad: $adKey")
-        loadSingleNative(viewNativeAd, adId, updateTimeout)
+        // Ads disabled for now: keep native container hidden and skip request.
+        viewNativeAd.visibility = View.GONE
+        return
+
+//        // Check premium user
+//        if (viewModel.isSubscribed) {
+//            return
+//        }
+//
+//        // Check timeout
+//        if (System.currentTimeMillis() - lastTimeLoadBannerNativeAd < 10.seconds.inWholeMilliseconds) {
+//            return
+//        }
+//
+//        val adKey = getString(adId)
+//
+//        // Kiểm tra xem ad đã được preload chưa
+//        if (AppMonetization.ads.preloadNativeManagement.isLoaded(adKey)) {
+//            // Lấy ad từ pool (với backup)
+//            val preloadedAd = AppMonetization.ads.preloadNativeManagement.getNativeAdOrBackup(
+//                adKey = adKey,
+//                removeAfterGet = true // Remove để tránh show duplicate
+//            )
+//
+//            if (preloadedAd != null && isAdded && view != null) {
+//                // Show ad ngay lập tức
+//                nativeAd?.destroy()
+//                nativeAd = preloadedAd
+//                viewNativeAd.populate(preloadedAd)
+//
+//                // Update timeout nếu cần
+//                if (updateTimeout) {
+//                    updateLastTimeLoadBannerNativeAd(System.currentTimeMillis())
+//                }
+//
+//                // Reload lại ad cho lần sau
+//                AppMonetization.ads.preloadNativeManagement.load(
+//                    activity = requireActivity(),
+//                    adKey = adKey,
+//                    numberOfAds = 1
+//                )
+//
+//                Log.d("BaseFragment", "Showed preloaded native ad: $adKey")
+//                return
+//            }
+//        }
+//
+//        // Fallback: Load mới nếu pool rỗng
+//        Log.d("BaseFragment", "Preloaded ad not available, loading new ad: $adKey")
+//        loadSingleNative(viewNativeAd, adId, updateTimeout)
     }
 }
 

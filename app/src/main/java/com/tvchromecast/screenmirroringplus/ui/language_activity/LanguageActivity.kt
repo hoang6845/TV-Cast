@@ -36,6 +36,8 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
         isFromSplash = intent.extras?.getBoolean("isFromSplash") ?: false
 
         binding.imvBack.isVisible = isFromSplash.not()
+        binding.viewNativeAd.gone()
+        binding.loading.gone()
 
         // Mới vào không chọn gì, không hiện Done
         hideDoneButton()
@@ -55,43 +57,43 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
             // Chỉ khi user chọn mới hiện Done
             showDoneButton()
 
-            if (isFirstSelect) {
-                isFirstSelect = false
-                binding.loading.visible()
-
-                loadSingleNative(
-                    binding.viewNativeAd,
-                    R.string.ads_native_language_click,
-                    updateTimeout = false,
-                    onAdsLoaded = {
-                        if (!isFinishing && !isDestroyed) {
-                            binding.loading.gone()
-                        }
-                    },
-                    onLoadFailed = {
-                        if (!isFinishing && !isDestroyed) {
-                            binding.loading.gone()
-                        }
-                    }
-                )
-            }
+//            if (isFirstSelect) {
+//                isFirstSelect = false
+//                binding.loading.visible()
+//
+//                loadSingleNative(
+//                    binding.viewNativeAd,
+//                    R.string.ads_native_language_click,
+//                    updateTimeout = false,
+//                    onAdsLoaded = {
+//                        if (!isFinishing && !isDestroyed) {
+//                            binding.loading.gone()
+//                        }
+//                    },
+//                    onLoadFailed = {
+//                        if (!isFinishing && !isDestroyed) {
+//                            binding.loading.gone()
+//                        }
+//                    }
+//                )
+//            }
         }
 
-        loadSingleNative(
-            binding.viewNativeAd,
-            R.string.ads_native_language_id,
-            updateTimeout = false,
-            onAdsLoaded = {
-                if (!isFinishing && !isDestroyed) {
-                    binding.loading.gone()
-                }
-            },
-            onLoadFailed = {
-                if (!isFinishing && !isDestroyed) {
-                    binding.loading.gone()
-                }
-            }
-        )
+//        loadSingleNative(
+//            binding.viewNativeAd,
+//            R.string.ads_native_language_id,
+//            updateTimeout = false,
+//            onAdsLoaded = {
+//                if (!isFinishing && !isDestroyed) {
+//                    binding.loading.gone()
+//                }
+//            },
+//            onLoadFailed = {
+//                if (!isFinishing && !isDestroyed) {
+//                    binding.loading.gone()
+//                }
+//            }
+//        )
 
         lifecycleScope.launch {
             delay(3000L)

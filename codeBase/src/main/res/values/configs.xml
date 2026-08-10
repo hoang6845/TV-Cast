@@ -26,19 +26,19 @@
     <!--    <string name="ads_banner_collapsible_manual_id" translatable="false">ca-app-pub-5698123608094343/8132835257</string>-->
 
     <!--for debug-->
-    <string name="ads_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
-    <string name="ads_inter_splash" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
-    <string name="ads_interstitial_id" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
-    <string name="full_back" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
-    <string name="ads_open_id" translatable="false">ca-app-pub-3940256099942544/9257395921</string>
-    <string name="ads_native_language_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
-    <string name="ads_native_language_click" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
-    <string name="ads_native_intro1" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
-    <string name="ads_native_intro2" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
-    <string name="ads_native_intro_full_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
-    <string name="ads_native_home" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
-    <string name="ads_collapse_channel" translatable="false">ca-app-pub-3940256099942544/2247696110</string>
-    <string name="reward" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
+<!--    <string name="ads_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>-->
+<!--    <string name="ads_inter_splash" translatable="false">ca-app-pub-3940256099942544/1033173712</string>-->
+<!--    <string name="ads_interstitial_id" translatable="false">ca-app-pub-3940256099942544/1033173712</string>-->
+<!--    <string name="full_back" translatable="false">ca-app-pub-3940256099942544/1033173712</string>-->
+<!--    <string name="ads_open_id" translatable="false">ca-app-pub-3940256099942544/9257395921</string>-->
+<!--    <string name="ads_native_language_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
+<!--    <string name="ads_native_language_click" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
+<!--    <string name="ads_native_intro1" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
+<!--    <string name="ads_native_intro2" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
+<!--    <string name="ads_native_intro_full_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
+<!--    <string name="ads_native_home" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
+<!--    <string name="ads_collapse_channel" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
+<!--    <string name="reward" translatable="false">ca-app-pub-3940256099942544/5224354917</string>-->
 
     <!--    <string name="ads_native_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->
     <!--    <string name="ads_native_intro_id" translatable="false">ca-app-pub-3940256099942544/2247696110</string>-->

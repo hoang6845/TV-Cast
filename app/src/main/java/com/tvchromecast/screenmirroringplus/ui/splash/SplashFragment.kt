@@ -1,9 +1,11 @@
 package com.tvchromecast.screenmirroringplus.ui.splash
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import com.tvchromecast.screenmirroringplus.databinding.FragmentSplashBinding
 import com.tvchromecast.screenmirroringplus.ui.language_activity.LanguageActivity
@@ -14,31 +16,34 @@ import hoang.dqm.codebase.service.session.isFirst
 import hoang.dqm.codebase.service.session.saveFirst
 import hoang.dqm.codebase.ui.features.splash.BaseSplashFragment
 import hoang.dqm.codebase.utils.AppMonetization
-import hoang.dqm.codebase.utils.ads
 import hoang.dqm.codebase.utils.premium
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import tpt.dev.monetization.ads.AdsManager
 import kotlin.random.Random
-import kotlin.time.Duration.Companion.milliseconds
 
 
 class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel>() {
     private var job: Job? = null
     private var isPaused = false
     private var isInternetAvailable = true
-    private val adsManager by lazy { AdsManager.getInstance() }
+//    private val adsManager by lazy { AdsManager.getInstance() }
     private var hasNavigated = false
     private var isOpeningLanguage = false
     private val openLanguageLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            releaseLog(
+                "SplashFragment.languageResult: resultCode=${result.resultCode}, hasNavigated=$hasNavigated"
+            )
 
             isOpeningLanguage = false
 
-            if (hasNavigated) return@registerForActivityResult
+            if (hasNavigated) {
+                releaseLog("SplashFragment.languageResult: ignored because already navigated")
+                return@registerForActivityResult
+            }
 
             if (result.resultCode == Activity.RESULT_OK) {
 //                val goToIntro =
@@ -48,65 +53,95 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
 //                    hasNavigated = true
 //                    navigate(com.tvchromecast.screenmirroringplus.R.id.introFragment, isPop = true)
 //                }
+                releaseLog("SplashFragment.languageResult: navigate introFragment")
                 navigate(com.tvchromecast.screenmirroringplus.R.id.introFragment)
+            } else {
+                releaseLog("SplashFragment.languageResult: no navigation for resultCode=${result.resultCode}")
             }
-        }
+    }
+
+    override fun onAttach(context: Context) {
+        releaseLog("SplashFragment.onAttach")
+        super.onAttach(context)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        releaseLog("SplashFragment.onCreate: savedState=${savedInstanceState != null}")
+        super.onCreate(savedInstanceState)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        releaseLog("SplashFragment.onViewCreated: before super")
+        super.onViewCreated(view, savedInstanceState)
+        releaseLog("SplashFragment.onViewCreated: after super")
+    }
 
     override fun openHome() {
-        if (AppMonetization.premium.isSubscribed()) {
-            navigateToNextScreen()
-            return
-        }
-
-        val splashAdKey = getString(R.string.ads_inter_splash)
-
-        if (!adsManager.preloadInterstitialManagement.isLoaded(splashAdKey)) {
-            var waitCount = 0
-            val maxWait = 50
-
-            CoroutineScope(Dispatchers.Main).launch {
-                while (waitCount < maxWait && !adsManager.preloadInterstitialManagement.isLoaded(
-                        splashAdKey
-                    )
-                ) {
-                    delay(100)
-                    waitCount++
-                }
-
-                if (adsManager.preloadInterstitialManagement.isLoaded(splashAdKey)) {
-                } else {
-                }
-
-                showSplashAdAndNavigate()
-            }
-        } else {
-            showSplashAdAndNavigate()
-        }
+        releaseLog("SplashFragment.openHome")
+        navigateToNextScreen()
+//        if (AppMonetization.premium.isSubscribed()) {
+//            navigateToNextScreen()
+//            return
+//        }
+//
+//        val splashAdKey = getString(R.string.ads_inter_splash)
+//
+//        if (!adsManager.preloadInterstitialManagement.isLoaded(splashAdKey)) {
+//            var waitCount = 0
+//            val maxWait = 50
+//
+//            CoroutineScope(Dispatchers.Main).launch {
+//                while (waitCount < maxWait && !adsManager.preloadInterstitialManagement.isLoaded(
+//                        splashAdKey
+//                    )
+//                ) {
+//                    delay(100)
+//                    waitCount++
+//                }
+//
+//                if (adsManager.preloadInterstitialManagement.isLoaded(splashAdKey)) {
+//                } else {
+//                }
+//
+//                showSplashAdAndNavigate()
+//            }
+//        } else {
+//            showSplashAdAndNavigate()
+//        }
     }
 
     private fun showSplashAdAndNavigate() {
-        if (!adsManager.isGlobalAdsEnabled()) {
-            navigateToNextScreen()
-            return
-        }
-
-        if (!adsManager.isInterSplashEnabled()) {
-            navigateToNextScreen()
-            return
-        }
-
-        adsManager.preloadInterstitialManagement.show(
-            requireActivity(), getString(R.string.ads_inter_splash), true, null, onAdClosed = {
-                navigateToNextScreen()
-            })
+        releaseLog("SplashFragment.showSplashAdAndNavigate")
+        navigateToNextScreen()
+//        if (!adsManager.isGlobalAdsEnabled()) {
+//            navigateToNextScreen()
+//            return
+//        }
+//
+//        if (!adsManager.isInterSplashEnabled()) {
+//            navigateToNextScreen()
+//            return
+//        }
+//
+//        adsManager.preloadInterstitialManagement.show(
+//            requireActivity(), getString(R.string.ads_inter_splash), true, null, onAdClosed = {
+//                navigateToNextScreen()
+//            })
     }
 
     private fun navigateToNextScreen() {
-        if (hasNavigated || isOpeningLanguage) return
+        releaseLog(
+            "SplashFragment.navigateToNextScreen: hasNavigated=$hasNavigated, isOpeningLanguage=$isOpeningLanguage, isFirst=${isFirst()}"
+        )
+        if (hasNavigated || isOpeningLanguage) {
+            releaseLog("SplashFragment.navigateToNextScreen: blocked by navigation guard")
+            return
+        }
 
-        adsManager.markSplashCompleted()
+//        adsManager.markSplashCompleted()
 
         if (isFirst()) {
+            releaseLog("SplashFragment.navigateToNextScreen: opening LanguageActivity")
             isOpeningLanguage = true
             saveFirst(false)
             val intent = Intent(requireContext(), LanguageActivity::class.java).apply {
@@ -118,44 +153,56 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
         } else {
             hasNavigated = true
 
-            if (AppMonetization.premium.isSubscribed()) {
-                navigate(com.tvchromecast.screenmirroringplus.R.id.introFragment, isPop = true)
+            val isSubscribed = AppMonetization.premium.isSubscribed()
+            releaseLog("SplashFragment.navigateToNextScreen: isSubscribed=$isSubscribed")
+            if (isSubscribed) {
+                releaseLog("SplashFragment.navigateToNextScreen: navigate homeFragment subscribed")
+                navigate(com.tvchromecast.screenmirroringplus.R.id.homeFragment, isPop = true)
             } else {
                 val bundle = Bundle().apply {
                     putBoolean("isFromSplash", true)
                 }
 
-                navigate(com.tvchromecast.screenmirroringplus.R.id.introFragment, bundle, isPop = true)
+                releaseLog("SplashFragment.navigateToNextScreen: navigate homeFragment with isFromSplash")
+                navigate(com.tvchromecast.screenmirroringplus.R.id.homeFragment, bundle, isPop = true)
             }
         }
     }
 
     override fun initView() {
+        releaseLog("SplashFragment.initView: before super")
         super.initView()
+        releaseLog("SplashFragment.initView: after super")
 //        AppMonetization.premium.updateSubscribedState(true)
         if (isFirst()) {
             binding.tvLoading.text =
                 resources.getStringArray(R.array.text_first_time).random()
+            releaseLog("SplashFragment.initView: first user text selected")
         } else {
             binding.tvLoading.text = getString(R.string.loading_text)
+            releaseLog("SplashFragment.initView: normal loading text selected")
         }
         setupLoading()
         checkConsentShow()
     }
 
     override fun isInternetConnected(isInternet: Boolean) {
+        releaseLog("SplashFragment.isInternetConnected: isInternet=$isInternet")
         isInternetAvailable = isInternet
         isPaused = !isInternet
     }
 
     override fun onFetchConfigSuccess() {
+        releaseLog("SplashFragment.onFetchConfigSuccess")
         Log.d("SplashFragment", "=== Config fetched, updating to 80% ===")
         job?.cancel()
 
         loadRemoteConfigVariables()
 
         // Nếu đã subscribe, update lên 100% luôn
-        if (AppMonetization.premium.isSubscribed()) {
+        val isSubscribed = AppMonetization.premium.isSubscribed()
+        releaseLog("SplashFragment.onFetchConfigSuccess: isSubscribed=$isSubscribed")
+        if (isSubscribed) {
             updateUI(100)
         } else {
             updateUI(80)
@@ -165,10 +212,12 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
 
     override fun isUserSubscribed(): Boolean {
         val isSubscribed = AppMonetization.premium.isSubscribed()
+        releaseLog("SplashFragment.isUserSubscribed: $isSubscribed")
         return isSubscribed
     }
 
     fun loadRemoteConfigVariables() {
+        releaseLog("SplashFragment.loadRemoteConfigVariables")
         // Load timing configs
         val timeDelayInterSplashVsOpen = AppRemoteConfig.getLongValue(
             AppRemoteConfig.TIME_DELAY_INTER_SPLASH_OPEN, 20000
@@ -186,15 +235,18 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
         val isShowInterAfterSplash = AppRemoteConfig.getBooleanValue(
             AppRemoteConfig.IS_SHOW_INTER_SPLASH, true
         )
+        releaseLog(
+            "SplashFragment.remoteConfig: openDelay=$timeDelayInterSplashVsOpen, interDelay=$timeDelayInter, showOpen=$isShowAdsOpen, showAds=$isShowAdsApp, showInterSplash=$isShowInterAfterSplash"
+        )
 
-        // Áp dụng cấu hình timing
-        AppMonetization.ads.updateTimeIntervalShowInterVsOpen(timeDelayInterSplashVsOpen.milliseconds)
-        AppMonetization.ads.updateTimeIntervalShowInterstitialAd(timeDelayInter.milliseconds)
-
-        // Áp dụng cấu hình enable/disable
-        AppMonetization.ads.setGlobalAdsEnabled(isShowAdsApp)
-        AppMonetization.ads.setAppOpenAdEnabled(isShowAdsOpen)
-        AppMonetization.ads.setInterSplashEnabled(isShowInterAfterSplash)
+//        // Áp dụng cấu hình timing
+//        AppMonetization.ads.updateTimeIntervalShowInterVsOpen(timeDelayInterSplashVsOpen.milliseconds)
+//        AppMonetization.ads.updateTimeIntervalShowInterstitialAd(timeDelayInter.milliseconds)
+//
+//        // Áp dụng cấu hình enable/disable
+//        AppMonetization.ads.setGlobalAdsEnabled(isShowAdsApp)
+//        AppMonetization.ads.setAppOpenAdEnabled(isShowAdsOpen)
+//        AppMonetization.ads.setInterSplashEnabled(isShowInterAfterSplash)
 
         // Log để debug
         Log.d(
@@ -214,98 +266,21 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
      * Override để preload ads
      */
     override fun onPreloadAds(activity: Activity, onComplete: () -> Unit) {
-        updateUI(85)
-
-        var loadedCount = 0
-        var isCompleted = false
-        val totalAds = 1
-        CoroutineScope(Dispatchers.Main).launch {
-            delay(10000L)
-            if (!isCompleted) {
-                isCompleted = true
-                onComplete()
-            }
-        }
-
-        val checkComplete = {
-            loadedCount++
-            val progress = 85 + (loadedCount * 5) // 85 -> 100
-            updateUI(progress)
-
-            if (loadedCount >= totalAds && !isCompleted) {
-                isCompleted = true
-                onComplete()
-            }
-        }
-
-        val interstitialKeys = getInterstitialAdKeys()
-        if (interstitialKeys.isNotEmpty()) {
-            adsManager.preloadInterstitialManagement.loadWithWaterfall(
-                activity = activity,
-                adKeys = interstitialKeys,
-                delayMs = 300L
-            ) {
-                checkComplete()
-            }
-
-            // Enable backup
-            val backupKey = getBackupInterstitialKey()
-            if (backupKey.isNotEmpty()) {
-                adsManager.preloadInterstitialManagement.enableBackup(
-                    activity,
-                    backupKey
-                )
-            }
-        } else {
-            checkComplete()
-        }
-
-        // 2. Preload Native ads với waterfall
-        val nativeKeys = getNativeAdKeys()
-        if (nativeKeys.isNotEmpty()) {
-            adsManager.preloadNativeManagement.loadWithWaterfall(
-                activity = activity,
-                adKeys = nativeKeys,
-                delayMs = 300L
-            ) {
-                checkComplete()
-            }
-
-            // Enable backup
-            val backupKey = getBackupNativeKey()
-            if (backupKey.isNotEmpty()) {
-                adsManager.preloadNativeManagement.enableBackup(
-                    activity,
-                    backupKey
-                )
-            }
-        } else {
-            checkComplete()
-        }
-
-        // 3. Preload Banner ads
-        val bannerKeys = getBannerAdKeys()
-        if (bannerKeys.isNotEmpty()) {
-            adsManager.preloadBannerManagement.loadWithWaterfall(
-                activity = activity,
-                adKeys = bannerKeys,
-                delayMs = 300L
-            ) {
-                checkComplete()
-            }
-        } else {
-            checkComplete()
-        }
+        // Ads disabled for now: complete splash preload immediately.
+        releaseLog("SplashFragment.onPreloadAds: ads disabled, complete immediately")
+        updateUI(100)
+        onComplete()
     }
 
     override fun onAdsPreloadComplete() {
+        releaseLog("SplashFragment.onAdsPreloadComplete")
         updateUI(100)
     }
 
     private fun getInterstitialAdKeys(): List<String> {
         return listOf(
-            getString(R.string.ads_inter_splash),
-            getString(R.string.full_back)
+//            getString(R.string.ads_inter_splash),
+//            getString(R.string.full_back)
         )
     }
 
@@ -335,6 +310,7 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
     }
 
     private fun setupLoading() {
+        releaseLog("SplashFragment.setupLoading")
         binding.apply {
 //            tvPercentLoading.visible()
             progressBar.max = 100
@@ -346,11 +322,13 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
 
     private suspend fun waitIfPaused() {
         while (isPaused) {
+            releaseLog("SplashFragment.waitIfPaused: paused, waiting")
             delay(500)
         }
     }
 
     private fun startLoading() {
+        releaseLog("SplashFragment.startLoading")
         job = CoroutineScope(Dispatchers.Main).launch {
             delay(1000L)
             var progress = 0
@@ -379,23 +357,58 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
     }
 
     private fun updateUI(progress: Int) {
-        if (!isAdded || isDetached || view == null) return
+        if (!isAdded || isDetached || view == null) {
+            releaseLog(
+                "SplashFragment.updateUI: skipped progress=$progress, isAdded=$isAdded, isDetached=$isDetached, viewNull=${view == null}"
+            )
+            return
+        }
+        if (progress == 0 || progress == 60 || progress == 70 || progress == 80 || progress == 100) {
+            releaseLog("SplashFragment.updateUI: progress=$progress")
+        }
         binding.progressBar.setProgressCompat(progress, true)
         binding.tvPercentLoading.text = "$progress%"
     }
 
+    override fun onResume() {
+        releaseLog("SplashFragment.onResume: before super")
+        super.onResume()
+        releaseLog("SplashFragment.onResume: after super")
+    }
+
+    override fun onPause() {
+        releaseLog("SplashFragment.onPause")
+        super.onPause()
+    }
+
+    override fun onDestroyView() {
+        releaseLog("SplashFragment.onDestroyView")
+        super.onDestroyView()
+    }
+
     override fun onDestroy() {
+        releaseLog("SplashFragment.onDestroy")
         super.onDestroy()
         job?.cancel()
     }
 
     private fun checkConsentShow() {
+        releaseLog("SplashFragment.checkConsentShow")
         view?.viewTreeObserver?.addOnWindowFocusChangeListener { hasFocus ->
             isPaused = if (!hasFocus) {
                 true
             } else {
                 !isInternetAvailable
             }
+            releaseLog("SplashFragment.windowFocusChanged: hasFocus=$hasFocus, isPaused=$isPaused")
         }
+    }
+
+    private fun releaseLog(message: String) {
+        Log.i(TAG, message)
+    }
+
+    private companion object {
+        const val TAG = "TVCastReleaseLog"
     }
 }

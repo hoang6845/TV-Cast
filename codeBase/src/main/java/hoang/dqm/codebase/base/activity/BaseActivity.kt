@@ -95,8 +95,19 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
     }
 
     private fun <KClass> Context.getGenericSuperclass(position: Int): Class<KClass> {
-        val baseType = (javaClass.genericSuperclass as ParameterizedType).actualTypeArguments
-        return baseType[position] as Class<KClass>
+        var currentClass: Class<*>? = javaClass
+        while (currentClass != null && currentClass != Any::class.java) {
+            val genericSuperclass = currentClass.genericSuperclass
+            if (genericSuperclass is ParameterizedType) {
+                val genericType = genericSuperclass.actualTypeArguments.getOrNull(position)
+                if (genericType is Class<*>) {
+                    @Suppress("UNCHECKED_CAST")
+                    return genericType as Class<KClass>
+                }
+            }
+            currentClass = currentClass.superclass
+        }
+        throw IllegalStateException("Can not find generic type at position $position for ${javaClass.name}")
     }
 
     private var networkStatusReceiver: NetworkStatusReceiver? = null
@@ -342,13 +353,17 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
     fun showInterstitialAd(
         onAdsClosed: () -> Unit
     ) {
-        AppMonetization.ads.interstitialAdUtils.showAd(
-            activity = this,
-            onAdsClosed = {
-                onAdsClosed()
-            },
-            onAdsShowed = {}
-        )
+        // Ads disabled for now: continue the flow without showing interstitial.
+        onAdsClosed()
+        return
+
+//        AppMonetization.ads.interstitialAdUtils.showAd(
+//            activity = this,
+//            onAdsClosed = {
+//                onAdsClosed()
+//            },
+//            onAdsShowed = {}
+//        )
     }
 
     fun showRewardedAd(
@@ -357,13 +372,17 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
         onLoadFailed: () -> Unit = {},
         onRewarded: (com.google.android.gms.ads.rewarded.RewardItem) -> Unit
     ) {
-        AppMonetization.ads.rewardedAdUtils.showRewardedAd(
-            activity = this,
-            onAdShowed = onAdShowed,
-            onAdDismissed = onAdDismissed,
-            onLoadFailed = onLoadFailed,
-            onRewarded = onRewarded
-        )
+        // Ads disabled for now: no rewarded request.
+        onLoadFailed()
+        return
+
+//        AppMonetization.ads.rewardedAdUtils.showRewardedAd(
+//            activity = this,
+//            onAdShowed = onAdShowed,
+//            onAdDismissed = onAdDismissed,
+//            onLoadFailed = onLoadFailed,
+//            onRewarded = onRewarded
+//        )
     }
 
     private fun updateLastTimeLoadBannerNativeAd(interval: Long) {
@@ -377,33 +396,38 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
         onAdsLoaded: () -> Unit = {},
         onLoadFailed: () -> Unit = {},
     ) {
-        if (viewModel.isSubscribed || System.currentTimeMillis() - lastTimeLoadBannerNativeAd < 10.seconds.inWholeMilliseconds) {
-            viewNativeAd.visibility = View.GONE
-            return
-        }
-        if (updateTimeout) {
-            updateLastTimeLoadBannerNativeAd(System.currentTimeMillis())
-        }
-        AppMonetization.ads.singleNativeAdUtils.loadAd(
-            activity = this,
-            adId = getString(adId),
-            numberOfAdsToLoad = 1,
-            onLoadFailed = { stringFail ->
-                viewNativeAd.visibility = View.GONE
-                if (!isFinishing && !isDestroyed) onLoadFailed.invoke()
-//                Toast.makeText(this, stringFail, Toast.LENGTH_SHORT).show()
-//                copyToClipboard(this, stringFail?: "")
-            },
-            onAdLoaded = {
-                if (!isFinishing && !isDestroyed) {
-                    nativeAd?.destroy()
-                    nativeAd = it
-                    viewNativeAd.populate(it)
-                    onAdsLoaded.invoke()
-                } else {
-                    it.destroy() // tránh memory leak
-                }
-            }
-        )
+        // Ads disabled for now: keep native container hidden and skip request.
+        viewNativeAd.visibility = View.GONE
+        onLoadFailed.invoke()
+        return
+
+//        if (viewModel.isSubscribed || System.currentTimeMillis() - lastTimeLoadBannerNativeAd < 10.seconds.inWholeMilliseconds) {
+//            viewNativeAd.visibility = View.GONE
+//            return
+//        }
+//        if (updateTimeout) {
+//            updateLastTimeLoadBannerNativeAd(System.currentTimeMillis())
+//        }
+//        AppMonetization.ads.singleNativeAdUtils.loadAd(
+//            activity = this,
+//            adId = getString(adId),
+//            numberOfAdsToLoad = 1,
+//            onLoadFailed = { stringFail ->
+//                viewNativeAd.visibility = View.GONE
+//                if (!isFinishing && !isDestroyed) onLoadFailed.invoke()
+////                Toast.makeText(this, stringFail, Toast.LENGTH_SHORT).show()
+////                copyToClipboard(this, stringFail?: "")
+//            },
+//            onAdLoaded = {
+//                if (!isFinishing && !isDestroyed) {
+//                    nativeAd?.destroy()
+//                    nativeAd = it
+//                    viewNativeAd.populate(it)
+//                    onAdsLoaded.invoke()
+//                } else {
+//                    it.destroy() // tránh memory leak
+//                }
+//            }
+//        )
     }
 }

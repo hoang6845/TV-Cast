@@ -154,23 +154,23 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
             handleNext(position)
         }
 
-        if (position == 0) {
-            view.findViewById<ViewNativeAd>(R.id.viewNativeAd)?.let { nativeAdView ->
-                loadSingleNative(
-                    nativeAdView,
-                    hoang.dqm.codebase.R.string.ads_native_intro1,
-                    false
-                )
-            }
-        } else {
-            view.findViewById<ViewNativeAd>(R.id.viewNativeAd)?.let { nativeAdView ->
-                loadSingleNative(
-                    nativeAdView,
-                    hoang.dqm.codebase.R.string.ads_native_intro2,
-                    false
-                )
-            }
-        }
+//        if (position == 0) {
+//            view.findViewById<ViewNativeAd>(R.id.viewNativeAd)?.let { nativeAdView ->
+//                loadSingleNative(
+//                    nativeAdView,
+//                    hoang.dqm.codebase.R.string.ads_native_intro1,
+//                    false
+//                )
+//            }
+//        } else {
+//            view.findViewById<ViewNativeAd>(R.id.viewNativeAd)?.let { nativeAdView ->
+//                loadSingleNative(
+//                    nativeAdView,
+//                    hoang.dqm.codebase.R.string.ads_native_intro2,
+//                    false
+//                )
+//            }
+//        }
     }
 
     private fun bindIntroType3(view: View, item: SlideItem, position: Int) {
@@ -186,9 +186,9 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
             handleNext(position)
         }
 
-        view.findViewById<ViewNativeAd>(R.id.viewNativeAd)?.let { nativeAdView ->
-            loadSingleNative(nativeAdView, hoang.dqm.codebase.R.string.ads_native_intro_full_id, false)
-        }
+//        view.findViewById<ViewNativeAd>(R.id.viewNativeAd)?.let { nativeAdView ->
+//            loadSingleNative(nativeAdView, hoang.dqm.codebase.R.string.ads_native_intro_full_id, false)
+//        }
     }
 
     private fun startFullNativeCountdown(position: Int) {

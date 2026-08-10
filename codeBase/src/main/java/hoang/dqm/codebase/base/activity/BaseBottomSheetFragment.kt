@@ -58,14 +58,18 @@ abstract class BaseBottomSheetFragment<VB : ViewBinding> : BottomSheetDialogFrag
         _binding = null
     }
     fun showInterstitialAd(onAdsClosed: () -> Unit) {
-        (activity as? AppCompatActivity)?.let { activity ->
-            AppMonetization.ads.interstitialAdUtils.showAd(
-                activity,
-                onAdsClosed = {
-                    onAdsClosed()
-                },
-                onAdsShowed = {}
-            )
-        }
+        // Ads disabled for now: continue the flow without showing interstitial.
+        onAdsClosed()
+        return
+
+//        (activity as? AppCompatActivity)?.let { activity ->
+//            AppMonetization.ads.interstitialAdUtils.showAd(
+//                activity,
+//                onAdsClosed = {
+//                    onAdsClosed()
+//                },
+//                onAdsShowed = {}
+//            )
+//        }
     }
 }

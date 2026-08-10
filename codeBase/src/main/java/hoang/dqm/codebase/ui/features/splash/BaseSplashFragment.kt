@@ -11,18 +11,16 @@ import hoang.dqm.codebase.service.session.isFirstSplash
 import hoang.dqm.codebase.service.session.setFirstSplash
 import hoang.dqm.codebase.utils.isNetworkAvailable
 import kotlinx.coroutines.launch
-import tpt.dev.monetization.ads.AdsManager
 
 abstract class BaseSplashFragment<VB : ViewBinding, VM : BaseViewModel> :
     BaseFragment<VB, VM>() {
 
-    private val adsManager by lazy { AdsManager.getInstance() }
+//    private val adsManager by lazy { AdsManager.getInstance() }
     private var isConfigFetched = false
     private var isAdsPreloaded = false
 
     override fun initView() {
-        // LUÔN gather consent và fetch config, không phân biệt lần đầu hay không
-        // Vì ads pool là in-memory, khi app bị kill thì mất hết
+        // Ads disabled for now: skip UMP consent and ad preload, only fetch remote config.
         gatherConsentAndFetch()
         
         // Chỉ set first splash flag để tracking
@@ -33,35 +31,49 @@ abstract class BaseSplashFragment<VB : ViewBinding, VM : BaseViewModel> :
     
     private fun gatherConsentAndFetch() {
         try {
-            val fragmentActivity = requireActivity()
+//            val fragmentActivity = requireActivity()
+//
+//            adsManager.gatherConsent(
+//                activity = fragmentActivity,
+//                listener = object : AdsManager.OnGatherConsentListener {
+//                    override fun onCompletion(error: String?) {
+//                        if (error != null) {
+//                        } else {
+//                        }
+//
+//                        val isOnline = isNetworkAvailable()
+//                        isInternetConnected(isOnline && isAdded)
+//
+//                        if (isOnline && isAdded && !isConfigFetched) {
+//                            fetch()
+//                        } else {
+//                        }
+//
+//                        // Subscribe to network events cho các thay đổi sau này
+//                        subscribeEventNetwork { online ->
+//                            isInternetConnected(online && isAdded)
+//                            if (online && isAdded && !isConfigFetched) {
+//                                Log.d("BaseSplash", "Network online, fetching config...")
+//                                fetch()
+//                            }
+//                        }
+//                    }
+//                }
+//            )
+            val isOnline = isNetworkAvailable()
+            isInternetConnected(isOnline && isAdded)
 
-            adsManager.gatherConsent(
-                activity = fragmentActivity,
-                listener = object : AdsManager.OnGatherConsentListener {
-                    override fun onCompletion(error: String?) {
-                        if (error != null) {
-                        } else {
-                        }
-                        
-                        val isOnline = isNetworkAvailable()
-                        isInternetConnected(isOnline && isAdded)
-                        
-                        if (isOnline && isAdded && !isConfigFetched) {
-                            fetch()
-                        } else {
-                        }
-                        
-                        // Subscribe to network events cho các thay đổi sau này
-                        subscribeEventNetwork { online ->
-                            isInternetConnected(online && isAdded)
-                            if (online && isAdded && !isConfigFetched) {
-                                Log.d("BaseSplash", "Network online, fetching config...")
-                                fetch()
-                            }
-                        }
-                    }
+            if (isOnline && isAdded && !isConfigFetched) {
+                fetch()
+            }
+
+            subscribeEventNetwork { online ->
+                isInternetConnected(online && isAdded)
+                if (online && isAdded && !isConfigFetched) {
+                    Log.d("BaseSplash", "Network online, fetching config...")
+                    fetch()
                 }
-            )
+            }
         } catch (e: Exception) {
             Log.e("BaseSplash", "Error gathering consent: ${e.message}", e)
             // Fallback: vẫn tiếp tục fetch config
@@ -112,8 +124,12 @@ abstract class BaseSplashFragment<VB : ViewBinding, VM : BaseViewModel> :
                             isAdsPreloaded = true
                             checkAndOpenHome()
                         } else {
-                            Log.d("BaseSplash", "User not subscribed, starting preload ads...")
-                            preloadAds()
+                            Log.d("BaseSplash", "Ads disabled, skip ads preload")
+                            isAdsPreloaded = true
+                            onAdsPreloadComplete()
+                            checkAndOpenHome()
+//                            Log.d("BaseSplash", "User not subscribed, starting preload ads...")
+//                            preloadAds()
                         }
                     }
                 })

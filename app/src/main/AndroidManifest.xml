@@ -61,9 +61,11 @@
             android:name=".ui.screen_mirroring.ScreenMirroringForegroundService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
+        <!-- Ads disabled for now.
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/ads_app_id" />
+        -->
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
             android:value="com.tvchromecast.screenmirroringplus.cast.CastOptionsProvider" />
@@ -75,6 +77,10 @@
                 android:name="androidx.work.WorkManagerInitializer"
                 tools:node="remove" />
         </provider>
+        <provider
+            android:name="com.google.android.gms.ads.MobileAdsInitProvider"
+            android:authorities="${applicationId}.mobileadsinitprovider"
+            tools:node="remove" />
     </application>
 
 </manifest>
