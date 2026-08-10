@@ -12,6 +12,15 @@ import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
 
 class FaqFragment : BaseFragment<FragmentFaqBinding, FaqViewModel>() {
+    override val viewModelClass: Class<FaqViewModel>
+        get() = FaqViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentFaqBinding {
+        return FragmentFaqBinding.inflate(inflater, container, false)
+    }
 
     private val faqAdapter by lazy { FaqAdapter() }
 

@@ -6,6 +6,7 @@ import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -34,7 +35,7 @@ import kotlin.time.Duration.Companion.seconds
 abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatActivity(),
     View.OnClickListener {
     val binding: VB by lazy(mode = LazyThreadSafetyMode.NONE) {
-        BindingReflex.reflexViewBinding(javaClass, layoutInflater)
+        inflateBinding(layoutInflater)
     }
     private var lastTimeLoadBannerNativeAd = 0L
     private var nativeAd: NativeAd? = null
@@ -85,9 +86,15 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
 
     open var onPermissionsGranted: (() -> Unit)? = null
 
+    protected open fun inflateBinding(layoutInflater: LayoutInflater): VB {
+        return BindingReflex.reflexViewBinding(javaClass, layoutInflater)
+    }
+
     protected open val viewModelFactory: ViewModelProvider.Factory? = null
+    protected open val viewModelClass: Class<out VM>? = null
     protected val viewModel: VM by lazy {
-        val clazz = getGenericSuperclass<VM>(1)
+        @Suppress("UNCHECKED_CAST")
+        val clazz = (viewModelClass ?: getGenericSuperclass<VM>(1)) as Class<VM>
         if (viewModelFactory != null) {
             ViewModelProvider(this, viewModelFactory!!)[clazz]
         } else {
@@ -101,9 +108,14 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
             val genericSuperclass = currentClass.genericSuperclass
             if (genericSuperclass is ParameterizedType) {
                 val genericType = genericSuperclass.actualTypeArguments.getOrNull(position)
-                if (genericType is Class<*>) {
+                val genericClass = when (genericType) {
+                    is Class<*> -> genericType
+                    is ParameterizedType -> genericType.rawType as? Class<*>
+                    else -> null
+                }
+                if (genericClass != null) {
                     @Suppress("UNCHECKED_CAST")
-                    return genericType as Class<KClass>
+                    return genericClass as Class<KClass>
                 }
             }
             currentClass = currentClass.superclass

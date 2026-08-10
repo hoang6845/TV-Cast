@@ -39,9 +39,7 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
     private val interval by lazy { 500L }
     protected var _binding: VB? = null
     protected val binding
-        get() = _binding ?: BindingReflex.reflexViewBinding(
-            javaClass, layoutInflater
-        )
+        get() = _binding ?: inflateBinding(layoutInflater, null)
 
     @Suppress("UNCHECKED_CAST")
     private fun <KClass> genericViewModel(): Class<KClass> {
@@ -50,8 +48,13 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
             val genericSuperclass = currentClass.genericSuperclass
             if (genericSuperclass is ParameterizedType) {
                 val genericType = genericSuperclass.actualTypeArguments.getOrNull(1)
-                if (genericType is Class<*>) {
-                    return genericType as Class<KClass>
+                val genericClass = when (genericType) {
+                    is Class<*> -> genericType
+                    is ParameterizedType -> genericType.rawType as? Class<*>
+                    else -> null
+                }
+                if (genericClass != null) {
+                    return genericClass as Class<KClass>
                 }
             }
             currentClass = currentClass.superclass
@@ -61,6 +64,7 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
 
     protected open val viewModelFactory: ViewModelProvider.Factory
         get() = defaultViewModelProviderFactory
+    protected open val viewModelClass: Class<out VM>? = null
 
 //    protected val viewModel: VM by lazy {
 //        val clazz = genericViewModel<VM>()
@@ -72,7 +76,8 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
 //    }
 
     protected val viewModel: VM by lazy {
-        val clazz = genericViewModel<VM>()
+        @Suppress("UNCHECKED_CAST")
+        val clazz = (viewModelClass ?: genericViewModel<VM>()) as Class<VM>
         ViewModelProvider(this, viewModelFactory)[clazz]
     }
 
@@ -81,6 +86,10 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
     abstract fun initView()
     abstract fun initListener()
     abstract fun initData()
+
+    protected open fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?): VB {
+        return BindingReflex.reflexViewBinding(javaClass, inflater, container, false)
+    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -97,7 +106,7 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
     ): View? {
         try {
             lifecycle.addObserver(viewModel)
-            _binding = BindingReflex.reflexViewBinding(javaClass, inflater)
+            _binding = inflateBinding(inflater, container)
             return _binding?.root
         } catch (e: Exception) {
             e.printStackTrace()

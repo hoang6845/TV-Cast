@@ -33,6 +33,16 @@ import hoang.dqm.codebase.base.activity.navigate
 
 
 class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
+    override val viewModelClass: Class<HomeViewModel>
+        get() = HomeViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentHomeBinding {
+        return FragmentHomeBinding.inflate(inflater, container, false)
+    }
+
     private val listItem: List<ItemFunc> by lazy {
         listOf(
             ItemFunc(

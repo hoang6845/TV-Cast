@@ -15,6 +15,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.Display
 import android.view.Surface
 import android.view.ViewGroup
@@ -49,6 +50,15 @@ import org.json.JSONObject
 
 class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, ScreenMirroringViewModel>(),
     ScreenWebRtcStreamer.Listener {
+    override val viewModelClass: Class<ScreenMirroringViewModel>
+        get() = ScreenMirroringViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentScreenMirroringBinding {
+        return FragmentScreenMirroringBinding.inflate(inflater, container, false)
+    }
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -243,24 +253,43 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     override fun initView() {
-        mediaProjectionManager = requireContext()
-            .getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        displayManager = requireContext()
-            .getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-        screenStreamer = ScreenWebRtcStreamer(
-            requireContext().applicationContext,
-            ::sendSignalToReceiver,
-            this
-        )
-        setupDisplayListener()
+        releaseLog("ScreenMirroring.initView: start")
+        runCatching {
+            mediaProjectionManager = requireContext()
+                .getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            displayManager = requireContext()
+                .getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            releaseLog("ScreenMirroring.initView: system services ready")
+        }.onFailure {
+            releaseLog("ScreenMirroring.initView: system service init failed", it)
+            disableMirroringControls(it)
+            return
+        }
+
+        runCatching {
+            screenStreamer = ScreenWebRtcStreamer(
+                requireContext().applicationContext,
+                ::sendSignalToReceiver,
+                this
+            )
+            releaseLog("ScreenMirroring.initView: WebRTC streamer ready")
+        }.onFailure {
+            releaseLog("ScreenMirroring.initView: WebRTC streamer init failed", it)
+            disableMirroringControls(it)
+        }
+
+        runCatching { setupDisplayListener() }
+            .onFailure { releaseLog("ScreenMirroring.initView: display listener failed", it) }
         applySystemInsets()
         applyRequestedOrientation()
         setupCastButton()
         updateQualitySelection()
         updateControls()
+        releaseLog("ScreenMirroring.initView: done")
     }
 
     override fun initListener() {
+        releaseLog("ScreenMirroring.initListener")
         setupRouteDialogCloseListener()
         binding.btnBack.setOnClickListener { handleBackPressed() }
         binding.btnStartMirroring.setOnClickListener { handleMainAction() }
@@ -301,6 +330,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     override fun initData() = Unit
 
     override fun onStart() {
+        releaseLog("ScreenMirroring.onStart")
         super.onStart()
         if (!usesSystemMirroring) {
             castContext?.sessionManager?.addSessionManagerListener(
@@ -314,15 +344,25 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
             MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY or
                 MediaRouter.CALLBACK_FLAG_UNFILTERED_EVENTS
         )
-        syncMirroringState()
+        if (this::displayManager.isInitialized) {
+            syncMirroringState()
+        } else {
+            releaseLog("ScreenMirroring.onStart: displayManager not initialized")
+        }
     }
 
     override fun onResume() {
+        releaseLog("ScreenMirroring.onResume")
         super.onResume()
-        syncMirroringState()
+        if (this::displayManager.isInitialized) {
+            syncMirroringState()
+        } else {
+            releaseLog("ScreenMirroring.onResume: displayManager not initialized")
+        }
     }
 
     override fun onStop() {
+        releaseLog("ScreenMirroring.onStop")
         mediaRouter?.removeCallback(mediaRouterCallback)
         if (!usesSystemMirroring) {
             castContext?.sessionManager?.removeSessionManagerListener(
@@ -334,13 +374,20 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     override fun onDestroyView() {
-        stopMirroring(updateUi = false, endSession = true)
+        releaseLog("ScreenMirroring.onDestroyView")
+        runCatching { stopMirroring(updateUi = false, endSession = true) }
+            .onFailure { releaseLog("ScreenMirroring.onDestroyView: stopMirroring failed", it) }
         mainHandler.removeCallbacksAndMessages(null)
-        displayListener?.let(displayManager::unregisterDisplayListener)
+        runCatching {
+            if (this::displayManager.isInitialized) {
+                displayListener?.let(displayManager::unregisterDisplayListener)
+            }
+        }.onFailure { releaseLog("ScreenMirroring.onDestroyView: unregister display failed", it) }
         displayListener = null
-        screenStreamer?.release()
+        runCatching { screenStreamer?.release() }
+            .onFailure { releaseLog("ScreenMirroring.onDestroyView: streamer release failed", it) }
         screenStreamer = null
-        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        runCatching { requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
         super.onDestroyView()
     }
 
@@ -401,6 +448,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun setupCastButton() {
+        releaseLog("ScreenMirroring.setupCastButton: usesSystemMirroring=$usesSystemMirroring")
         mediaRouter = MediaRouter.getInstance(requireContext())
         if (usesSystemMirroring) {
             binding.btnTopCast.isVisible = false
@@ -415,7 +463,9 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
             CastButtonFactory.setUpMediaRouteButton(requireContext(), binding.btnTopCast)
             binding.btnTopCast.setDialogFactory(mediaRouteDialogFactory)
             updateCastStatusFromSession()
+            releaseLog("ScreenMirroring.setupCastButton: cast button ready")
         }.onFailure {
+            releaseLog("ScreenMirroring.setupCastButton: failed", it)
             binding.btnTopCast.isEnabled = false
             binding.btnTopCast.alpha = 0.45f
             updateCastStatus(CastConnectionState.Error)
@@ -500,6 +550,9 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun handleMainAction() {
+        releaseLog(
+            "ScreenMirroring.handleMainAction: mirroring=$isMirroring preparing=$isPreparing reconnecting=$isReconnecting"
+        )
         when {
             isMirroring || isPreparing -> showStopMirroringDialog()
             isReconnecting -> Unit
@@ -508,7 +561,14 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun startMirroringFlow() {
+        releaseLog("ScreenMirroring.startMirroringFlow")
         isStoppingMirroring = false
+
+        if (screenStreamer == null && !usesSystemMirroring) {
+            releaseLog("ScreenMirroring.startMirroringFlow: streamer null")
+            disableMirroringControls(IllegalStateException("WebRTC streamer is not ready"))
+            return
+        }
 
         if (usesSystemMirroring) {
             startSystemMirroringFlow()
@@ -542,6 +602,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun startSystemMirroringFlow() {
+        releaseLog("ScreenMirroring.startSystemMirroringFlow")
         if (hasSystemMirroringSession()) {
             syncMirroringState()
             return
@@ -567,6 +628,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun startCastFlow() {
+        releaseLog("ScreenMirroring.startCastFlow: connected=${currentCastSession()?.isConnected == true}")
         val session = currentCastSession()
         if (session?.isConnected != true) {
             pendingMirroring = true
@@ -591,6 +653,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun beginScreenMirroring() {
+        releaseLog("ScreenMirroring.beginScreenMirroring")
         val session = currentCastSession()
         val permissionData = mediaProjectionData
         if (session?.isConnected != true) {
@@ -833,6 +896,15 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     private fun updateControls(selectingTv: Boolean = false) {
         if (_binding == null || view == null) return
 
+        if (screenStreamer == null && !usesSystemMirroring) {
+            binding.statusContainer.isVisible = true
+            binding.btnStartMirroring.isEnabled = false
+            binding.btnStartMirroring.alpha = 0.45f
+            binding.btnStartMirroring.text = getString(R.string.text_start_mirroring)
+            binding.statusText.text = "Screen mirroring unavailable"
+            return
+        }
+
         binding.statusContainer.isVisible = isMirroring ||
             isPreparing ||
             pendingMirroring ||
@@ -1049,6 +1121,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun activePresentationDisplay(): Display? {
+        if (!this::displayManager.isInitialized) return null
         return displayManager
             .getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
             .firstOrNull { display ->
@@ -1090,6 +1163,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun handleBackPressed() {
+        releaseLog("ScreenMirroring.handleBackPressed")
         if (isMirroring || isPreparing || isReconnecting) {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.text_stop_screen_mirroring_title)
@@ -1121,6 +1195,28 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         }
     }
 
+    private fun disableMirroringControls(error: Throwable) {
+        pendingMirroring = false
+        isPreparing = false
+        isMirroring = false
+        isReconnecting = false
+        if (_binding == null || view == null) return
+
+        binding.btnStartMirroring.isEnabled = false
+        binding.btnStartMirroring.alpha = 0.45f
+        binding.statusContainer.isVisible = true
+        binding.statusText.text = error.message ?: "Screen mirroring unavailable"
+        updateCastStatus(CastConnectionState.Error)
+    }
+
+    private fun releaseLog(message: String) {
+        Log.i(TAG_RELEASE, message)
+    }
+
+    private fun releaseLog(message: String, throwable: Throwable) {
+        Log.e(TAG_RELEASE, message, throwable)
+    }
+
     private enum class CastConnectionState {
         Disconnected,
         Connecting,
@@ -1148,6 +1244,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     companion object {
+        private const val TAG_RELEASE = "TVCastReleaseLog"
         private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
         private const val RECEIVER_READY_DELAY_MS = 700L
         private const val FOREGROUND_SERVICE_READY_DELAY_MS = 350L

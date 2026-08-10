@@ -2,6 +2,7 @@ package com.tvchromecast.screenmirroringplus.ui.language_activity
 
 import android.content.Intent
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
@@ -20,6 +21,13 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel>() {
+    override val viewModelClass: Class<LanguageViewModel>
+        get() = LanguageViewModel::class.java
+
+    override fun inflateBinding(layoutInflater: LayoutInflater): ActivityLanguageBinding {
+        return ActivityLanguageBinding.inflate(layoutInflater)
+    }
+
     private val appSharePref: CommonAppSharePref by lazy {
         CommonAppSharePref(this)
     }
@@ -30,10 +38,12 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
     private val languageAdapter by lazy { LanguageAdapter() }
 
     override fun initView() {
+        releaseLog("LanguageActivity.initView: start")
         adjustInsetsForBottomNavigation(binding.main)
         adjustInsetsForBottomMargin(binding.viewNativeAd)
 
         isFromSplash = intent.extras?.getBoolean("isFromSplash") ?: false
+        releaseLog("LanguageActivity.initView: isFromSplash=$isFromSplash")
 
         binding.imvBack.isVisible = isFromSplash.not()
         binding.viewNativeAd.gone()
@@ -99,14 +109,18 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
             delay(3000L)
             binding.loading.gone()
         }
+        releaseLog("LanguageActivity.initView: done")
     }
 
     override fun initListener() {
+        releaseLog("LanguageActivity.initListener")
         binding.imvBack.singleClick {
+            releaseLog("LanguageActivity.backClick")
             finish()
         }
 
         binding.btnDone.singleClick {
+            releaseLog("LanguageActivity.doneClick: hasUserSelectedLanguage=$hasUserSelectedLanguage")
             if (!hasUserSelectedLanguage) {
                 return@singleClick
             }
@@ -125,9 +139,11 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
                     val resultIntent = Intent().apply {
                         putExtra("go_to_intro", true)
                     }
+                    releaseLog("LanguageActivity.doneClick: same language, RESULT_OK")
                     setResult(RESULT_OK, resultIntent)
                     finish()
                 } else {
+                    releaseLog("LanguageActivity.doneClick: same language, finish")
                     finish()
                 }
 
@@ -135,12 +151,15 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
             }
 
             Log.d("LangDebug", "Different language → updateNewLang()")
+            releaseLog("LanguageActivity.doneClick: different language, updateNewLang")
             updateNewLang()
         }
     }
 
     private fun updateNewLang() {
+        releaseLog("LanguageActivity.updateNewLang")
         viewModel.saveLang { languageCode ->
+            releaseLog("LanguageActivity.updateNewLang: saved=$languageCode")
             AppCompatDelegate.setApplicationLocales(
                 LocaleListCompat.forLanguageTags(languageCode)
             )
@@ -149,16 +168,20 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
                 val resultIntent = Intent().apply {
                     putExtra("go_to_intro", true)
                 }
+                releaseLog("LanguageActivity.updateNewLang: RESULT_OK")
                 setResult(RESULT_OK, resultIntent)
                 finish()
             } else {
+                releaseLog("LanguageActivity.updateNewLang: finish")
                 finish()
             }
         }
     }
 
     override fun initData() {
+        releaseLog("LanguageActivity.initData")
         viewModel.languageLiveData.observe { list ->
+            releaseLog("LanguageActivity.languageLiveData: size=${list.size}")
             // Quan trọng: bỏ trạng thái tự chọn mặc định
             list.forEach {
                 it.isCheck = false
@@ -180,5 +203,13 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
     private fun hideDoneButton() {
         binding.btnDone.visibility = View.INVISIBLE
         binding.btnDone.isEnabled = false
+    }
+
+    private fun releaseLog(message: String) {
+        Log.i(TAG, message)
+    }
+
+    private companion object {
+        const val TAG = "TVCastReleaseLog"
     }
 }

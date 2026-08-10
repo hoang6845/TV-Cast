@@ -22,6 +22,16 @@ import hoang.dqm.codebase.service.sound.AppMusicPlayer
 
 
 class SettingFragment : BaseFragment<FragmentSettingBinding, SettingViewModel>() {
+    override val viewModelClass: Class<SettingViewModel>
+        get() = SettingViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentSettingBinding {
+        return FragmentSettingBinding.inflate(inflater, container, false)
+    }
+
     override fun initView() {
         adjustInsetsForBottomNavigation(binding.clToolbar)
 

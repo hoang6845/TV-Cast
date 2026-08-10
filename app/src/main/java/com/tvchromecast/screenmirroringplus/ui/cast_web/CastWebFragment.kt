@@ -50,6 +50,15 @@ import java.util.Locale
 import kotlin.math.abs
 
 class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>() {
+    override val viewModelClass: Class<CastWebViewModel>
+        get() = CastWebViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentCastWebBinding {
+        return FragmentCastWebBinding.inflate(inflater, container, false)
+    }
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val mediaServer by lazy { LocalMediaHttpServer(requireContext().applicationContext) }

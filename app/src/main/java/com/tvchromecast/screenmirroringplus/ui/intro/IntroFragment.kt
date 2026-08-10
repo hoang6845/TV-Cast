@@ -20,6 +20,16 @@ import tpt.dev.monetization.ads.nativeAd.view.ViewNativeAd
 
 
 class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
+    override val viewModelClass: Class<IntroViewModel>
+        get() = IntroViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentIntroBinding {
+        return FragmentIntroBinding.inflate(inflater, container, false)
+    }
+
     private lateinit var slides: List<SlideItem>
     private lateinit var introAdapter: ViewPager2Adapter<SlideItem>
 

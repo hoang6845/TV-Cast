@@ -7,6 +7,7 @@ import android.content.ContextWrapper
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -42,6 +43,13 @@ import java.util.Locale
 import kotlin.math.abs
 @AndroidEntryPoint
 class MainActivity : BaseMainActivity<ActivityMainBinding, MainViewModel>() {
+    override val viewModelClass: Class<MainViewModel>
+        get() = MainViewModel::class.java
+
+    override fun inflateBinding(layoutInflater: LayoutInflater): ActivityMainBinding {
+        return ActivityMainBinding.inflate(layoutInflater)
+    }
+
     override val graphResId: Int
         get() = com.tvchromecast.screenmirroringplus.R.navigation.app_nav
 

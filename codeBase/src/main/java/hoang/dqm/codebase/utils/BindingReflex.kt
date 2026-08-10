@@ -109,7 +109,11 @@ object BindingReflex {
             val genericSuperclass = currentClass.genericSuperclass
             if (genericSuperclass is ParameterizedType) {
                 genericSuperclass.actualTypeArguments.forEach { type ->
-                    val tClass = type as? Class<*> ?: return@forEach
+                    val tClass = when (type) {
+                        is Class<*> -> type
+                        is ParameterizedType -> type.rawType as? Class<*>
+                        else -> null
+                    } ?: return@forEach
                     if (ViewBinding::class.java.isAssignableFrom(tClass)) {
                         return tClass as Class<Any>
                     }

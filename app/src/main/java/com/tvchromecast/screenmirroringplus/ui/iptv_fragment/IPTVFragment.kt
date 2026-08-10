@@ -47,6 +47,15 @@ import org.json.JSONObject
 
 @AndroidEntryPoint
 class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
+    override val viewModelClass: Class<IPTVViewModel>
+        get() = IPTVViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentIPTVBinding {
+        return FragmentIPTVBinding.inflate(inflater, container, false)
+    }
 
     private val categoryAdapter by lazy {
         IPTVCategoryAdapter { category -> viewModel.openCategory(category) }

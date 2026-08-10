@@ -101,13 +101,13 @@ abstract class BaseListAdapter<T : Any, VB : ViewBinding> :
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder<VB> {
-        return BaseViewHolder(reflexViewBinding(parent)).apply {
+        return BaseViewHolder(inflateBinding(parent)).apply {
             bindViewClickListener(this, viewType)
         }
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun reflexViewBinding(parent: ViewGroup): VB {
+    protected open fun inflateBinding(parent: ViewGroup): VB {
         return try {
             BindingReflex.reflexViewBinding(
                 javaClass, getLayoutInflater(parent.context), parent, false
@@ -118,7 +118,7 @@ abstract class BaseListAdapter<T : Any, VB : ViewBinding> :
         }
     }
 
-    private fun getLayoutInflater(context: Context): LayoutInflater {
+    protected fun getLayoutInflater(context: Context): LayoutInflater {
         return LayoutInflater.from(context)
     }
 

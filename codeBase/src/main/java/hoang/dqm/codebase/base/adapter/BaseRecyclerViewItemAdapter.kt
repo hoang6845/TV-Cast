@@ -116,7 +116,7 @@ abstract class BaseRecyclerViewItemAdapter<T, VB : ViewBinding> :
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder<VB> {
         return when (viewType) {
-            RecyclerViewType.TYPE_DATA.value -> BaseViewHolder(reflexViewBinding(parent)).apply {
+            RecyclerViewType.TYPE_DATA.value -> BaseViewHolder(inflateBinding(parent)).apply {
                 bindViewClickListener(this, viewType)
             }
 
@@ -141,7 +141,7 @@ abstract class BaseRecyclerViewItemAdapter<T, VB : ViewBinding> :
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun reflexViewBinding(parent: ViewGroup): VB {
+    protected open fun inflateBinding(parent: ViewGroup): VB {
         return try {
             BindingReflex.reflexViewBinding(
                 javaClass, getLayoutInflater(parent.context), parent, false
@@ -152,7 +152,7 @@ abstract class BaseRecyclerViewItemAdapter<T, VB : ViewBinding> :
         }
     }
 
-    private fun getLayoutInflater(context: Context): LayoutInflater {
+    protected fun getLayoutInflater(context: Context): LayoutInflater {
         return LayoutInflater.from(context)
     }
 

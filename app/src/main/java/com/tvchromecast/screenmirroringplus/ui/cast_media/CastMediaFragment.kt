@@ -47,6 +47,15 @@ import org.json.JSONObject
 import hoang.dqm.codebase.R as CodeBaseR
 
 class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewModel>() {
+    override val viewModelClass: Class<CastMediaViewModel>
+        get() = CastMediaViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentCastMediaBinding {
+        return FragmentCastMediaBinding.inflate(inflater, container, false)
+    }
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val mediaServer by lazy { LocalMediaHttpServer(requireContext().applicationContext) }

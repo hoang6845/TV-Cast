@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewGroup
@@ -40,6 +41,15 @@ import kotlin.math.abs
 
 class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastViewModel>(),
     CameraWebRtcStreamer.Listener {
+    override val viewModelClass: Class<CameraCastViewModel>
+        get() = CameraCastViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentCameraCastBinding {
+        return FragmentCameraCastBinding.inflate(inflater, container, false)
+    }
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var prefs: SharedPreferences
@@ -184,15 +194,18 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     override fun initView() {
+        releaseLog("CameraCast.initView: start")
         prefs = requireContext().getSharedPreferences(PREFS_NAME, 0)
         applySystemInsets()
         setupLocalRenderer()
         setupCastButton()
         setupPreviewGestures()
         updateControls()
+        releaseLog("CameraCast.initView: done")
     }
 
     override fun initListener() {
+        releaseLog("CameraCast.initListener")
         binding.btnBack.setOnClickListener { handleBackPressed() }
         binding.btnStartCasting.setOnClickListener { handleMainAction() }
         binding.placeholderAction.setOnClickListener { handlePlaceholderAction() }
@@ -206,6 +219,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     override fun initData() {
+        releaseLog("CameraCast.initData: hasCameraPermission=${hasCameraPermission()}")
         if (hasCameraPermission()) {
             startCamera()
         } else {
@@ -215,6 +229,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     override fun onStart() {
+        releaseLog("CameraCast.onStart")
         super.onStart()
         castContext?.sessionManager?.addSessionManagerListener(
             castSessionListener,
@@ -224,6 +239,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     override fun onResume() {
+        releaseLog("CameraCast.onResume: hasCameraPermission=${hasCameraPermission()} cameraReady=$cameraReady")
         super.onResume()
         if (hasCameraPermission() && !cameraReady) {
             hidePermissionPlaceholder()
@@ -232,6 +248,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     override fun onStop() {
+        releaseLog("CameraCast.onStop")
         castContext?.sessionManager?.removeSessionManagerListener(
             castSessionListener,
             CastSession::class.java
@@ -240,9 +257,12 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     override fun onDestroyView() {
+        releaseLog("CameraCast.onDestroyView")
         mainHandler.removeCallbacksAndMessages(null)
-        currentCastSession()?.let(::removeCastMessageCallback)
-        webRtcStreamer?.release()
+        runCatching { currentCastSession()?.let(::removeCastMessageCallback) }
+            .onFailure { releaseLog("CameraCast.onDestroyView: remove callback failed", it) }
+        runCatching { webRtcStreamer?.release() }
+            .onFailure { releaseLog("CameraCast.onDestroyView: streamer release failed", it) }
         webRtcStreamer = null
         localRenderer = null
         super.onDestroyView()
@@ -303,36 +323,46 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun setupLocalRenderer() {
-        val parent = binding.previewView.parent as ViewGroup
-        val renderer = SurfaceViewRenderer(requireContext()).apply {
-            layoutParams = ConstraintLayout.LayoutParams(
-                ConstraintLayout.LayoutParams.MATCH_PARENT,
-                ConstraintLayout.LayoutParams.MATCH_PARENT
-            ).apply {
-                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+        releaseLog("CameraCast.setupLocalRenderer: start")
+        runCatching {
+            val parent = binding.previewView.parent as ViewGroup
+            val renderer = SurfaceViewRenderer(requireContext()).apply {
+                layoutParams = ConstraintLayout.LayoutParams(
+                    ConstraintLayout.LayoutParams.MATCH_PARENT,
+                    ConstraintLayout.LayoutParams.MATCH_PARENT
+                ).apply {
+                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                    endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+                }
             }
+            parent.addView(renderer, 0)
+            binding.previewView.isVisible = false
+            localRenderer = renderer
+            webRtcStreamer = CameraWebRtcStreamer(
+                requireContext().applicationContext,
+                renderer,
+                ::sendSignalToReceiver,
+                this
+            )
+            releaseLog("CameraCast.setupLocalRenderer: WebRTC streamer ready")
+        }.onFailure {
+            releaseLog("CameraCast.setupLocalRenderer: failed", it)
+            showCameraStartError(it)
         }
-        parent.addView(renderer, 0)
-        binding.previewView.isVisible = false
-        localRenderer = renderer
-        webRtcStreamer = CameraWebRtcStreamer(
-            requireContext().applicationContext,
-            renderer,
-            ::sendSignalToReceiver,
-            this
-        )
     }
 
     private fun setupCastButton() {
+        releaseLog("CameraCast.setupCastButton")
         runCatching {
             castContext = CastContext.getSharedInstance(requireContext())
             castContext?.setReceiverApplicationId(CastReceiverIds.CAMERA_WEBRTC)
             CastButtonFactory.setUpMediaRouteButton(requireContext(), binding.btnTopCast)
             updateCastStatusFromSession()
+            releaseLog("CameraCast.setupCastButton: ready")
         }.onFailure {
+            releaseLog("CameraCast.setupCastButton: failed", it)
             binding.btnTopCast.isEnabled = false
             binding.btnTopCast.alpha = 0.45f
             updateCastStatus(CastConnectionState.Error)
@@ -457,6 +487,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun startCamera() {
+        releaseLog("CameraCast.startCamera")
         if (!hasCameraPermission()) {
             showPermissionPlaceholder(permanentlyDenied = isCameraPermanentlyDenied())
             updateControls()
@@ -469,18 +500,22 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         localRenderer?.isVisible = true
 
         runCatching {
-            webRtcStreamer?.startLocalPreview(
+            val streamer = webRtcStreamer
+                ?: throw IllegalStateException("Camera WebRTC streamer is not ready")
+            streamer.startLocalPreview(
                 useFrontCamera = useFrontCamera,
                 enableAudio = hasMicrophonePermission() && !microphoneMuted
             )
         }.onSuccess {
+            releaseLog("CameraCast.startCamera: success")
             cameraReady = true
             binding.cameraLoading.isVisible = false
             updateCameraCapabilities()
             promptForMicrophoneIfNeeded()
             updateControls()
         }.onFailure {
-            showCameraStartError()
+            releaseLog("CameraCast.startCamera: failed", it)
+            showCameraStartError(it)
         }
     }
 
@@ -490,7 +525,8 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         torchEnabled = false
     }
 
-    private fun showCameraStartError() {
+    private fun showCameraStartError(error: Throwable? = null) {
+        error?.let { releaseLog("CameraCast.showCameraStartError", it) }
         cameraReady = false
         isCasting = false
         isStartingCast = false
@@ -499,7 +535,8 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         localRenderer?.isVisible = false
         binding.placeholderContainer.isVisible = true
         binding.placeholderTitle.setText(R.string.text_unable_to_start_camera)
-        binding.placeholderMessage.setText(R.string.text_unable_to_start_camera_message)
+        binding.placeholderMessage.text = error?.message
+            ?: getString(R.string.text_unable_to_start_camera_message)
         binding.placeholderAction.setText(R.string.text_try_again)
         updateCastStatusFromSession()
         updateControls()
@@ -627,6 +664,9 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun handleMainAction() {
+        releaseLog(
+            "CameraCast.handleMainAction: casting=$isCasting starting=$isStartingCast reconnecting=$isReconnecting cameraReady=$cameraReady"
+        )
         when {
             isCasting || isStartingCast -> showStopCastingDialog()
             isReconnecting -> Unit
@@ -635,6 +675,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun startCastFlow() {
+        releaseLog("CameraCast.startCastFlow: cameraReady=$cameraReady connected=${currentCastSession()?.isConnected == true}")
         if (!cameraReady) {
             if (!hasCameraPermission()) {
                 showCameraPermissionDialog()
@@ -663,6 +704,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun beginCameraCast() {
+        releaseLog("CameraCast.beginCameraCast")
         val session = currentCastSession()
         if (session?.isConnected != true) {
             startCastFlow()
@@ -676,8 +718,11 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         mainHandler.postDelayed({
             if (_binding == null || view == null) return@postDelayed
             runCatching {
-                webRtcStreamer?.startCasting()
+                val streamer = webRtcStreamer
+                    ?: throw IllegalStateException("Camera WebRTC streamer is not ready")
+                streamer.startCasting()
             }.onFailure {
+                releaseLog("CameraCast.beginCameraCast: startCasting failed", it)
                 isStartingCast = false
                 updateCastStatus(CastConnectionState.Error)
                 Toast.makeText(
@@ -867,6 +912,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun handleBackPressed() {
+        releaseLog("CameraCast.handleBackPressed")
         if (isCasting || isStartingCast || isReconnecting) {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.text_camera_currently_casting)
@@ -887,6 +933,14 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         ViewCompat.setBackgroundTintList(view, ColorStateList.valueOf(Color.parseColor(color)))
     }
 
+    private fun releaseLog(message: String) {
+        Log.i(TAG_RELEASE, message)
+    }
+
+    private fun releaseLog(message: String, throwable: Throwable) {
+        Log.e(TAG_RELEASE, message, throwable)
+    }
+
     private enum class CastConnectionState {
         Disconnected,
         Connecting,
@@ -895,6 +949,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     companion object {
+        private const val TAG_RELEASE = "TVCastReleaseLog"
         private const val PREFS_NAME = "camera_cast"
         private const val KEY_CAMERA_PERMISSION_ASKED = "camera_permission_asked"
         private const val DEFAULT_ZOOM_RATIO = 1f

@@ -26,6 +26,16 @@ import kotlin.random.Random
 
 
 class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel>() {
+    override val viewModelClass: Class<SplashViewModel>
+        get() = SplashViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentSplashBinding {
+        return FragmentSplashBinding.inflate(inflater, container, false)
+    }
+
     private var job: Job? = null
     private var isPaused = false
     private var isInternetAvailable = true

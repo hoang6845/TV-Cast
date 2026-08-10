@@ -37,6 +37,15 @@ import java.util.Locale
 import kotlin.math.abs
 
 class CastYoutubeFragment : BaseFragment<FragmentCastYoutubeBinding, CastYoutubeViewModel>() {
+    override val viewModelClass: Class<CastYoutubeViewModel>
+        get() = CastYoutubeViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentCastYoutubeBinding {
+        return FragmentCastYoutubeBinding.inflate(inflater, container, false)
+    }
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var castContext: CastContext? = null

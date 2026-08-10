@@ -50,6 +50,15 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel>() {
+    override val viewModelClass: Class<TvRemoteViewModel>
+        get() = TvRemoteViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentTvRemoteBinding {
+        return FragmentTvRemoteBinding.inflate(inflater, container, false)
+    }
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val appShortcuts = arrayOf(

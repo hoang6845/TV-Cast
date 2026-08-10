@@ -20,6 +20,15 @@ import hoang.dqm.codebase.base.activity.popBackStack
 import hoang.dqm.codebase.utils.collectLatestFlow
 
 class MovieAdvisorFragment : BaseFragment<FragmentMovieAdvisorBinding, MovieAdvisorViewModel>() {
+    override val viewModelClass: Class<MovieAdvisorViewModel>
+        get() = MovieAdvisorViewModel::class.java
+
+    override fun inflateBinding(
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?
+    ): FragmentMovieAdvisorBinding {
+        return FragmentMovieAdvisorBinding.inflate(inflater, container, false)
+    }
 
     private val resultAdapter by lazy { MovieAdvisorResultAdapter() }
     private var currentUiState = MovieAdvisorUiState()
