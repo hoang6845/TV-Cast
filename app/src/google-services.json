@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1064382134601",
-    "project_id": "dev-hoang-2",
-    "storage_bucket": "dev-hoang-2.firebasestorage.app"
+    "project_number": "666419731782",
+    "project_id": "tv-cast-android-d3f33",
+    "storage_bucket": "tv-cast-android-d3f33.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1064382134601:android:78854a2b14eb0f8d34c298",
+        "mobilesdk_app_id": "1:666419731782:android:2fd38b2493fdc30d991947",
         "android_client_info": {
           "package_name": "com.tvchromecast.screenmirroringplus"
         }
@@ -15,45 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAGCb5DNMsuscZjHG_pqk7l9TEnciXAjJw"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:1064382134601:android:9a1474ff29b2f09634c298",
-        "android_client_info": {
-          "package_name": "dev.app.diamond_painting"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAGCb5DNMsuscZjHG_pqk7l9TEnciXAjJw"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:1064382134601:android:29086dd7c71aa45334c298",
-        "android_client_info": {
-          "package_name": "dev.app.widget"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAGCb5DNMsuscZjHG_pqk7l9TEnciXAjJw"
+          "current_key": "AIzaSyCYJG0cbOKMuQlV8HUL4oDcZ-7m4-lc7Cw"
         }
       ],
       "services": {
