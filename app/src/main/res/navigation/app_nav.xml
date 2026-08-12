@@ -65,6 +65,11 @@
         android:label="fragment_intro"
         tools:layout="@layout/fragment_intro" />
     <fragment
+        android:id="@+id/IAPFragment"
+        android:name="com.tvchromecast.screenmirroringplus.ui.iap.IAPFragment"
+        android:label="IAPFragment"
+        tools:layout="@layout/fragment_i_a_p" />
+    <fragment
         android:id="@+id/settingFragment"
         android:name="com.tvchromecast.screenmirroringplus.ui.setting.SettingFragment"
         android:label="fragment_setting"

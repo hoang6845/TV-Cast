@@ -1,21 +1,28 @@
 package com.tvchromecast.screenmirroringplus.ui.intro
 
 import android.annotation.SuppressLint
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.TextPaint
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
 import android.view.View
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.viewpager2.widget.ViewPager2
 import com.tvchromecast.screenmirroringplus.R
 import com.tvchromecast.screenmirroringplus.databinding.FragmentIntroBinding
 import com.tvchromecast.screenmirroringplus.model.entity.SlideItem
-import com.tvchromecast.screenmirroringplus.utils.gone
-import com.tvchromecast.screenmirroringplus.utils.invisible
-import com.tvchromecast.screenmirroringplus.utils.visible
+import com.tvchromecast.screenmirroringplus.utils.AppConstants
+import com.tvchromecast.screenmirroringplus.utils.Common
 import hoang.dqm.codebase.base.activity.BaseFragment
-import hoang.dqm.codebase.base.activity.navigate
+import hoang.dqm.codebase.base.activity.navigateWithIntermediate
 import tpt.dev.monetization.ads.nativeAd.view.ViewNativeAd
 
 
@@ -114,8 +121,8 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         view.findViewById<TextView>(R.id.des_1).isVisible = false
         view.findViewById<TextView>(R.id.title_2).isVisible = false
         view.findViewById<TextView>(R.id.des_2).isVisible = false
-        view.findViewById<TextView>(R.id.title_3).isVisible = true
-        view.findViewById<TextView>(R.id.des_3).isVisible = true
+        view.findViewById<TextView>(R.id.title_3).isVisible = position != 0
+        view.findViewById<TextView>(R.id.des_3).isVisible = position != 0
 //        view.findViewById<TextView>(R.id.title_3).text = buildSpannedString {
 //            color(Color.parseColor("#ffffff")) {
 //                append(getString(R.string.text_start))
@@ -131,10 +138,91 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
 //        }
         view.findViewById<TextView>(R.id.title_3).text = item.title
         view.findViewById<TextView>(R.id.des_3).text = item.description
-        view.findViewById<TextView>(R.id.btn_save).text = getString(R.string.text_continue)
+        val button = view.findViewById<TextView>(R.id.btn_save)
+        button.text = if (position == 0) {
+            getString(R.string.text_get_started)
+        } else {
+            getString(R.string.text_continue)
+        }
         view.findViewById<ImageView>(R.id.img_intro).setImageResource(item.imageRes)
-        view.findViewById<TextView>(R.id.btn_save).setOnClickListener {
+        bindIntroFooter(view, position)
+        button.setOnClickListener {
             handleNext(position)
+        }
+    }
+
+    private fun bindIntroFooter(view: View, position: Int) {
+        val legalText: TextView? = view.findViewById(R.id.tv_intro_terms_policy)
+        val dotsLayout: LinearLayout? = view.findViewById(R.id.layout_intro_dots)
+        val showLegal = position == 0
+
+        legalText?.isVisible = showLegal
+        dotsLayout?.isVisible = !showLegal
+
+        if (showLegal) {
+            dotsLayout?.removeAllViews()
+            legalText?.let(::bindLegalText)
+        } else {
+            dotsLayout?.let { bindDots(it, position) }
+        }
+    }
+
+    private fun bindLegalText(textView: TextView) {
+        val termsText = getString(R.string.text_term_conditions)
+        val policyText = getString(R.string.text_policy)
+        val fullText = getString(R.string.text_intro_terms_policy, termsText, policyText)
+        val spannable = SpannableString(fullText).apply {
+            setIntroLink(termsText, AppConstants.term)
+            setIntroLink(policyText, AppConstants.policy)
+        }
+
+        textView.text = spannable
+        textView.movementMethod = LinkMovementMethod.getInstance()
+        textView.highlightColor = Color.TRANSPARENT
+    }
+
+    private fun SpannableString.setIntroLink(label: String, url: String) {
+        val start = toString().indexOf(label)
+        if (start < 0) return
+
+        setSpan(
+            object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    Common.openWebView(widget.context, url)
+                }
+
+                override fun updateDrawState(ds: TextPaint) {
+                    super.updateDrawState(ds)
+                    ds.color = Color.WHITE
+                    ds.isUnderlineText = false
+                }
+            },
+            start,
+            start + label.length,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+    }
+
+    private fun bindDots(layout: LinearLayout, position: Int) {
+        layout.removeAllViews()
+        repeat(slides.size) { index ->
+            layout.addView(createDot(index == position))
+        }
+    }
+
+    private fun createDot(isSelected: Boolean): View {
+        return View(requireContext()).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(if (isSelected) Color.WHITE else Color.parseColor("#7C7C82"))
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._4sdp),
+                resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._4sdp)
+            ).apply {
+                marginStart = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._2sdp)
+                marginEnd = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._2sdp)
+            }
         }
     }
 
@@ -187,8 +275,8 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         val closeView = view.findViewById<ImageView>(R.id.ivClose)
         val countdownView = view.findViewById<TextView>(R.id.tvCloseCountdown)
 
-        closeView?.invisible()
-        countdownView?.gone()
+        closeView?.visibility = View.INVISIBLE
+        countdownView?.visibility = View.GONE
 
         closeView?.setOnClickListener {
             closeCountdownTimer?.cancel()
@@ -210,8 +298,8 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         val closeView = view.findViewById<ImageView>(R.id.ivClose) ?: return
         val countdownView = view.findViewById<TextView>(R.id.tvCloseCountdown) ?: return
 
-        closeView.invisible()
-        countdownView.visible()
+        closeView.visibility = View.INVISIBLE
+        countdownView.visibility = View.VISIBLE
         countdownView.text = "4s"
 
         closeCountdownTimer = object : CountDownTimer(4000L, 1000L) {
@@ -226,8 +314,8 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
             override fun onFinish() {
                 if (!isAdded) return
 
-                countdownView.gone()
-                closeView.visible()
+                countdownView.visibility = View.GONE
+                closeView.visibility = View.VISIBLE
             }
         }.start()
     }
@@ -240,14 +328,13 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
                 putBoolean("isFromSplash", true)
             }
 
-//            navigateWithIntermediate(
-//                R.id.homeFragment,
-//                R.id.IAPFragment,
-//                bundle,
-//                bundle,
-//                isPopA = true
-//            )
-            navigate(R.id.homeFragment, isPop = true)
+            navigateWithIntermediate(
+                R.id.homeFragment,
+                R.id.IAPFragment,
+                bundle,
+                bundle,
+                isPopA = true
+            )
         }
     }
 

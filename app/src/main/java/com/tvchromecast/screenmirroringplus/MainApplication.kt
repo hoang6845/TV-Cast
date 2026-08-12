@@ -57,18 +57,18 @@ class MainApplication : BaseApplication(), Configuration.Provider {
 //            isAllowShowOpenAd = true
 //        )
 
-//        AppMonetization.billing.configure(
-//            iapProducts = listOf(
-//                IAPProduct(
-//                    productType = IAPProductType.Subscription,
-//                    productId = getString(hoang.dqm.codebase.R.string.billing_sub_week)
-//                ),
-//                IAPProduct(
-//                    productType = IAPProductType.Subscription,
-//                    productId = getString(hoang.dqm.codebase.R.string.billing_sub_year)
-//                )
-//            )
-//        )
+        AppMonetization.billing.configure(
+            iapProducts = listOf(
+                IAPProduct(
+                    productType = IAPProductType.Subscription,
+                    productId = getString(hoang.dqm.codebase.R.string.billing_sub_week)
+                ),
+                IAPProduct(
+                    productType = IAPProductType.Subscription,
+                    productId = getString(hoang.dqm.codebase.R.string.billing_sub_year)
+                )
+            )
+        )
     }
 
     companion object {

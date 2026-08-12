@@ -1,8 +1,8 @@
 package com.tvchromecast.screenmirroringplus.utils
 
 object AppConstants {
-    const val term = "https://sites.google.com/view/iptv-player-m3u-xtream/terms-conditions"
-    const val policy = "https://sites.google.com/view/iptv-player-m3u-xtream/privacy-policy"
+    const val term = "https://sites.google.com/view/screen-mirroring--cast-tv/privacy-policy?fbclid=IwY2xjawTnpDRwZG9mBWV4dG4DYWVtAjEwAGJyaWQRMWZmSzY4S1QwS1dodzJSWXVzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEeBN1u7Hw0cJAgi5K_7hZ3oEt2ri7_jT65WswBPjSyzLFOUOY0ieSBqIi5CQE_aem_maRNIP2hTSH0p7_6PA1Y5w"
+    const val policy = "https://sites.google.com/view/screen-mirroring--cast-tv/privacy-policy?fbclid=IwY2xjawTnpDRwZG9mBWV4dG4DYWVtAjEwAGJyaWQRMWZmSzY4S1QwS1dodzJSWXVzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEeBN1u7Hw0cJAgi5K_7hZ3oEt2ri7_jT65WswBPjSyzLFOUOY0ieSBqIi5CQE_aem_maRNIP2hTSH0p7_6PA1Y5w"
     const val LANGUAGE_URL = "https://iptv-org.github.io/iptv/index.language.m3u"
     const val CATEGORY_URL = "https://iptv-org.github.io/iptv/index.category.m3u"
     const val COUNTRY_URL = "https://iptv-org.github.io/iptv/index.country.m3u"

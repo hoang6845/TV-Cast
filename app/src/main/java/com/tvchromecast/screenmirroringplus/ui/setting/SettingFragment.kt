@@ -3,6 +3,7 @@ package com.tvchromecast.screenmirroringplus.ui.setting
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatDelegate
+import com.tvchromecast.screenmirroringplus.R
 import com.tvchromecast.screenmirroringplus.databinding.FragmentSettingBinding
 import com.tvchromecast.screenmirroringplus.ui.language_activity.LanguageActivity
 import com.tvchromecast.screenmirroringplus.utils.Common
@@ -68,7 +69,7 @@ class SettingFragment : BaseFragment<FragmentSettingBinding, SettingViewModel>()
 
         }
         binding.llManageSubscription.setOnClickListener {
-//            navigateFade(R.id.IAPFragment)
+            navigateFade(R.id.IAPFragment)
         }
         binding.llImport.setOnClickListener {
             val bundle = Bundle().apply {
@@ -98,7 +99,7 @@ class SettingFragment : BaseFragment<FragmentSettingBinding, SettingViewModel>()
         }
 
         binding.btnPremium.setOnClickListener {
-//            navigateFade(R.id.IAPFragment)
+            navigateFade(R.id.IAPFragment)
         }
 
 

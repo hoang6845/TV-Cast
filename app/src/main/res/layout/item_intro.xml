@@ -116,16 +116,58 @@
         android:layout_height="0dp"
         android:layout_marginHorizontal="@dimen/_16sdp"
         android:layout_marginTop="@dimen/_8sdp"
-        android:layout_marginBottom="@dimen/_40sdp"
+        android:layout_marginBottom="@dimen/_8sdp"
         android:background="@drawable/shape_btn"
         android:fontFamily="@font/inter"
         android:gravity="center"
         android:text="@string/text_continue"
         android:textColor="@color/white"
         android:textSize="@dimen/_18ssp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/layout_intro_footer"
         app:layout_constraintDimensionRatio="297:65"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_intro_footer"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_26sdp"
+        android:layout_marginHorizontal="@dimen/_16sdp"
+        android:layout_marginBottom="@dimen/_8sdp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/tv_intro_terms_policy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="@dimen/_1sdp"
+            android:textColor="#D7D7D7"
+            android:textSize="@dimen/_8ssp"
+            android:textColorLink="@color/white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="By continuing, you agree to our Terms &amp; Conditions and Privacy Policy." />
+
+        <LinearLayout
+            android:id="@+id/layout_intro_dots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="visible" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
