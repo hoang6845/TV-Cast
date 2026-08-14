@@ -330,9 +330,9 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
 
             navigateWithIntermediate(
                 R.id.homeFragment,
-                R.id.IAPFragment,
+                R.id.IAPIntroFragment,
                 bundle,
-                bundle,
+                null,
                 isPopA = true
             )
         }

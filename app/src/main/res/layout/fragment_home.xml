@@ -25,6 +25,15 @@
         app:layout_constraintTop_toTopOf="@id/top" />
 
     <ImageView
+        android:id="@+id/ic_premium"
+        android:layout_width="@dimen/_24sdp"
+        android:layout_height="@dimen/_24sdp"
+        android:layout_marginEnd="@dimen/_6sdp"
+        app:layout_constraintBottom_toBottomOf="@id/ic_setting"
+        android:src="@drawable/ic_premium"
+        app:layout_constraintEnd_toStartOf="@id/ic_help"
+        app:layout_constraintTop_toTopOf="@id/ic_setting" />
+    <ImageView
         android:id="@+id/ic_help"
         android:layout_width="@dimen/_24sdp"
         android:layout_height="@dimen/_24sdp"

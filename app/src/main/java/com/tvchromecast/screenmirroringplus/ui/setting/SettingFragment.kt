@@ -3,6 +3,7 @@ package com.tvchromecast.screenmirroringplus.ui.setting
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.net.toUri
 import com.tvchromecast.screenmirroringplus.R
 import com.tvchromecast.screenmirroringplus.databinding.FragmentSettingBinding
 import com.tvchromecast.screenmirroringplus.ui.language_activity.LanguageActivity
@@ -69,7 +70,12 @@ class SettingFragment : BaseFragment<FragmentSettingBinding, SettingViewModel>()
 
         }
         binding.llManageSubscription.setOnClickListener {
-            navigateFade(R.id.IAPFragment)
+                val packageName = requireContext().packageName
+                val uri =
+                    "https://play.google.com/store/account/subscriptions?package=$packageName".toUri()
+
+                val intent = Intent(Intent.ACTION_VIEW, uri)
+                startActivity(intent)
         }
         binding.llImport.setOnClickListener {
             val bundle = Bundle().apply {

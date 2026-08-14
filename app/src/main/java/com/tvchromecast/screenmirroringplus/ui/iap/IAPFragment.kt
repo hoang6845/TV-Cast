@@ -69,7 +69,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
     }
 
     override fun initView() {
-        adjustInsetsForBottomNavigation(binding.bg)
+        adjustInsetsForBottomNavigation(binding.btnClose)
 
         binding.titleAccess.text = buildSpannedString {
             color("#F4D188".toColorInt()) {
@@ -189,8 +189,9 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
 
         val displayProductIds = listOf(
             getString(hoang.dqm.codebase.R.string.billing_sub_week),
-            getString(hoang.dqm.codebase.R.string.billing_sub_year)
-        )
+            getString(hoang.dqm.codebase.R.string.billing_sub_year),
+            getString(hoang.dqm.codebase.R.string.billing_lifetime),
+            )
 
         val iapProductsFlow = pricedProductsFlow.map { products ->
             products
@@ -222,7 +223,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
                 isTrialEnabled = effectiveTrialEnabled,
                 hasFreeTrialProduct = hasFreeTrialProduct
             )
-            }
+        }
             .asLiveData()
             .observe(viewLifecycleOwner) { state ->
                 if (!state.hasFreeTrialProduct && trialEnabledFlow.value) {
@@ -268,8 +269,8 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
     private fun updateSelectedProductUi() {
         val hasFreeTrialProduct = displayedProducts.any { it.freeTrialDays > 0 }
         val showFreeTrial = trialEnabledFlow.value &&
-            hasFreeTrialProduct &&
-            (selectedProduct?.freeTrialDays ?: 0) > 0
+                hasFreeTrialProduct &&
+                (selectedProduct?.freeTrialDays ?: 0) > 0
 
         binding.cardTrialToggle.isVisible = hasFreeTrialProduct
         binding.ivTrialSwitch.setImageResource(
@@ -279,8 +280,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
                 R.drawable.ic_switch_off
             }
         )
-        binding.titleFreeT.isVisible = showFreeTrial
-        binding.noPaymentRow.isVisible = showFreeTrial
+//        binding.noPaymentRow.isVisible = showFreeTrial
 
         binding.btnSave.text = getString(
             if (showFreeTrial) {
@@ -302,11 +302,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
     }
 
     private fun handleClose() {
-        if (isFromSplash) {
-            popBackStack()
-        } else {
-            popBackStack()
-        }
+        popBackStack()
     }
 
     private fun showUpgradeSuccessDialog() {

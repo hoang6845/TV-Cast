@@ -12,14 +12,14 @@
     <path
         android:pathData="M16,4L16,4A12,12 0,0 1,28 16L28,16A12,12 0,0 1,16 28L16,28A12,12 0,0 1,4 16L4,16A12,12 0,0 1,16 4z"
         android:fillColor="#4D4444"/>
-    <path
-        android:pathData="M9.333,9.333h2.667v13.333h-2.667z"
-        android:fillColor="#ffffff"/>
-    <path
-        android:pathData="M14.667,9.333h2.667v13.333h-2.667z"
-        android:fillColor="#ffffff"/>
-    <path
-        android:pathData="M20,9.333h2.667v13.333h-2.667z"
-        android:fillColor="#ffffff"/>
+<!--    <path-->
+<!--        android:pathData="M9.333,9.333h2.667v13.333h-2.667z"-->
+<!--        android:fillColor="#ffffff"/>-->
+<!--    <path-->
+<!--        android:pathData="M14.667,9.333h2.667v13.333h-2.667z"-->
+<!--        android:fillColor="#ffffff"/>-->
+<!--    <path-->
+<!--        android:pathData="M20,9.333h2.667v13.333h-2.667z"-->
+<!--        android:fillColor="#ffffff"/>-->
   </group>
 </vector>

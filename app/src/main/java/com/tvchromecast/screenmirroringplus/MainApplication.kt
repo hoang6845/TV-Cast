@@ -3,10 +3,10 @@ package com.tvchromecast.screenmirroringplus
 import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.tvchromecast.screenmirroringplus.ui.home.HomeFragment
 import com.tvchromecast.screenmirroringplus.utils.AppConstants
 import com.tvchromecast.screenmirroringplus.utils.ThemeManager
 import com.makeramen.roundedimageview.BuildConfig
+import com.tvchromecast.screenmirroringplus.ui.home.HomeFragment
 import dagger.hilt.android.HiltAndroidApp
 import hoang.dqm.codebase.base.application.BaseApplication
 import hoang.dqm.codebase.data.AppInfo
@@ -66,6 +66,10 @@ class MainApplication : BaseApplication(), Configuration.Provider {
                 IAPProduct(
                     productType = IAPProductType.Subscription,
                     productId = getString(hoang.dqm.codebase.R.string.billing_sub_year)
+                ),
+                IAPProduct(
+                    productType = IAPProductType.InApp,
+                    productId = getString(hoang.dqm.codebase.R.string.billing_lifetime)
                 )
             )
         )

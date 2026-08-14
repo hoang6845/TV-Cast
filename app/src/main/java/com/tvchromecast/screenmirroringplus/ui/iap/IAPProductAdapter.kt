@@ -14,7 +14,7 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
-class IAPProductAdapter :
+class IAPProductAdapter() :
     BaseRecyclerViewAdapter<ProductWithSelection, ItemIapProductBinding>() {
 
     private var clickListener: ((item: IAPProduct, position: Int) -> Unit)? = null
@@ -28,6 +28,7 @@ class IAPProductAdapter :
         val (product, isSelected) = item
         val regularPrice = getRegularPrice(product)
         val period = product.periods()
+        val isLifetime = product.isOneTime
         val showTrial = isTrialEnabled && product.freeTrialDays > 0
         val displayPrice = getDisplayPrice(regularPrice, period)
 
@@ -52,7 +53,7 @@ class IAPProductAdapter :
             period == IAPProductPeriods.Yearly -> android.view.View.VISIBLE
             else -> android.view.View.GONE
         }
-        binding.bestDeal.visibility = if (period == IAPProductPeriods.Yearly) {
+        binding.bestDeal.visibility = if (isLifetime) {
             android.view.View.VISIBLE
         } else {
             android.view.View.GONE

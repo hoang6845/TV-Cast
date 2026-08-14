@@ -13,9 +13,16 @@
     <string name="text_iap_enable_free_trial">Enable Free Trial</string>
     <string name="text_iap_best_deal">BEST DEAL</string>
     <string name="text_iap_start_free_trial">Start Free Trial</string>
+    <string name="text_iap_try_for_free">Try for Free</string>
+    <string name="text_iap_start_free_now">Start Free Now</string>
+    <string name="text_iap_get_now">Get Now</string>
+    <string name="text_iap_choose_plan_title">Choose your plan to unlock</string>
+    <string name="text_iap_choose_plan_subtitle">If you\'re not satisfied, cancel anytime.</string>
+    <string name="text_iap_intro_trial_then_price">%1$d days free then %2$s</string>
     <string name="text_iap_start_watching_now">Start Watching Now</string>
     <string name="text_iap_terms_of_service">Terms of Service</string>
     <string name="text_iap_privacy_policy">Privacy Policy</string>
+    <string name="text_restore">Restore</string>
     <string name="text_iap_no_payment_now">No payment now</string>
     <string name="text_iap_trial_auto_renewal">3-day free trial, auto-renewal, cancel anytime.</string>
     <string name="text_iap_cast_without_limits">Cast videos, photos, web and IPTV without limits</string>
@@ -369,4 +376,5 @@
     <string name="text_completely_ad_free_experience">Completely Ad-Free Experience</string>
     <string name="text_ultra_hd_4k_streaming">Ultra-HD 4K Streaming</string>
     <string name="text_instant_playback_no_delay">Instant Playback, No Delay</string>
+    <string name="text_get_full_access_to_screen_mirroring">GET FULL ACCESS TO SCREEN MIRRORING</string>
 </resources>

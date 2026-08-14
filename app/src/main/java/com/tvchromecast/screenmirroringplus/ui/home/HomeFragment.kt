@@ -1,5 +1,6 @@
 package com.tvchromecast.screenmirroringplus.ui.home
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -109,6 +110,9 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     }
 
     override fun initListener() {
+        binding.icPremium.setOnClickListener {
+            navigate(R.id.IAPFragment)
+        }
         binding.btnHowToConnect.setOnClickListener {
             showHowToConnectSheet()
         }
@@ -225,6 +229,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
             }
         }
 
+        @SuppressLint("RestrictedApi")
         fun availableCastRoutes(): List<MediaRouter.RouteInfo> {
             return mediaRouter.routes
                 .filter { route ->
