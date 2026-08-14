@@ -60,16 +60,6 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
     override fun initView() {
         adjustInsetsForBottomNavigation(binding.btnClose)
 
-        binding.titleAccess.text = buildSpannedString {
-            color("#F4D188".toColorInt()) {
-                append(getString(R.string.text_iap_premium_access).substringBefore(" "))
-            }
-            append(" ")
-            color(Color.WHITE) {
-                append(getString(R.string.text_iap_premium_access).substringAfter(" "))
-            }
-        }
-
         binding.btnClose.visibility = View.INVISIBLE
         binding.btnClose.postDelayed({
             if (isAdded && !isDetached && view != null) {
