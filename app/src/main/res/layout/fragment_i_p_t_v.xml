@@ -204,66 +204,15 @@
         </LinearLayout>
 
         <FrameLayout
-            android:id="@+id/list_container"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="@dimen/_10sdp"
-            android:layout_weight="1">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_categories"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingBottom="@dimen/_12sdp"
-                tools:itemCount="8"
-                tools:listitem="@layout/item_iptv_category" />
-
-            <TextView
-                android:id="@+id/tv_empty_categories"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:fontFamily="@font/inter"
-                android:gravity="center"
-                android:padding="@dimen/_24sdp"
-                android:text="@string/text_no_categories_found"
-                android:textColor="#8F8F96"
-                android:textSize="@dimen/_11ssp"
-                android:visibility="gone" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_channels"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingHorizontal="@dimen/_8sdp"
-                android:paddingBottom="@dimen/_12sdp"
-                android:visibility="gone"
-                tools:itemCount="6"
-                tools:listitem="@layout/item_iptv_channel" />
-
-            <TextView
-                android:id="@+id/tv_empty_channels"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:fontFamily="@font/inter"
-                android:gravity="center"
-                android:padding="@dimen/_24sdp"
-                android:text="@string/text_no_channels_found"
-                android:textColor="#8F8F96"
-                android:textSize="@dimen/_11ssp"
-                android:visibility="gone" />
-        </FrameLayout>
-
-        <FrameLayout
             android:id="@+id/player_container"
             android:layout_width="match_parent"
             android:layout_height="@dimen/_150sdp"
             android:layout_marginHorizontal="@dimen/_12sdp"
-            android:layout_marginBottom="@dimen/_16sdp"
+            android:layout_marginTop="@dimen/_10sdp"
             android:background="@drawable/bg_iptv_bottom_player"
             android:clipToOutline="true"
-            android:visibility="visible">
+            android:visibility="gone"
+            tools:visibility="visible">
 
             <androidx.media3.ui.PlayerView
                 android:id="@+id/player_view"
@@ -328,6 +277,58 @@
                 android:textColor="@color/white"
                 android:textSize="@dimen/_8ssp"
                 android:textStyle="bold" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/list_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/_10sdp"
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_categories"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="@dimen/_12sdp"
+                tools:itemCount="8"
+                tools:listitem="@layout/item_iptv_category" />
+
+            <TextView
+                android:id="@+id/tv_empty_categories"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:padding="@dimen/_24sdp"
+                android:text="@string/text_no_categories_found"
+                android:textColor="#8F8F96"
+                android:textSize="@dimen/_11ssp"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_channels"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingHorizontal="@dimen/_8sdp"
+                android:paddingBottom="@dimen/_12sdp"
+                android:visibility="gone"
+                tools:itemCount="6"
+                tools:listitem="@layout/item_iptv_channel" />
+
+            <TextView
+                android:id="@+id/tv_empty_channels"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:padding="@dimen/_24sdp"
+                android:text="@string/text_no_channels_found"
+                android:textColor="#8F8F96"
+                android:textSize="@dimen/_11ssp"
+                android:visibility="gone" />
         </FrameLayout>
     </LinearLayout>
 

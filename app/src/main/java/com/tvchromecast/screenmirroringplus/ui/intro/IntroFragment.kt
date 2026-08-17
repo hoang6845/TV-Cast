@@ -1,6 +1,7 @@
 package com.tvchromecast.screenmirroringplus.ui.intro
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.View
@@ -11,11 +12,13 @@ import androidx.viewpager2.widget.ViewPager2
 import com.tvchromecast.screenmirroringplus.R
 import com.tvchromecast.screenmirroringplus.databinding.FragmentIntroBinding
 import com.tvchromecast.screenmirroringplus.model.entity.SlideItem
+import com.tvchromecast.screenmirroringplus.ui.language_activity.LanguageActivity
 import com.tvchromecast.screenmirroringplus.utils.gone
 import com.tvchromecast.screenmirroringplus.utils.invisible
 import com.tvchromecast.screenmirroringplus.utils.visible
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.navigate
+import hoang.dqm.codebase.base.activity.onBackPressed
 import tpt.dev.monetization.ads.nativeAd.view.ViewNativeAd
 
 
@@ -251,7 +254,25 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         }
     }
 
+    private fun handleBackPressed() {
+        val currentPage = binding.viewPager2.currentItem
+        if (currentPage > 0) {
+            closeCountdownTimer?.cancel()
+            closeCountdownTimer = null
+            binding.viewPager2.setCurrentItem(currentPage - 1, true)
+        } else {
+            openLanguage()
+        }
+    }
+
+    private fun openLanguage() {
+        startActivity(Intent(requireContext(), LanguageActivity::class.java).apply {
+            putExtra("isFromSplash", true)
+        })
+    }
+
     override fun initListener() {
+        onBackPressed { handleBackPressed() }
         binding.viewPager2.registerOnPageChangeCallback(pageChangeCallback)
     }
 

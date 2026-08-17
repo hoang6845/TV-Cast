@@ -88,7 +88,6 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         adjustInsetsForBottomNavigation(binding.topBar)
         adjustInsetsForBottomPadding(binding.rvCategories)
         adjustInsetsForBottomPadding(binding.rvChannels)
-        adjustInsetsForBottomMargin(binding.playerContainer)
         setupRecyclerViews()
         setupCast()
     }

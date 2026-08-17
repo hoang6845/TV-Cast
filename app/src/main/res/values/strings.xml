@@ -96,6 +96,9 @@
     <string name="text_stop_casting_message">Are you sure you want to stop video casting?</string>
     <string name="text_stop_casting">Stop Casting</string>
     <string name="text_cancel">Cancel</string>
+    <string name="text_exit">Exit</string>
+    <string name="text_exit_app_title">Exit App?</string>
+    <string name="text_exit_app_message">Are you sure you want to close TV Cast?</string>
     <string name="text_bookmark_added">Bookmark added</string>
     <string name="text_bookmark_removed">Bookmark removed</string>
     <string name="text_cast_photos">Cast Photos</string>
