@@ -247,14 +247,24 @@ class CameraWebRtcStreamer(
 
     fun setTorchEnabled(enabled: Boolean): Boolean {
         val cameraName = activeCameraName ?: return false
-        if (enabled && (isFrontCamera || !hasFlashUnit(cameraName))) return false
 
-        val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
-            ?: return false
-        return runCatching {
+        if (isFrontCamera) return false
+        if (!hasFlashUnit(cameraName)) return false
+
+        val cameraManager =
+            context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+
+        return try {
             cameraManager.setTorchMode(cameraName, enabled)
             true
-        }.getOrDefault(false)
+        } catch (e: Exception) {
+            android.util.Log.e(
+                "CameraTorch",
+                "setTorchMode($cameraName, $enabled) failed",
+                e
+            )
+            false
+        }
     }
 
     fun stopCasting() {

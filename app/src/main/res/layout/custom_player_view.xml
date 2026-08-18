@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/player_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/black"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:resize_mode="zoom"
+        app:show_buffering="never"
+        app:use_controller="false" />
+
+    <FrameLayout
+        android:id="@+id/controls_overlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#80000000"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Unlock Button (when controls are locked) -->
+        <LinearLayout
+            android:id="@+id/btn_unlock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center|bottom"
+            android:layout_marginBottom="@dimen/_24sdp"
+            android:background="@android:color/transparent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <ImageView
+                android:layout_width="@dimen/_32sdp"
+                android:layout_height="@dimen/_32sdp"
+                android:contentDescription="@string/text_unlock"
+                android:src="@drawable/ic_lock_open"
+                app:tint="@color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_4sdp"
+                android:fontFamily="@font/inter"
+                android:text="@string/text_unlock"
+                android:textColor="#CCFFFFFF"
+                android:textSize="@dimen/_10ssp" />
+        </LinearLayout>
+
+        <!-- Brightness Control Panel (Left Side) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/brightness_panel"
+            android:layout_width="@dimen/_48sdp"
+            android:layout_height="@dimen/_150sdp"
+            android:layout_gravity="center_vertical|start"
+            android:layout_marginStart="@dimen/_16sdp"
+            android:elevation="8dp"
+            app:cardBackgroundColor="#CC1E2332"
+            app:cardCornerRadius="@dimen/_24sdp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:clipToPadding="false">
+
+                    <SeekBar
+                        android:id="@+id/brightness_seekbar"
+                        android:layout_width="@dimen/_120sdp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom|center"
+                        android:layout_marginBottom="@dimen/_8sdp"
+                        android:max="100"
+                        android:progress="50"
+                        android:progressTint="@color/white"
+                        android:rotation="-90"
+                        android:thumbTint="@color/white" />
+                </FrameLayout>
+
+                <ImageButton
+                    android:id="@+id/btn_brightness"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_marginBottom="@dimen/_6sdp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/text_brightness"
+                    android:padding="@dimen/_8sdp"
+                    android:src="@drawable/ic_sun"
+                    app:tint="@color/white" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Volume Control Panel (Right Side) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/volume_panel"
+            android:layout_width="@dimen/_48sdp"
+            android:layout_height="@dimen/_150sdp"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginEnd="@dimen/_16sdp"
+            android:elevation="8dp"
+            app:cardBackgroundColor="#CC1E2332"
+            app:cardCornerRadius="@dimen/_24sdp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:clipToPadding="false">
+
+                    <SeekBar
+                        android:id="@+id/volume_seekbar"
+                        android:layout_width="@dimen/_120sdp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom|center"
+                        android:layout_marginBottom="@dimen/_8sdp"
+                        android:max="100"
+                        android:progress="100"
+                        android:progressTint="@color/white"
+                        android:rotation="-90"
+                        android:thumbTint="@color/white" />
+                </FrameLayout>
+
+                <ImageButton
+                    android:id="@+id/btn_volume"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_marginBottom="@dimen/_6sdp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/text_volume"
+                    android:padding="@dimen/_8sdp"
+                    android:src="@drawable/ic_volumn"
+                    app:tint="@color/white" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Top Bar -->
+        <LinearLayout
+            android:id="@+id/top_bar_controls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/_12sdp"
+            android:paddingVertical="@dimen/_8sdp">
+
+            <ImageButton
+                android:id="@+id/btn_back_player"
+                android:layout_width="@dimen/_42sdp"
+                android:layout_height="@dimen/_42sdp"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/text_back"
+                android:padding="@dimen/_8sdp"
+                android:src="@drawable/ic_close_watch" />
+
+            <TextView
+                android:id="@+id/tv_player_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/_12sdp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:fontFamily="@font/inter"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_12ssp"
+                android:textStyle="bold"
+                tools:text="Channel Name" />
+
+            <ImageButton
+                android:id="@+id/btn_favorite"
+                android:layout_width="@dimen/_42sdp"
+                android:layout_height="@dimen/_42sdp"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/text_favorites"
+                android:padding="@dimen/_8sdp"
+                android:src="@drawable/favourite"
+                app:tint="@color/white" />
+        </LinearLayout>
+
+        <!-- Center Play/Pause Controls -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/btn_rewind"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="@dimen/_8sdp">
+
+                <ImageView
+                    android:layout_width="@dimen/_42sdp"
+                    android:layout_height="@dimen/_42sdp"
+                    android:contentDescription="@string/text_rewind"
+                    android:src="@drawable/ic_replay_10"
+                    app:tint="@color/white" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btn_play_pause"
+                android:layout_width="@dimen/_60sdp"
+                android:layout_height="@dimen/_60sdp"
+                android:layout_marginHorizontal="@dimen/_24sdp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/text_play_pause"
+                android:focusable="true"
+                android:padding="@dimen/_12sdp"
+                android:src="@drawable/ic_pause"
+                app:tint="@color/white" />
+
+            <LinearLayout
+                android:id="@+id/btn_forward"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="@dimen/_8sdp">
+
+                <ImageView
+                    android:layout_width="@dimen/_42sdp"
+                    android:layout_height="@dimen/_42sdp"
+                    android:contentDescription="@string/text_forward"
+                    android:src="@drawable/ic_forward_10"
+                    app:tint="@color/white" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Bottom Controls -->
+        <LinearLayout
+            android:id="@+id/bottom_controls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/_8sdp">
+
+            <!-- Seekbar with Time -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/_12sdp">
+
+                <TextView
+                    android:id="@+id/tv_current_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/inter"
+                    android:includeFontPadding="false"
+                    android:text="00:00"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/_10ssp" />
+
+                <SeekBar
+                    android:id="@+id/seekbar_time"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="@dimen/_8sdp"
+                    android:layout_weight="1"
+                    android:max="1000"
+                    android:progressTint="#E53935"
+                    android:thumbTint="#E53935" />
+
+                <TextView
+                    android:id="@+id/tv_total_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/_2sdp"
+                    android:fontFamily="@font/inter"
+                    android:includeFontPadding="false"
+                    android:text="00:00"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/_10ssp" />
+
+                <ImageView
+                    android:id="@+id/btn_fullscreen"
+                    android:layout_width="@dimen/_32sdp"
+                    android:layout_height="@dimen/_32sdp"
+                    android:layout_marginEnd="@dimen/_2sdp"
+                    android:background="@drawable/ic_bg_watch"
+                    android:contentDescription="@string/text_fullscreen"
+                    android:padding="@dimen/_6sdp"
+                    android:src="@drawable/ic_fullscreen"
+                    app:tint="@color/white" />
+            </LinearLayout>
+
+            <!-- Bottom Action Buttons -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_4sdp"
+                android:paddingHorizontal="@dimen/_12sdp">
+
+                <ImageView
+                    android:id="@+id/btn_lock"
+                    android:layout_width="@dimen/_32sdp"
+                    android:layout_height="@dimen/_32sdp"
+                    android:layout_marginEnd="@dimen/_2sdp"
+                    android:background="@drawable/ic_bg_watch"
+                    android:contentDescription="@string/text_lock"
+                    android:padding="@dimen/_6sdp"
+                    android:src="@drawable/ic_lock"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:tint="@color/white" />
+
+                <ImageView
+                    android:id="@+id/btn_sleep_timer"
+                    android:layout_width="@dimen/_32sdp"
+                    android:layout_height="@dimen/_32sdp"
+                    android:layout_marginStart="@dimen/_2sdp"
+                    android:background="@drawable/ic_bg_watch"
+                    android:contentDescription="@string/text_sleep_timer"
+                    android:padding="@dimen/_6sdp"
+                    android:src="@drawable/ic_sleep_timer"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/btn_lock"
+                    app:tint="@color/white" />
+
+                <ImageView
+                    android:id="@+id/btn_pip"
+                    android:layout_width="@dimen/_32sdp"
+                    android:layout_height="@dimen/_32sdp"
+                    android:layout_marginEnd="@dimen/_2sdp"
+                    android:background="@drawable/ic_bg_watch"
+                    android:contentDescription="@string/text_pip"
+                    android:padding="@dimen/_6sdp"
+                    android:src="@drawable/ic_picture"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/btn_cast_player"
+                    app:tint="@color/white" />
+
+                <ImageView
+                    android:id="@+id/btn_cast_player"
+                    android:layout_width="@dimen/_32sdp"
+                    android:layout_height="@dimen/_32sdp"
+                    android:background="@drawable/ic_bg_watch"
+                    android:contentDescription="@string/text_cast_to_tv"
+                    android:padding="@dimen/_6sdp"
+                    android:src="@drawable/ic_cast"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:tint="@color/white" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Loading Indicator -->
+    <ProgressBar
+        android:id="@+id/player_loading_indicator"
+        android:layout_width="@dimen/_40sdp"
+        android:layout_height="@dimen/_40sdp"
+        android:indeterminateTint="@color/white"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible" />
+
+    <!-- Seek Feedback Text -->
+    <TextView
+        android:id="@+id/tv_seek_feedback"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#88000000"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:padding="@dimen/_12sdp"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_14ssp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="+10s"
+        tools:visibility="visible" />
+</androidx.constraintlayout.widget.ConstraintLayout>

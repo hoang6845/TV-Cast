@@ -2,6 +2,7 @@
 <resources>
     <string name="billing_sub_week" translatable="false">weekly_trial_premium</string>
     <string name="billing_sub_year" translatable="false">yearly_premium</string>
+    <string name="billing_lifetime" translatable="false">lifetime_premium</string>
 
 <!--    <string name="ads_app_id" translatable="false">ca-app-pub-5698123608094343~8244678878</string>-->
 <!--    <string name="ads_inter_splash" translatable="false">ca-app-pub-5698123608094343/2022317239</string>-->

@@ -91,7 +91,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:contentDescription="@string/text_cast_photos"
-            android:scaleType="centerCrop"
+            android:scaleType="fitCenter"
             tools:src="@drawable/thumbnail" />
 
         <androidx.media3.ui.PlayerView
@@ -187,16 +187,56 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/photo_list"
+        <LinearLayout
+            android:id="@+id/photo_controls"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:overScrollMode="never"
-            android:paddingStart="@dimen/_26sdp"
-            android:paddingEnd="@dimen/_26sdp"
-            tools:itemCount="5"
-            tools:listitem="@layout/item_media_thumbnail" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btn_previous_photo"
+                android:layout_width="@dimen/_36sdp"
+                android:layout_height="@dimen/_36sdp"
+                android:background="@drawable/bg_cast_media_nav_button"
+                android:contentDescription="@string/text_previous"
+                android:padding="@dimen/_8sdp"
+                android:src="@drawable/ic_arrow_back_white"
+                android:scaleType="fitCenter" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/photo_list"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:paddingStart="@dimen/_8sdp"
+                android:paddingEnd="@dimen/_8sdp"
+                tools:itemCount="5"
+                tools:listitem="@layout/item_media_thumbnail" />
+
+            <ImageButton
+                android:id="@+id/btn_add_photos"
+                android:layout_width="@dimen/_36sdp"
+                android:layout_height="@dimen/_36sdp"
+                android:layout_marginEnd="@dimen/_6sdp"
+                android:background="@drawable/bg_cast_media_nav_button"
+                android:contentDescription="@string/text_add_photos"
+                android:padding="@dimen/_8sdp"
+                android:src="@drawable/ic_add_white"
+                android:scaleType="fitCenter" />
+
+            <ImageButton
+                android:id="@+id/btn_next_photo"
+                android:layout_width="@dimen/_36sdp"
+                android:layout_height="@dimen/_36sdp"
+                android:background="@drawable/bg_cast_media_nav_button"
+                android:contentDescription="@string/text_next"
+                android:padding="@dimen/_8sdp"
+                android:src="@drawable/ic_arrow_right"
+                android:scaleType="fitCenter" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/video_time_row"
@@ -235,28 +275,58 @@
         </LinearLayout>
     </FrameLayout>
 
-    <TextView
-        android:id="@+id/btn_start_casting"
+    <LinearLayout
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginHorizontal="@dimen/_40sdp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_16sdp"
+        android:layout_marginEnd="@dimen/_16sdp"
         android:layout_marginBottom="@dimen/_24sdp"
-        android:background="@drawable/bg_cast_youtube_action"
-        android:clickable="true"
-        android:ellipsize="end"
-        app:layout_constraintDimensionRatio="317:65"
-        android:focusable="true"
-        android:fontFamily="@font/inter"
-        android:gravity="center"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:paddingStart="@dimen/_12sdp"
-        android:paddingEnd="@dimen/_12sdp"
-        android:text="@string/text_start_casting"
-        android:textColor="@color/white"
-        android:textSize="@dimen/_12ssp"
-        android:textStyle="bold"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_bottom_previous"
+            android:layout_width="@dimen/_44sdp"
+            android:layout_height="@dimen/_44sdp"
+            android:background="@drawable/bg_cast_media_nav_button"
+            android:contentDescription="@string/text_previous"
+            android:padding="@dimen/_10sdp"
+            android:src="@drawable/ic_arrow_back_white"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:id="@+id/btn_start_casting"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_44sdp"
+            android:layout_marginStart="@dimen/_12sdp"
+            android:layout_marginEnd="@dimen/_12sdp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_cast_youtube_action"
+            android:clickable="true"
+            android:ellipsize="end"
+            android:focusable="true"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:paddingStart="@dimen/_12sdp"
+            android:paddingEnd="@dimen/_12sdp"
+            android:text="@string/text_start_casting"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_12ssp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btn_bottom_next"
+            android:layout_width="@dimen/_44sdp"
+            android:layout_height="@dimen/_44sdp"
+            android:background="@drawable/bg_cast_media_nav_button"
+            android:contentDescription="@string/text_next"
+            android:padding="@dimen/_10sdp"
+            android:src="@drawable/ic_arrow_right"
+            android:scaleType="fitCenter" />
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

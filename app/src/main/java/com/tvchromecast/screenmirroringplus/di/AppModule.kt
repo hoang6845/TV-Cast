@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.tvchromecast.screenmirroringplus.model.dao.AppDatabase
 import com.tvchromecast.screenmirroringplus.model.dao.ChannelDao
+import com.tvchromecast.screenmirroringplus.model.dao.PinnedCategoryDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,7 +26,7 @@ object AppModule {
             AppDatabase::class.java,
             "TV Cast"
         )
-            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
             .build()
     }
@@ -34,4 +35,9 @@ object AppModule {
     fun channelDao(
         database: AppDatabase
     ): ChannelDao = database.channelDao()
+
+    @Provides
+    fun pinnedCategoryDao(
+        database: AppDatabase
+    ): PinnedCategoryDao = database.pinnedCategoryDao()
 }

@@ -56,7 +56,7 @@ class IPTVChannelAdapter(
 
         val item = getItem(position)
         if (payloads.contains(PAYLOAD_FAVOURITE)) {
-            holder.bindFavourite(item.isFavourite)
+            holder.bindFavourite(item.isFavourite, animate = false)
         }
         if (payloads.contains(PAYLOAD_SELECTION)) {
             holder.bindSelected(item.id == selectedChannelId)
@@ -79,7 +79,7 @@ class IPTVChannelAdapter(
             bindSelected(selected)
             binding.tvChannelName.text = item.name
             binding.tvLogoFallback.text = item.initials()
-            bindFavourite(item.isFavourite)
+            bindFavourite(item.isFavourite, animate = false)
 
             val logo = item.logo
             binding.tvLogoFallback.isVisible = logo.isNullOrBlank()
@@ -93,7 +93,7 @@ class IPTVChannelAdapter(
             binding.root.setOnClickListener { onClick(item) }
             binding.btnFavourite.setOnClickListener {
                 val nextFavourite = binding.btnFavourite.isSelected.not()
-                bindFavourite(nextFavourite)
+                bindFavourite(nextFavourite, animate = true)
                 onFavouriteClick(item, nextFavourite)
             }
         }
@@ -102,7 +102,8 @@ class IPTVChannelAdapter(
             binding.root.isSelected = selected
         }
 
-        fun bindFavourite(isFavourite: Boolean) {
+        fun bindFavourite(isFavourite: Boolean, animate: Boolean = false) {
+            val wasSelected = binding.btnFavourite.isSelected
             binding.btnFavourite.isSelected = isFavourite
             binding.btnFavourite.setImageResource(
                 if (isFavourite) R.drawable.ic_movie_star else R.drawable.ic_iptv_star_outline
@@ -118,6 +119,24 @@ class IPTVChannelAdapter(
                     R.string.text_add_to_favorites
                 }
             )
+            
+            // Add smooth scale animation only when animate flag is true and state changed
+            if (animate && wasSelected != isFavourite) {
+                binding.btnFavourite.animate()
+                    .scaleX(1.4f)
+                    .scaleY(1.4f)
+                    .setDuration(120)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
+                    .withEndAction {
+                        binding.btnFavourite.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(200)
+                            .setInterpolator(android.view.animation.OvershootInterpolator(2f))
+                            .start()
+                    }
+                    .start()
+            }
         }
     }
 

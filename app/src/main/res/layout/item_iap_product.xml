@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clipToPadding="false">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/btn_iap_1"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_58sdp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:background="@drawable/bg_iap_plan_selected"
+        android:clickable="true"
+        android:focusable="true"
+        android:paddingHorizontal="@dimen/_12sdp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tvNameProduct"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/inter"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_15ssp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@id/tvDescription"
+            app:layout_constraintEnd_toStartOf="@id/text_price"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed"
+            tools:text="@string/text_iap_weekly" />
+
+        <TextView
+            android:id="@+id/tvDescription"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_4sdp"
+            android:fontFamily="@font/inter"
+            android:textColor="#CFCFD4"
+            android:textSize="@dimen/_11ssp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/text_price"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvNameProduct"
+            tools:text="@string/text_iap_three_day_free_trial" />
+
+        <TextView
+            android:id="@+id/text_price"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/inter"
+            android:gravity="end"
+            android:textColor="@color/colorPrimaryLight"
+            android:textSize="@dimen/_14ssp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@id/text_price_des"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed"
+            tools:text="$4.99/week" />
+
+        <TextView
+            android:id="@+id/text_price_des"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_2sdp"
+            android:fontFamily="@font/inter"
+            android:gravity="end"
+            android:textColor="#A7A7AD"
+            android:textSize="@dimen/_10ssp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_price"
+            tools:text="~ $0.58/week" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <TextView
+        android:id="@+id/best_deal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/_12sdp"
+        android:background="@drawable/bg_iap_badge"
+        android:fontFamily="@font/inter"
+        android:paddingHorizontal="@dimen/_10sdp"
+        android:paddingVertical="@dimen/_2sdp"
+        android:text="@string/text_iap_best_deal"
+        android:textColor="#1A1A1A"
+        android:textSize="@dimen/_8ssp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/btn_iap_1"
+        app:layout_constraintEnd_toEndOf="@id/btn_iap_1"
+        app:layout_constraintTop_toTopOf="@id/btn_iap_1"
+        tools:visibility="visible" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

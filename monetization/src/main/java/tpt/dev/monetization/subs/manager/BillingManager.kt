@@ -2,6 +2,8 @@ package tpt.dev.monetization.subs.manager
 
 import android.app.Activity
 import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -153,6 +155,7 @@ class BillingManager private constructor(
      * [BillingClientStateListener]
      * */
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onBillingSetupFinished(result: BillingResult) {
         android.util.Log.d("IAP_DEBUG", "=== onBillingSetupFinished ===")
         android.util.Log.d("IAP_DEBUG", "result.isOk=${result.isOk()}, responseCode=${result.responseCode}")

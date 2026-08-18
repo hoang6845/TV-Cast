@@ -394,7 +394,7 @@
             android:background="@drawable/bg_cast_youtube_nav_button"
             android:contentDescription="@string/text_forward"
             android:padding="@dimen/_9sdp"
-            android:src="@drawable/ic_arrow_forward_white"
+            android:src="@drawable/ic_arrow_right"
             app:layout_constraintBottom_toBottomOf="@id/btn_web_back"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/btn_web_back" />

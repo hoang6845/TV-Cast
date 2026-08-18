@@ -1,5 +1,6 @@
 package com.tvchromecast.screenmirroringplus.ui.home
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -30,6 +31,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.navigate
+import hoang.dqm.codebase.utils.AppMonetization
+import hoang.dqm.codebase.utils.premium
 import hoang.dqm.codebase.service.session.saveFirst
 
 
@@ -108,6 +111,9 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     }
 
     override fun initListener() {
+        binding.icPremium.setOnClickListener {
+            navigate(R.id.IAPFragment)
+        }
         binding.btnHowToConnect.setOnClickListener {
             showHowToConnectSheet()
         }
@@ -125,7 +131,12 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     }
 
     fun setUpAdapter() {
-        adapter.onClickItem { item, position ->
+        adapter.onClickItem { item, _ ->
+            if (!AppMonetization.premium.isSubscribed()) {
+                navigate(R.id.IAPFragment)
+                return@onClickItem
+            }
+
             when (item.type) {
                 AppConstants.TYPE_MIRROR -> navigate(R.id.screenMirroringFragment)
                 AppConstants.TYPE_CAST_MEDIA -> showCastMediaChooser()
@@ -158,12 +169,16 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
 
         fun openCastMedia(mode: String) {
             dialog.dismiss()
-            navigate(
-                R.id.castMediaFragment,
-                Bundle().apply {
-                    putString(CastMediaFragment.ARG_MODE, mode)
-                }
-            )
+            if (AppMonetization.premium.isSubscribed()) {
+                navigate(
+                    R.id.castMediaFragment,
+                    Bundle().apply {
+                        putString(CastMediaFragment.ARG_MODE, mode)
+                    }
+                )
+            } else {
+                navigate(R.id.IAPFragment)
+            }
         }
 
         chooserBinding.optionPhotos.setOnClickListener {
@@ -215,6 +230,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
             }
         }
 
+        @SuppressLint("RestrictedApi")
         fun availableCastRoutes(): List<MediaRouter.RouteInfo> {
             return mediaRouter.routes
                 .filter { route ->

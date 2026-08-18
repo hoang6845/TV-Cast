@@ -43,8 +43,8 @@
             android:textColor="@color/white"
             android:textSize="@dimen/_13ssp"
             app:layout_constraintBottom_toBottomOf="@id/btn_back"
-            app:layout_constraintEnd_toStartOf="@id/btn_top_cast"
-            app:layout_constraintStart_toEndOf="@id/btn_back"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@id/btn_back" />
 
         <androidx.mediarouter.app.MediaRouteButton
@@ -413,7 +413,7 @@
         android:paddingEnd="@dimen/_12sdp"
         android:text="@string/text_start_mirroring"
         android:textColor="@color/white"
-        android:textSize="@dimen/_12ssp"
+        android:textSize="@dimen/_14ssp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

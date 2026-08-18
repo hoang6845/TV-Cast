@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@drawable/bg_iptv_filter_sheet"
     android:orientation="vertical"
     android:paddingHorizontal="@dimen/_12sdp"
@@ -41,11 +42,11 @@
             android:layout_width="@dimen/_18sdp"
             android:layout_height="@dimen/_18sdp"
             android:src="@drawable/ic_iptv_search"
-            android:tint="#A4A4AA" />
+            app:tint="#A4A4AA" />
 
         <EditText
             android:id="@+id/et_filter_search"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_marginStart="@dimen/_8sdp"
             android:background="@android:color/transparent"
