@@ -315,7 +315,7 @@
                         style="@style/MyMaterialSwitch"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:checked="true" />
+                        android:checked="false" />
                 </LinearLayout>
 
                 <View
@@ -355,7 +355,7 @@
                         style="@style/MyMaterialSwitch"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:checked="true" />
+                        android:checked="false" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
