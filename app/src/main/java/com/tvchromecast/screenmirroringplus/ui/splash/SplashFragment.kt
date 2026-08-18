@@ -44,6 +44,7 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
     private var isOpeningLanguage = false
     private val openLanguageLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+
             releaseLog(
                 "SplashFragment.languageResult: resultCode=${result.resultCode}, hasNavigated=$hasNavigated"
             )
@@ -56,19 +57,23 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
             }
 
             if (result.resultCode == Activity.RESULT_OK) {
-//                val goToIntro =
-//                    result.data?.getBooleanExtra("go_to_intro", false) ?: false
-//
-//                if (goToIntro) {
-//                    hasNavigated = true
-//                    navigate(com.tvchromecast.screenmirroringplus.R.id.introFragment, isPop = true)
-//                }
+
+                // QUAN TRỌNG
+                hasNavigated = true
+
                 releaseLog("SplashFragment.languageResult: navigate introFragment")
-                navigate(com.tvchromecast.screenmirroringplus.R.id.introFragment)
+
+                navigate(
+                    com.tvchromecast.screenmirroringplus.R.id.introFragment,
+                    isPop = true
+                )
+
             } else {
-                releaseLog("SplashFragment.languageResult: no navigation for resultCode=${result.resultCode}")
+                releaseLog(
+                    "SplashFragment.languageResult: no navigation for resultCode=${result.resultCode}"
+                )
             }
-    }
+        }
 
     override fun onAttach(context: Context) {
         releaseLog("SplashFragment.onAttach")
@@ -153,7 +158,6 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
         if (isFirst()) {
             releaseLog("SplashFragment.navigateToNextScreen: opening LanguageActivity")
             isOpeningLanguage = true
-            saveFirst(false)
             val intent = Intent(requireContext(), LanguageActivity::class.java).apply {
                 putExtra("isFromSplash", true)
             }

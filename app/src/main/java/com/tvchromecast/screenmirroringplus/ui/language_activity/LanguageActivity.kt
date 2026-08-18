@@ -1,13 +1,18 @@
 package com.tvchromecast.screenmirroringplus.ui.language_activity
 
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tvchromecast.screenmirroringplus.databinding.ActivityLanguageBinding
 import com.tvchromecast.screenmirroringplus.utils.CommonAppSharePref
 import com.tvchromecast.screenmirroringplus.utils.gone
@@ -39,8 +44,7 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
 
     override fun initView() {
         releaseLog("LanguageActivity.initView: start")
-        adjustInsetsForBottomNavigation(binding.main)
-        adjustInsetsForBottomMargin(binding.viewNativeAd)
+        adjustInsetsForBottomAndTopMargin(binding.root)
 
         isFromSplash = intent.extras?.getBoolean("isFromSplash") ?: false
         releaseLog("LanguageActivity.initView: isFromSplash=$isFromSplash")
@@ -116,7 +120,7 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
         releaseLog("LanguageActivity.initListener")
         binding.imvBack.singleClick {
             releaseLog("LanguageActivity.backClick")
-            finish()
+            handleLanguageBack()
         }
 
         binding.btnDone.singleClick {
@@ -176,6 +180,48 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding, LanguageViewModel
                 finish()
             }
         }
+    }
+
+    override fun handleBackExit() {
+        handleLanguageBack()
+    }
+
+    private fun handleLanguageBack() {
+        if (isFromSplash) {
+            showExitAppDialog()
+        } else {
+            finish()
+        }
+    }
+
+    private fun showExitAppDialog() {
+        if (isFinishing || isDestroyed) return
+
+        val dialogView = LayoutInflater.from(this)
+            .inflate(com.tvchromecast.screenmirroringplus.R.layout.dialog_exit_app, null, false)
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .create()
+
+        dialogView.findViewById<TextView>(com.tvchromecast.screenmirroringplus.R.id.button_cancel)
+            .setOnClickListener {
+                dialog.dismiss()
+            }
+        dialogView.findViewById<TextView>(com.tvchromecast.screenmirroringplus.R.id.button_exit)
+            .setOnClickListener {
+                dialog.dismiss()
+                finishAffinity()
+            }
+
+        dialog.setOnShowListener {
+            dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            dialog.window?.setLayout(
+                resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._280sdp),
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        dialog.show()
     }
 
     override fun initData() {

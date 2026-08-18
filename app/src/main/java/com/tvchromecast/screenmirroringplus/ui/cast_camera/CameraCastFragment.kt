@@ -223,7 +223,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         if (hasCameraPermission()) {
             startCamera()
         } else {
-            showCameraPermissionDialog()
+            requestCameraPermission()
             showPermissionPlaceholder(permanentlyDenied = false)
         }
     }
@@ -403,20 +403,13 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun showCameraPermissionDialog() {
+    private fun requestCameraPermission() {
         if (isCameraPermanentlyDenied()) {
             showCameraSettingsDialog()
             return
         }
 
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.text_camera_permission_required)
-            .setMessage(R.string.text_camera_permission_required_message)
-            .setNegativeButton(R.string.text_cancel, null)
-            .setPositiveButton(R.string.text_allow_camera) { _, _ ->
-                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
-            .show()
+        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
     private fun showCameraSettingsDialog() {
@@ -462,7 +455,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     private fun handlePlaceholderAction() {
         when {
             isCameraPermanentlyDenied() -> openAppSettings()
-            !hasCameraPermission() -> showCameraPermissionDialog()
+            !hasCameraPermission() -> requestCameraPermission()
             else -> startCamera()
         }
     }
@@ -520,6 +513,9 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun stopCamera() {
+        if (torchEnabled) {
+            webRtcStreamer?.setTorchEnabled(false)
+        }
         webRtcStreamer?.stopCasting()
         cameraReady = false
         torchEnabled = false
@@ -543,8 +539,9 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun updateCameraCapabilities() {
-        binding.btnFlash.isEnabled = false
-        binding.btnFlash.alpha = 0.45f
+        val hasTorch = webRtcStreamer?.hasTorchForCurrentCamera() == true
+        binding.btnFlash.isEnabled = hasTorch
+        binding.btnFlash.alpha = if (hasTorch) 1f else 0.45f
         supportedZoomRatios = webRtcStreamer?.getSupportedZoomRatios(useFrontCamera)
             ?: listOf(DEFAULT_ZOOM_RATIO, DOUBLE_ZOOM_RATIO)
         if (supportedZoomRatios.none { isSameZoom(it, currentZoomRatio) }) {
@@ -554,11 +551,24 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         binding.btnZoomHalf.isVisible = supportedZoomRatios.any { isSameZoom(it, HALF_ZOOM_RATIO) }
         binding.btnZoomOne.isVisible = supportedZoomRatios.any { isSameZoom(it, DEFAULT_ZOOM_RATIO) }
         binding.btnZoomTwo.isVisible = supportedZoomRatios.any { isSameZoom(it, DOUBLE_ZOOM_RATIO) }
-        torchEnabled = false
+        if (!hasTorch) {
+            torchEnabled = false
+        }
     }
 
     private fun toggleTorch() {
-        Toast.makeText(requireContext(), R.string.text_camera_ready, Toast.LENGTH_SHORT).show()
+        if (!cameraReady) return
+
+        val nextState = !torchEnabled
+        val applied = webRtcStreamer?.setTorchEnabled(nextState) == true
+        if (applied) {
+            torchEnabled = nextState
+        } else {
+            torchEnabled = false
+            binding.btnFlash.isEnabled = false
+            binding.btnFlash.alpha = 0.45f
+        }
+        updateControls()
     }
 
     private fun promptForMicrophoneIfNeeded() {
@@ -612,6 +622,10 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         binding.btnSwitchCamera.isEnabled = false
         binding.cameraLoading.isVisible = true
         binding.cameraLoadingText.setText(R.string.text_switching_camera)
+        if (torchEnabled) {
+            webRtcStreamer?.setTorchEnabled(false)
+            torchEnabled = false
+        }
         useFrontCamera = !useFrontCamera
         currentZoomRatio = DEFAULT_ZOOM_RATIO
         webRtcStreamer?.switchCamera(useFrontCamera)
@@ -633,11 +647,16 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         val supportsRatio = supportedZoomRatios.any { isSameZoom(it, ratio) } ||
             ratio in DEFAULT_ZOOM_RATIO..DOUBLE_ZOOM_RATIO
         if (!cameraReady || !supportsRatio) return false
+        if (torchEnabled) {
+            webRtcStreamer?.setTorchEnabled(false)
+            torchEnabled = false
+        }
         val applied = webRtcStreamer?.setZoomRatio(ratio) == true
         if (!applied) return false
 
         currentZoomRatio = ratio
-        updateZoomButtons(ratio)
+        updateCameraCapabilities()
+        updateControls()
         return true
     }
 
@@ -678,7 +697,7 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         releaseLog("CameraCast.startCastFlow: cameraReady=$cameraReady connected=${currentCastSession()?.isConnected == true}")
         if (!cameraReady) {
             if (!hasCameraPermission()) {
-                showCameraPermissionDialog()
+                requestCameraPermission()
             } else {
                 showCameraStartError()
             }

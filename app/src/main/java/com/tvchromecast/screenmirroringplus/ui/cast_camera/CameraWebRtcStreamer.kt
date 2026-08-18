@@ -135,6 +135,7 @@ class CameraWebRtcStreamer(
         if (ratio < DEFAULT_ZOOM_RATIO) {
             val ultraWideCamera = findUltraWideBackCameraName() ?: return false
             if (activeCameraName != ultraWideCamera) {
+                setTorchEnabled(false)
                 (videoCapturer as? CameraVideoCapturer)?.switchCamera(null, ultraWideCamera)
                 activeCameraName = ultraWideCamera
             }
@@ -145,6 +146,7 @@ class CameraWebRtcStreamer(
         if (!isFrontCamera) {
             val defaultBackCamera = findDefaultBackCameraName()
             if (defaultBackCamera != null && activeCameraName != defaultBackCamera) {
+                setTorchEnabled(false)
                 (videoCapturer as? CameraVideoCapturer)?.switchCamera(null, defaultBackCamera)
                 activeCameraName = defaultBackCamera
             }
@@ -223,6 +225,9 @@ class CameraWebRtcStreamer(
     }
 
     fun switchCamera(useFrontCamera: Boolean) {
+        if (activeCameraName != null) {
+            setTorchEnabled(false)
+        }
         isFrontCamera = useFrontCamera
         localRenderer.setMirror(useFrontCamera)
         val targetCamera = findPreferredCameraName(useFrontCamera) ?: return
@@ -233,6 +238,23 @@ class CameraWebRtcStreamer(
 
     fun setAudioEnabled(enabled: Boolean) {
         audioTrack?.setEnabled(enabled)
+    }
+
+    fun hasTorchForCurrentCamera(): Boolean {
+        val cameraName = activeCameraName ?: return false
+        return !isFrontCamera && hasFlashUnit(cameraName)
+    }
+
+    fun setTorchEnabled(enabled: Boolean): Boolean {
+        val cameraName = activeCameraName ?: return false
+        if (enabled && (isFrontCamera || !hasFlashUnit(cameraName))) return false
+
+        val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+            ?: return false
+        return runCatching {
+            cameraManager.setTorchMode(cameraName, enabled)
+            true
+        }.getOrDefault(false)
     }
 
     fun stopCasting() {
@@ -393,6 +415,16 @@ class CameraWebRtcStreamer(
                 )
             }
         }.getOrDefault(emptyList())
+    }
+
+    private fun hasFlashUnit(cameraName: String): Boolean {
+        val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+            ?: return false
+        return runCatching {
+            cameraManager
+                .getCameraCharacteristics(cameraName)
+                .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+        }.getOrDefault(false)
     }
 
     private open class SimpleSdpObserver : SdpObserver {

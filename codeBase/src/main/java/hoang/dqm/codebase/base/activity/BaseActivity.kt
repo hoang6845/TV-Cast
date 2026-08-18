@@ -25,12 +25,9 @@ import androidx.viewbinding.ViewBinding
 import com.google.android.gms.ads.nativead.NativeAd
 import hoang.dqm.codebase.base.viewmodel.BaseViewModel
 import hoang.dqm.codebase.service.network.NetworkStatusReceiver
-import hoang.dqm.codebase.utils.AppMonetization
 import hoang.dqm.codebase.utils.BindingReflex
-import hoang.dqm.codebase.utils.ads
 import tpt.dev.monetization.ads.nativeAd.view.ViewNativeAd
 import java.lang.reflect.ParameterizedType
-import kotlin.time.Duration.Companion.seconds
 
 abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatActivity(),
     View.OnClickListener {
@@ -304,6 +301,29 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
                 val params = view.layoutParams as ViewGroup.MarginLayoutParams
                 val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
                 params.bottomMargin = initialBottomMargin + navigationBars.bottom
+                view.layoutParams = params
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(viewBottom)
+    }
+
+    protected fun adjustInsetsForBottomAndTopMargin(viewBottom: View) {
+        val initialBottomMargin = (viewBottom.layoutParams as? ViewGroup.MarginLayoutParams)
+            ?.bottomMargin
+            ?: 0
+        ViewCompat.setOnApplyWindowInsetsListener(viewBottom) { view, insets ->
+            try {
+                val params = view.layoutParams as ViewGroup.MarginLayoutParams
+                val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+                val displayCutout =
+                    insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.systemBars())
+
+                params.bottomMargin = initialBottomMargin + navigationBars.bottom
+                params.topMargin = (displayCutout.top + viewBottom.top / 5f).toInt()
+
                 view.layoutParams = params
             } catch (e: Exception) {
                 e.printStackTrace()

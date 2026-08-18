@@ -3,6 +3,7 @@ package com.tvchromecast.screenmirroringplus.ui.intro
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.content.Intent
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.text.SpannableString
@@ -21,8 +22,14 @@ import com.tvchromecast.screenmirroringplus.databinding.FragmentIntroBinding
 import com.tvchromecast.screenmirroringplus.model.entity.SlideItem
 import com.tvchromecast.screenmirroringplus.utils.AppConstants
 import com.tvchromecast.screenmirroringplus.utils.Common
+import com.tvchromecast.screenmirroringplus.ui.language_activity.LanguageActivity
+import com.tvchromecast.screenmirroringplus.utils.gone
+import com.tvchromecast.screenmirroringplus.utils.invisible
+import com.tvchromecast.screenmirroringplus.utils.visible
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.navigateWithIntermediate
+import hoang.dqm.codebase.base.activity.navigate
+import hoang.dqm.codebase.base.activity.onBackPressed
 import tpt.dev.monetization.ads.nativeAd.view.ViewNativeAd
 
 
@@ -121,8 +128,8 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         view.findViewById<TextView>(R.id.des_1).isVisible = false
         view.findViewById<TextView>(R.id.title_2).isVisible = false
         view.findViewById<TextView>(R.id.des_2).isVisible = false
-        view.findViewById<TextView>(R.id.title_3).isVisible = position != 0
-        view.findViewById<TextView>(R.id.des_3).isVisible = position != 0
+        view.findViewById<TextView>(R.id.title_3).isVisible = true
+        view.findViewById<TextView>(R.id.des_3).isVisible = true
 //        view.findViewById<TextView>(R.id.title_3).text = buildSpannedString {
 //            color(Color.parseColor("#ffffff")) {
 //                append(getString(R.string.text_start))
@@ -338,7 +345,25 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         }
     }
 
+    private fun handleBackPressed() {
+        val currentPage = binding.viewPager2.currentItem
+        if (currentPage > 0) {
+            closeCountdownTimer?.cancel()
+            closeCountdownTimer = null
+            binding.viewPager2.setCurrentItem(currentPage - 1, true)
+        } else {
+            openLanguage()
+        }
+    }
+
+    private fun openLanguage() {
+        startActivity(Intent(requireContext(), LanguageActivity::class.java).apply {
+            putExtra("isFromSplash", true)
+        })
+    }
+
     override fun initListener() {
+        onBackPressed { handleBackPressed() }
         binding.viewPager2.registerOnPageChangeCallback(pageChangeCallback)
     }
 
