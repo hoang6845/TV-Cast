@@ -574,18 +574,8 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     private fun promptForMicrophoneIfNeeded() {
         if (microphoneMuted || hasMicrophonePermission() || microphonePermissionDenied) return
 
-        MaterialAlertDialogBuilder(requireContext())
-            .setMessage(R.string.text_microphone_permission_required)
-            .setNegativeButton(R.string.text_not_now) { _, _ ->
-                microphoneMuted = true
-                microphonePermissionDenied = true
-                webRtcStreamer?.setAudioEnabled(false)
-                updateControls()
-            }
-            .setPositiveButton(R.string.text_allow_microphone) { _, _ ->
-                microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
-            .show()
+        // Request microphone permission directly using system dialog
+        microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     private fun toggleMicrophone() {
@@ -602,18 +592,8 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
             webRtcStreamer?.setAudioEnabled(true)
             updateControls()
         } else {
-            MaterialAlertDialogBuilder(requireContext())
-                .setMessage(R.string.text_microphone_permission_required)
-                .setNegativeButton(R.string.text_not_now) { _, _ ->
-                    microphoneMuted = true
-                    microphonePermissionDenied = true
-                    webRtcStreamer?.setAudioEnabled(false)
-                    updateControls()
-                }
-                .setPositiveButton(R.string.text_allow_microphone) { _, _ ->
-                    microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                }
-                .show()
+            // Request microphone permission directly using system dialog
+            microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 

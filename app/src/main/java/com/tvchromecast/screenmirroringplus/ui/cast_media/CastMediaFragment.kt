@@ -1,8 +1,11 @@
 package com.tvchromecast.screenmirroringplus.ui.cast_media
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -11,6 +14,7 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -89,9 +93,15 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS)
     ) { uris ->
         if (uris.isEmpty()) {
-            updateControls()
+            if (photos.isEmpty()) {
+                updateControls()
+            }
         } else {
-            setPhotos(uris)
+            if (photos.isEmpty()) {
+                setPhotos(uris)
+            } else {
+                addPhotos(uris)
+            }
         }
     }
 
@@ -102,6 +112,20 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             updateControls()
         } else {
             setVideo(uri)
+        }
+    }
+
+    private val mediaPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            openPicker()
+        } else {
+            Toast.makeText(
+                requireContext(),
+                R.string.text_media_pick_error_message,
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -172,12 +196,15 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         binding.btnStartCasting.setOnClickListener { handleCastButton() }
         binding.photoPreview.setOnClickListener { openPicker() }
         binding.videoPlayer.setOnClickListener { openPicker() }
-        binding.emptyMediaContainer.setOnClickListener { openPicker() }
+        binding.emptyMediaContainer.setOnClickListener { requestMediaPermissionAndOpen() }
+        binding.btnAddPhotos.setOnClickListener { openPicker() }
+        binding.btnPreviousPhoto.setOnClickListener { navigateToPreviousPhoto() }
+        binding.btnNextPhoto.setOnClickListener { navigateToNextPhoto() }
         onBackPressed(Runnable { handleBackPressed() })
     }
 
     override fun initData() {
-        mainHandler.post { openPicker() }
+        requestMediaPermissionAndOpen()
     }
 
     override fun onStart() {
@@ -278,6 +305,74 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         )
     }
 
+    private fun requestMediaPermissionAndOpen() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = if (mode == MODE_PHOTO) {
+                Manifest.permission.READ_MEDIA_IMAGES
+            } else {
+                Manifest.permission.READ_MEDIA_VIDEO
+            }
+            
+            when {
+                ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    permission
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    openPicker()
+                }
+                shouldShowRequestPermissionRationale(permission) -> {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.text_media_pick_error_message,
+                        Toast.LENGTH_LONG
+                    ).show()
+                    mediaPermissionLauncher.launch(permission)
+                }
+                else -> {
+                    mediaPermissionLauncher.launch(permission)
+                }
+            }
+        } else {
+            openPicker()
+        }
+    }
+
+    private fun navigateToPreviousPhoto() {
+        if (photos.isEmpty()) return
+        selectedPhotoIndex = if (selectedPhotoIndex > 0) {
+            selectedPhotoIndex - 1
+        } else {
+            photos.size - 1
+        }
+        selectPhoto(selectedPhotoIndex)
+        updateNavigationButtons()
+    }
+
+    private fun navigateToNextPhoto() {
+        if (photos.isEmpty()) return
+        selectedPhotoIndex = if (selectedPhotoIndex < photos.size - 1) {
+            selectedPhotoIndex + 1
+        } else {
+            0
+        }
+        selectPhoto(selectedPhotoIndex)
+        updateNavigationButtons()
+    }
+
+    private fun updateNavigationButtons() {
+        val hasPhotos = photos.isNotEmpty()
+        val canNavigate = photos.size > 1
+        
+        // Chỉ hiện nút previous/next khi có ảnh
+        binding.btnPreviousPhoto.isVisible = hasPhotos
+        binding.btnNextPhoto.isVisible = hasPhotos
+        binding.btnPreviousPhoto.isEnabled = canNavigate
+        binding.btnNextPhoto.isEnabled = canNavigate
+        binding.btnPreviousPhoto.alpha = if (canNavigate) 1f else 0.3f
+        binding.btnNextPhoto.alpha = if (canNavigate) 1f else 0.3f
+        binding.btnAddPhotos.isVisible = hasPhotos
+    }
+
     private fun openPicker() {
         if (mode == MODE_PHOTO) {
             photoPicker.launch(
@@ -299,10 +394,42 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             heightPx = PHOTO_PREVIEW_MAX_SIZE_PX
         )
         photoAdapter.submit(uris, selectedPhotoIndex)
+        
+        // Scroll về đầu danh sách
+        binding.photoList.scrollToPosition(0)
+        
         if (isCasting) {
             castSelectedMedia()
         }
+        updateNavigationButtons()
         updateControls()
+    }
+
+    private fun addPhotos(newUris: List<Uri>) {
+        val allPhotos = photos.toMutableList()
+        newUris.forEach { uri ->
+            if (!allPhotos.contains(uri) && allPhotos.size < MAX_PHOTOS) {
+                allPhotos.add(uri)
+            }
+        }
+        photos = allPhotos
+        photoAdapter.submit(photos, selectedPhotoIndex)
+        
+        // Đảm bảo ảnh đang chọn vẫn hiển thị trên màn hình
+        binding.photoList.post {
+            binding.photoList.smoothScrollToPosition(selectedPhotoIndex)
+        }
+        
+        updateNavigationButtons()
+        updateControls()
+        
+        if (newUris.isNotEmpty()) {
+            Toast.makeText(
+                requireContext(),
+                "Added ${newUris.size} photo(s)",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun selectPhoto(position: Int) {
@@ -314,9 +441,14 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             heightPx = PHOTO_PREVIEW_MAX_SIZE_PX
         )
         photoAdapter.submit(photos, selectedPhotoIndex)
+        
+        // Scroll RecyclerView tới ảnh đang chọn để không bị mất khỏi màn hình
+        binding.photoList.smoothScrollToPosition(position)
+        
         if (isCasting) {
             castSelectedMedia()
         }
+        updateNavigationButtons()
     }
 
     private fun setVideo(uri: Uri) {
@@ -505,6 +637,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         val hasMedia = currentSelection() != null
         binding.emptyMediaContainer.isVisible = !hasMedia
         binding.photoList.isVisible = mode == MODE_PHOTO && photos.isNotEmpty()
+        binding.photoControls.isVisible = mode == MODE_PHOTO
         binding.videoTimeRow.isVisible = mode == MODE_VIDEO && videoUri != null
         binding.btnStartCasting.isEnabled = true
         binding.btnStartCasting.alpha = 1f
@@ -518,6 +651,8 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         binding.btnStartCasting.setBackgroundResource(
             if (isCasting) R.drawable.bg_cast_media_stop_action else R.drawable.bg_cast_youtube_action
         )
+        
+        updateNavigationButtons()
     }
 
     private fun updateCastStatusFromSession() {
@@ -694,8 +829,9 @@ private fun ImageView.loadLocalPhoto(uri: Uri, widthPx: Int, heightPx: Int) {
         .downsample(DownsampleStrategy.AT_MOST)
         .format(DecodeFormat.PREFER_RGB_565)
         .centerCrop()
-        .thumbnail(0.1f)
-        .diskCacheStrategy(DiskCacheStrategy.NONE)
+        .thumbnail(0.25f)
+        .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
         .skipMemoryCache(false)
+        .dontAnimate()
         .into(this)
 }

@@ -1,6 +1,7 @@
 package com.tvchromecast.screenmirroringplus.ui.screen_mirroring
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.DialogInterface
@@ -886,11 +887,17 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun showHelpDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.text_mirroring_help_title)
-            .setMessage(R.string.text_mirroring_help_message)
-            .setPositiveButton(R.string.text_ok, null)
-            .show()
+        val dialogView = layoutInflater.inflate(R.layout.dialog_mirroring_help, null, false)
+        
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView)
+            .create()
+        
+        dialogView.findViewById<android.widget.TextView>(R.id.button_ok).setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        dialog.show()
     }
 
     private fun updateControls(selectingTv: Boolean = false) {
@@ -1131,6 +1138,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
             }
     }
 
+    @SuppressLint("RestrictedApi")
     private fun selectedNonLocalRoute(): MediaRouter.RouteInfo? {
         val route = mediaRouter?.selectedRoute ?: return null
         if (!route.isEnabled || route.isDefaultOrBluetooth) return null

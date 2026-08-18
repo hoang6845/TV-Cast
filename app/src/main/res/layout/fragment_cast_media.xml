@@ -187,16 +187,56 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/photo_list"
+        <LinearLayout
+            android:id="@+id/photo_controls"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:overScrollMode="never"
-            android:paddingStart="@dimen/_26sdp"
-            android:paddingEnd="@dimen/_26sdp"
-            tools:itemCount="5"
-            tools:listitem="@layout/item_media_thumbnail" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btn_previous_photo"
+                android:layout_width="@dimen/_36sdp"
+                android:layout_height="@dimen/_36sdp"
+                android:background="@drawable/bg_cast_media_nav_button"
+                android:contentDescription="@string/text_previous"
+                android:padding="@dimen/_8sdp"
+                android:src="@drawable/ic_arrow_back_white"
+                android:scaleType="fitCenter" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/photo_list"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:paddingStart="@dimen/_8sdp"
+                android:paddingEnd="@dimen/_8sdp"
+                tools:itemCount="5"
+                tools:listitem="@layout/item_media_thumbnail" />
+
+            <ImageButton
+                android:id="@+id/btn_add_photos"
+                android:layout_width="@dimen/_36sdp"
+                android:layout_height="@dimen/_36sdp"
+                android:layout_marginEnd="@dimen/_6sdp"
+                android:background="@drawable/bg_cast_media_nav_button"
+                android:contentDescription="@string/text_add_photos"
+                android:padding="@dimen/_8sdp"
+                android:src="@drawable/ic_add_white"
+                android:scaleType="fitCenter" />
+
+            <ImageButton
+                android:id="@+id/btn_next_photo"
+                android:layout_width="@dimen/_36sdp"
+                android:layout_height="@dimen/_36sdp"
+                android:background="@drawable/bg_cast_media_nav_button"
+                android:contentDescription="@string/text_next"
+                android:padding="@dimen/_8sdp"
+                android:src="@drawable/ic_arrow_forward_white"
+                android:scaleType="fitCenter" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/video_time_row"

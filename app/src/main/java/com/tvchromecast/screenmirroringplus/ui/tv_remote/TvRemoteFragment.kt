@@ -1,6 +1,8 @@
 package com.tvchromecast.screenmirroringplus.ui.tv_remote
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
@@ -32,6 +34,9 @@ import androidx.lifecycle.lifecycleScope
 import com.tvchromecast.screenmirroringplus.R
 import com.tvchromecast.screenmirroringplus.databinding.FragmentTvRemoteBinding
 import com.tvchromecast.screenmirroringplus.tvremote.AndroidTvRemoteController
+import com.tvchromecast.screenmirroringplus.tvremote.BluetoothTvRemoteController
+import com.tvchromecast.screenmirroringplus.tvremote.BluetoothConnectionState
+import com.tvchromecast.screenmirroringplus.tvremote.BluetoothTvDevice
 import com.tvchromecast.screenmirroringplus.tvremote.TvRemoteApp
 import com.tvchromecast.screenmirroringplus.tvremote.TvRemoteConnectionState
 import com.tvchromecast.screenmirroringplus.tvremote.TvRemoteDevice
@@ -80,11 +85,15 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     private val inputLabels = arrayOf("TV Input", "HDMI 1", "HDMI 2", "AV", "USB", "Screen Cast")
 
     private lateinit var controller: AndroidTvRemoteController
+    private lateinit var bluetoothController: BluetoothTvRemoteController
     private var discoveredDevices = emptyList<TvRemoteDevice>()
+    private var discoveredBluetoothDevices = emptyList<BluetoothTvDevice>()
     private var selectedDevice: TvRemoteDevice? = null
+    private var selectedBluetoothDevice: BluetoothTvDevice? = null
     private var isScanning = false
     private var isConnected = false
     private var isReconnecting = false
+    private var isUsingBluetooth = false
     private var toolbarBaseHeight = 0
     private var contentBaseBottomPadding = -1
     private var lastCommandAt = 0L
@@ -99,6 +108,37 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         } else {
             renderNoPermission()
         }
+    }
+
+    private val bluetoothPermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (!canUseBinding()) return@registerForActivityResult
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            startBluetoothScan()
+        } else {
+            renderNoBluetoothPermission()
+        }
+    }
+
+    private val enableBluetoothLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (!canUseBinding()) return@registerForActivityResult
+        // Give Bluetooth adapter time to initialize
+        mainHandler.postDelayed({
+            if (!canUseBinding()) return@postDelayed
+            if (bluetoothController.isBluetoothEnabled()) {
+                startBluetoothScan()
+            } else {
+                Toast.makeText(
+                    requireContext(), 
+                    R.string.text_enable_bluetooth_message, 
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }, 500)
     }
 
     override fun initView() {
@@ -122,6 +162,27 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
                 }
             }
         )
+        
+        bluetoothController = BluetoothTvRemoteController(
+            context = requireContext(),
+            onDevicesChanged = { devices ->
+                mainHandler.post {
+                    if (!canUseBinding()) return@post
+                    discoveredBluetoothDevices = devices
+                    if (devices.isNotEmpty()) {
+                        isScanning = false
+                    }
+                    renderBluetoothDevices()
+                }
+            },
+            onStateChanged = { state ->
+                mainHandler.post {
+                    if (!canUseBinding()) return@post
+                    renderBluetoothState(state)
+                }
+            }
+        )
+        
         applySystemInsets()
         renderDisconnected()
     }
@@ -130,8 +191,8 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         binding.btnBack.setOnClickListener { handleBackPressed() }
         binding.btnRefresh.setOnClickListener { startScan() }
         binding.btnMore.setOnClickListener { showDeviceMenu() }
-        binding.btnEnterTvIp.setOnClickListener { showManualIpDialog() }
-        binding.btnEnterTvIpFromList.setOnClickListener { showManualIpDialog() }
+        binding.btnEnterTvIp.setOnClickListener { showConnectionMethodDialog() }
+        binding.btnEnterTvIpFromList.setOnClickListener { showConnectionMethodDialog() }
 
         binding.btnPower.setOnClickListener { showPowerDialog() }
         binding.btnInput.setOnClickListener { showInputDialog() }
@@ -167,6 +228,9 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         viewActive = false
         if (::controller.isInitialized) {
             controller.close()
+        }
+        if (::bluetoothController.isInitialized) {
+            bluetoothController.close()
         }
         mainHandler.removeCallbacksAndMessages(null)
         super.onDestroyView()
@@ -506,7 +570,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun sendRemoteKey(key: TvRemoteKey) {
-        if (!isConnected || selectedDevice == null) {
+        if (!isConnected || (selectedDevice == null && selectedBluetoothDevice == null)) {
             showConnectionLostDialog()
             return
         }
@@ -519,7 +583,11 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         binding.root.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         viewLifecycleOwner.lifecycleScope.launch {
             runCatching {
-                controller.sendKey(key)
+                if (isUsingBluetooth && ::bluetoothController.isInitialized) {
+                    bluetoothController.sendKey(key)
+                } else {
+                    controller.sendKey(key)
+                }
             }.onSuccess {
                 binding.commandStatusText.text = getString(R.string.text_sent_remote_command, key.label)
             }.onFailure {
@@ -560,7 +628,11 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
             if (text.isNotEmpty()) {
                 viewLifecycleOwner.lifecycleScope.launch {
                     runCatching {
-                        controller.sendText(text)
+                        if (isUsingBluetooth && ::bluetoothController.isInitialized) {
+                            bluetoothController.sendText(text)
+                        } else {
+                            controller.sendText(text)
+                        }
                     }.onSuccess {
                         dialog.dismiss()
                         hideKeyboard(input)
@@ -694,9 +766,14 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun disconnect() {
-        controller.disconnect()
+        if (isUsingBluetooth && ::bluetoothController.isInitialized) {
+            bluetoothController.disconnect()
+        } else {
+            controller.disconnect()
+        }
         isConnected = false
         isReconnecting = false
+        isUsingBluetooth = false
         renderDisconnected()
     }
 
@@ -705,7 +782,10 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
             .setTitle(getString(R.string.text_forget_tv_title, device.name))
             .setMessage(R.string.text_forget_tv_message)
             .setNegativeButton(R.string.text_cancel, null)
-            .setPositiveButton(R.string.text_forget) { _, _ -> startScan() }
+            .setPositiveButton(R.string.text_forget) { _, _ -> 
+                isUsingBluetooth = false
+                startScan() 
+            }
             .show()
     }
 
@@ -719,7 +799,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun ensureConnected(): Boolean {
-        if (isConnected && selectedDevice != null && !isReconnecting) return true
+        if (isConnected && (selectedDevice != null || selectedBluetoothDevice != null) && !isReconnecting) return true
         showConnectionLostDialog()
         return false
     }
@@ -783,6 +863,247 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
 
     private fun canUseBinding(): Boolean {
         return viewActive && _binding != null && view != null && isAdded
+    }
+
+    private fun showConnectionMethodDialog() {
+        val dialogView = layoutInflater.inflate(
+            R.layout.dialog_tv_remote_connection_method,
+            null
+        )
+        
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView)
+            .setBackground(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+            .create()
+        
+        // Make dialog background transparent to show rounded corners
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+        
+        dialogView.findViewById<View>(R.id.option_ip_address).setOnClickListener {
+            dialog.dismiss()
+            showManualIpDialog()
+        }
+        
+        dialogView.findViewById<View>(R.id.option_bluetooth).setOnClickListener {
+            dialog.dismiss()
+            initBluetoothConnection()
+        }
+        
+        dialogView.findViewById<View>(R.id.button_cancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        dialog.show()
+    }
+
+    private fun initBluetoothConnection() {
+        if (!bluetoothController.isBluetoothAvailable()) {
+            Toast.makeText(
+                requireContext(),
+                R.string.text_bluetooth_not_available,
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        if (!bluetoothController.hasBluetoothPermission()) {
+            requestBluetoothPermissions()
+            return
+        }
+
+        if (!bluetoothController.isBluetoothEnabled()) {
+            requestEnableBluetooth()
+            return
+        }
+
+        startBluetoothScan()
+    }
+
+
+
+    private fun requestBluetoothPermissions() {
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_SCAN
+            )
+        } else {
+            arrayOf(
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN
+            )
+        }
+        bluetoothPermissionsLauncher.launch(permissions)
+    }
+
+    private fun requestEnableBluetooth() {
+        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+        enableBluetoothLauncher.launch(enableBtIntent)
+    }
+
+    private fun startBluetoothScan() {
+        isUsingBluetooth = true
+        isScanning = true
+        discoveredBluetoothDevices = emptyList()
+        
+        binding.textScanState.text = getString(R.string.text_scanning_bluetooth_devices)
+        binding.textScanHelp.text = getString(R.string.text_tv_remote_scan_help)
+        binding.progressSearching.isVisible = true
+        binding.deviceList.removeAllViews()
+        
+        bluetoothController.startDiscovery()
+        
+        mainHandler.postDelayed({
+            if (_binding == null || view == null) return@postDelayed
+            isScanning = false
+            bluetoothController.stopDiscovery()
+            renderBluetoothDevices()
+        }, SCAN_TIMEOUT_MS)
+    }
+
+    private fun renderBluetoothDevices() {
+        if (!canUseBinding()) return
+        
+        binding.progressSearching.isVisible = isScanning
+        binding.textScanState.text = if (isScanning) {
+            getString(R.string.text_scanning_bluetooth_devices)
+        } else {
+            getString(R.string.text_select_bluetooth_device)
+        }
+        
+        binding.deviceList.isVisible = !isScanning && discoveredBluetoothDevices.isNotEmpty()
+        binding.btnEnterTvIpFromList.isVisible = !isScanning && discoveredBluetoothDevices.isNotEmpty()
+        binding.emptyContainer.isVisible = !isScanning && discoveredBluetoothDevices.isEmpty()
+        
+        if (!isScanning && discoveredBluetoothDevices.isEmpty()) {
+            binding.textScanState.text = getString(R.string.text_no_bluetooth_devices)
+        }
+        
+        bindBluetoothDeviceRows()
+    }
+
+    private fun bindBluetoothDeviceRows() {
+        if (!canUseBinding()) return
+        binding.deviceList.removeAllViews()
+        
+        discoveredBluetoothDevices.forEachIndexed { index, device ->
+            val row = layoutInflater.inflate(
+                R.layout.item_tv_remote_device,
+                binding.deviceList,
+                false
+            )
+            row.findViewById<TextView>(R.id.device_name).text = device.name
+            row.findViewById<TextView>(R.id.device_meta).text = if (device.isPaired) {
+                getString(R.string.text_device_information) + " - Paired"
+            } else {
+                device.address
+            }
+            row.setOnClickListener { connectToBluetoothDevice(device) }
+            (row.layoutParams as? LinearLayout.LayoutParams)?.let { params ->
+                params.topMargin = if (index == 0) 0 else (10 * resources.displayMetrics.density).toInt()
+                row.layoutParams = params
+            }
+            binding.deviceList.addView(row)
+        }
+    }
+
+    private fun connectToBluetoothDevice(device: BluetoothTvDevice) {
+        selectedBluetoothDevice = device
+        isUsingBluetooth = true
+        
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                bluetoothController.stopDiscovery()
+                bluetoothController.connect(device)
+            } catch (error: Throwable) {
+                showConnectionError(error)
+            }
+        }
+    }
+
+    private fun renderBluetoothState(state: BluetoothConnectionState) {
+        if (!canUseBinding()) return
+        
+        when (state) {
+            BluetoothConnectionState.Idle -> Unit
+            BluetoothConnectionState.Scanning -> {
+                isScanning = true
+                renderBluetoothDevices()
+            }
+            BluetoothConnectionState.PermissionRequired -> {
+                renderNoBluetoothPermission()
+            }
+            BluetoothConnectionState.BluetoothNotAvailable -> {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.text_bluetooth_not_available,
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            BluetoothConnectionState.BluetoothDisabled -> {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.text_enable_bluetooth,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            BluetoothConnectionState.NoDevicesFound -> {
+                isScanning = false
+                renderBluetoothDevices()
+            }
+            is BluetoothConnectionState.Connecting -> {
+                binding.textScanState.text = getString(
+                    R.string.text_pairing_with_bluetooth_device,
+                    state.deviceName
+                )
+                binding.textScanHelp.text = getString(R.string.text_please_wait_a_moment)
+            }
+            is BluetoothConnectionState.Connected -> {
+                isConnected = true
+                isReconnecting = false
+                renderRemoteForBluetooth(state.deviceName)
+            }
+            BluetoothConnectionState.Disconnected -> {
+                isConnected = false
+                isReconnecting = false
+                if (binding.remoteContainer.isVisible) {
+                    binding.connectionText.text = getString(R.string.text_connection_lost)
+                    binding.commandStatusText.text = getString(R.string.text_bluetooth_connection_failed)
+                    setRemoteEnabled(false)
+                }
+            }
+            is BluetoothConnectionState.Error -> {
+                Toast.makeText(requireContext(), state.message, Toast.LENGTH_SHORT).show()
+                isScanning = false
+                if (isUsingBluetooth) {
+                    renderBluetoothDevices()
+                } else {
+                    renderDisconnected()
+                }
+            }
+        }
+    }
+
+    private fun renderRemoteForBluetooth(deviceName: String) {
+        if (!canUseBinding()) return
+        
+        binding.title.text = deviceName
+        binding.btnRefresh.isVisible = false
+        binding.btnMore.isVisible = true
+        binding.scanContainer.isVisible = false
+        binding.remoteContainer.isVisible = true
+        binding.connectionText.text = getString(R.string.text_connected_via_bluetooth)
+        binding.commandStatusText.text = getString(R.string.text_remote_ready)
+        setRemoteEnabled(true)
+    }
+
+    private fun renderNoBluetoothPermission() {
+        if (!canUseBinding()) return
+        isScanning = false
+        discoveredBluetoothDevices = emptyList()
+        renderBluetoothDevices()
+        binding.textScanState.text = getString(R.string.text_bluetooth_permission_required)
+        binding.textScanHelp.text = getString(R.string.text_bluetooth_permission_message)
     }
 
     companion object {

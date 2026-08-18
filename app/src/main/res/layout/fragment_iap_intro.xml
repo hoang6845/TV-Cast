@@ -41,6 +41,7 @@
                     android:layout_marginHorizontal="@dimen/_20sdp"
                     android:fontFamily="@font/inter"
                     android:gravity="center"
+                    android:layout_marginBottom="@dimen/_7sdp"
                     app:layout_constraintBottom_toTopOf="@id/intro_trial_subtitle"
                     android:text="@string/text_get_full_access_to_screen_mirroring"
                     android:textColor="#F4D188"
@@ -119,6 +120,7 @@
                         android:fontFamily="@font/inter"
                         android:gravity="center"
                         android:text="@string/text_restore"
+                        android:visibility="gone"
                         android:textColor="#9D9DA3"
                         android:textSize="@dimen/_8ssp" />
 
@@ -126,12 +128,11 @@
                         android:id="@+id/text_term"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/_22sdp"
                         android:fontFamily="@font/inter"
                         android:gravity="center"
                         android:text="@string/text_iap_terms_of_service"
                         android:textColor="#9D9DA3"
-                        android:textSize="@dimen/_8ssp" />
+                        android:textSize="@dimen/_10ssp" />
 
                     <TextView
                         android:id="@+id/text_policy"
@@ -142,7 +143,7 @@
                         android:gravity="center"
                         android:text="@string/text_iap_privacy_policy"
                         android:textColor="#9D9DA3"
-                        android:textSize="@dimen/_8ssp" />
+                        android:textSize="@dimen/_10ssp" />
                 </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>

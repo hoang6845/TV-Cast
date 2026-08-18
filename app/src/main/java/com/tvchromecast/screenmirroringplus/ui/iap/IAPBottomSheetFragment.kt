@@ -97,7 +97,7 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
     override fun onStart() {
         super.onStart()
         configureSheetWindow()
-        addDelayedCloseButton()
+//        addDelayedCloseButton()
     }
 
     override fun onDismiss(dialog: DialogInterface) {
@@ -114,7 +114,7 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        isCancelable = false
+        isCancelable = true
         setStyle(STYLE_NORMAL, R.style.IAPBottomSheet)
     }
 
@@ -212,8 +212,8 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
     private fun configureSheetWindow() {
         val dialog = dialog as? BottomSheetDialog ?: return
 
-        dialog.setCanceledOnTouchOutside(false)
-        dialog.setCancelable(false)
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.setCancelable(true)
 
         dialog.window?.apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))

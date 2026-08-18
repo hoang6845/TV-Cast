@@ -80,8 +80,8 @@
                     android:orientation="horizontal">
 
                     <ImageView
-                        android:layout_width="@dimen/_14sdp"
-                        android:layout_height="@dimen/_14sdp"
+                        android:layout_width="@dimen/_16sdp"
+                        android:layout_height="@dimen/_16sdp"
                         android:src="@drawable/ic_iap_check" />
 
                     <TextView
@@ -91,7 +91,7 @@
                         android:fontFamily="@font/inter"
                         android:text="@string/text_unlock_screen_mirroring"
                         android:textColor="@color/white"
-                        android:textSize="@dimen/_10ssp" />
+                        android:textSize="@dimen/_12ssp" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -103,8 +103,8 @@
                     android:orientation="horizontal">
 
                     <ImageView
-                        android:layout_width="@dimen/_14sdp"
-                        android:layout_height="@dimen/_14sdp"
+                        android:layout_width="@dimen/_16sdp"
+                        android:layout_height="@dimen/_16sdp"
                         android:src="@drawable/ic_iap_check" />
 
                     <TextView
@@ -114,7 +114,7 @@
                         android:fontFamily="@font/inter"
                         android:text="@string/text_instant_playback_no_delay"
                         android:textColor="@color/white"
-                        android:textSize="@dimen/_10ssp" />
+                        android:textSize="@dimen/_12ssp" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -126,8 +126,8 @@
                     android:orientation="horizontal">
 
                     <ImageView
-                        android:layout_width="@dimen/_14sdp"
-                        android:layout_height="@dimen/_14sdp"
+                        android:layout_width="@dimen/_16sdp"
+                        android:layout_height="@dimen/_16sdp"
                         android:src="@drawable/ic_iap_check" />
 
                     <TextView
@@ -137,20 +137,21 @@
                         android:fontFamily="@font/inter"
                         android:text="@string/text_ultra_hd_4k_streaming"
                         android:textColor="@color/white"
-                        android:textSize="@dimen/_10ssp" />
+                        android:textSize="@dimen/_12ssp" />
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/_3sdp"
+                    android:visibility="gone"
                     android:gravity="center|start"
 
                     android:orientation="horizontal">
 
                     <ImageView
-                        android:layout_width="@dimen/_14sdp"
-                        android:layout_height="@dimen/_14sdp"
+                        android:layout_width="@dimen/_16sdp"
+                        android:layout_height="@dimen/_16sdp"
                         android:src="@drawable/ic_iap_check" />
 
                     <TextView
@@ -160,7 +161,7 @@
                         android:fontFamily="@font/inter"
                         android:text="@string/text_completely_ad_free_experience"
                         android:textColor="@color/white"
-                        android:textSize="@dimen/_10ssp" />
+                        android:textSize="@dimen/_12ssp" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -222,8 +223,8 @@
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="@dimen/_15sdp"
-                    android:layout_height="@dimen/_15sdp"
+                    android:layout_width="@dimen/_14sdp"
+                    android:layout_height="@dimen/_14sdp"
                     android:src="@drawable/ic_iap_check" />
 
                 <TextView
@@ -235,7 +236,7 @@
                     android:gravity="center"
                     android:text="@string/text_iap_no_payment_now"
                     android:textColor="#A7A7AD"
-                    android:textSize="@dimen/_10ssp" />
+                    android:textSize="@dimen/_11ssp" />
             </LinearLayout>
 
             <TextView
@@ -268,7 +269,7 @@
                     android:gravity="center"
                     android:text="@string/text_iap_terms_of_service"
                     android:textColor="#9D9DA3"
-                    android:textSize="@dimen/_9ssp" />
+                    android:textSize="@dimen/_11ssp" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -288,7 +289,7 @@
                     android:gravity="center"
                     android:text="@string/text_iap_privacy_policy"
                     android:textColor="#9D9DA3"
-                    android:textSize="@dimen/_9ssp" />
+                    android:textSize="@dimen/_11ssp" />
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
