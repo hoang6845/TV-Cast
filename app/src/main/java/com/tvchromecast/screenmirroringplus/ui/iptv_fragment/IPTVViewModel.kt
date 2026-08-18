@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.tvchromecast.screenmirroringplus.R
 import com.tvchromecast.screenmirroringplus.model.dao.ChannelDao
+import com.tvchromecast.screenmirroringplus.model.dao.PinnedCategoryDao
 import com.tvchromecast.screenmirroringplus.model.entity.Channel
 import com.tvchromecast.screenmirroringplus.utils.AppConstants
 import com.tvchromecast.screenmirroringplus.utils.HttpClientProvider
@@ -21,7 +22,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class IPTVViewModel @Inject constructor(
-    private val channelDao: ChannelDao
+    private val channelDao: ChannelDao,
+    private val pinnedCategoryDao: PinnedCategoryDao
 ): BaseViewModel() {
 
     private val okHttpClient by lazy {
@@ -36,16 +38,27 @@ class IPTVViewModel @Inject constructor(
     val refreshSaveState: StateFlow<CategoryRefreshSaveState> = _refreshSaveState
 
     private var allChannels: List<Channel> = emptyList()
+    private var pinnedCategoryNames: Set<String> = emptySet()
     private var isRefreshing = false
 
     init {
         observeChannels()
+        observePinnedCategories()
     }
 
     private fun observeChannels() {
         viewModelScope.launch(Dispatchers.IO) {
             channelDao.getAllChannels().collectLatest { channels ->
                 allChannels = channels
+                rebuildUiState()
+            }
+        }
+    }
+
+    private fun observePinnedCategories() {
+        viewModelScope.launch(Dispatchers.IO) {
+            pinnedCategoryDao.getAllPinnedCategories().collectLatest { pinned ->
+                pinnedCategoryNames = pinned.map { it.categoryName }.toSet()
                 rebuildUiState()
             }
         }
@@ -131,11 +144,27 @@ class IPTVViewModel @Inject constructor(
     fun selectChannel(channel: Channel) {
         _uiState.update { it.copy(selectedChannel = channel) }
     }
+    
+    fun clearSelectedChannel() {
+        _uiState.update { it.copy(selectedChannel = null) }
+    }
 
     fun toggleFavourite(channel: Channel, isFavourite: Boolean = channel.isFavourite.not()) {
         applyFavouriteState(channel.id, isFavourite)
         viewModelScope.launch(Dispatchers.IO) {
             channelDao.updateFavourite(channel.id, isFavourite)
+        }
+    }
+
+    fun toggleCategoryPin(categoryName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (pinnedCategoryNames.contains(categoryName)) {
+                pinnedCategoryDao.deletePinnedCategory(categoryName)
+            } else {
+                pinnedCategoryDao.insertPinnedCategory(
+                    com.tvchromecast.screenmirroringplus.model.entity.PinnedCategory(categoryName)
+                )
+            }
         }
     }
 
@@ -334,11 +363,13 @@ class IPTVViewModel @Inject constructor(
             .map { counter ->
                 IPTVCategoryItem(
                     name = counter.label,
-                    channelCount = counter.channelIds.size
+                    channelCount = counter.channelIds.size,
+                    isPinned = pinnedCategoryNames.contains(counter.label)
                 )
             }
             .sortedWith(
-                compareByDescending<IPTVCategoryItem> { it.channelCount }
+                compareByDescending<IPTVCategoryItem> { it.isPinned }
+                    .thenByDescending { it.channelCount }
                     .thenBy { it.name.lowercase() }
             )
     }

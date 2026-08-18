@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="@dimen/_280sdp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_cast_failure_dialog"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/_16sdp"
+    android:paddingTop="@dimen/_18sdp"
+    android:paddingEnd="@dimen/_16sdp"
+    android:paddingBottom="@dimen/_12sdp">
+
+    <TextView
+        android:id="@+id/text_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/text_enter_tv_ip_title"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_15ssp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/text_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_8sdp"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/text_enter_tv_ip_message"
+        android:textColor="#9F9FA1"
+        android:textSize="@dimen/_10ssp" />
+
+    <EditText
+        android:id="@+id/input_ip_address"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_48sdp"
+        android:layout_marginTop="@dimen/_18sdp"
+        android:autofillHints=""
+        android:background="@drawable/bg_cast_youtube_nav_button"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:hint="@string/text_tv_ip_hint"
+        android:includeFontPadding="false"
+        android:inputType="phone"
+        android:maxLength="253"
+        android:maxLines="1"
+        android:paddingStart="@dimen/_16sdp"
+        android:paddingEnd="@dimen/_16sdp"
+        android:textColor="@color/white"
+        android:textColorHint="#9F9FA1"
+        android:textSize="@dimen/_12ssp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_44sdp"
+        android:layout_marginTop="@dimen/_8sdp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/button_cancel"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="@string/text_cancel"
+            android:textColor="#9F9FA1"
+            android:textSize="@dimen/_12ssp"
+            android:textStyle="bold"
+            tools:ignore="TextViewEdits" />
+
+        <TextView
+            android:id="@+id/button_connect"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:fontFamily="@font/inter"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="@string/text_connect"
+            android:textColor="#0A84FF"
+            android:textSize="@dimen/_12ssp"
+            android:textStyle="bold"
+            tools:ignore="TextViewEdits" />
+    </LinearLayout>
+</LinearLayout>

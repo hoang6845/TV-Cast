@@ -39,21 +39,35 @@
             android:maxLines="1"
             android:text="@string/text_iptv"
             android:textColor="@color/white"
-            android:textSize="@dimen/_11ssp"
+            android:textSize="@dimen/_12ssp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btn_top_action"
+            app:layout_constraintEnd_toStartOf="@id/btn_refresh"
             app:layout_constraintStart_toEndOf="@id/btn_back"
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
-            android:id="@+id/btn_top_action"
+            android:id="@+id/btn_refresh"
             android:layout_width="@dimen/_34sdp"
             android:layout_height="@dimen/_34sdp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/text_refresh_playlist"
             android:padding="@dimen/_7sdp"
             android:src="@drawable/ic_reload_white"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/btn_cast"
+            android:layout_width="@dimen/_34sdp"
+            android:layout_height="@dimen/_34sdp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/text_cast_to_tv"
+            android:padding="@dimen/_7sdp"
+            android:src="@drawable/ic_cast_screen_white"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -91,7 +105,7 @@
                 android:includeFontPadding="false"
                 android:text="@string/text_genres"
                 android:textColor="@color/black"
-                android:textSize="@dimen/_10ssp"
+                android:textSize="@dimen/_11ssp"
                 android:textStyle="bold" />
 
             <TextView
@@ -104,7 +118,7 @@
                 android:includeFontPadding="false"
                 android:text="@string/text_favorites"
                 android:textColor="@color/white"
-                android:textSize="@dimen/_10ssp"
+                android:textSize="@dimen/_11ssp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -127,26 +141,7 @@
                 android:src="@drawable/ic_iptv_search" />
 
             <TextView
-                android:id="@+id/btn_filter_mode"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="@dimen/_7sdp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_iptv_dropdown"
-                android:drawableEnd="@drawable/ic_iptv_arrow_down"
-                android:drawablePadding="@dimen/_4sdp"
-                android:ellipsize="end"
-                android:fontFamily="@font/inter"
-                android:gravity="center_vertical"
-                android:includeFontPadding="false"
-                android:maxLines="1"
-                android:paddingHorizontal="@dimen/_10sdp"
-                android:text="@string/text_by_country"
-                android:textColor="@color/white"
-                android:textSize="@dimen/_9ssp" />
-
-            <TextView
-                android:id="@+id/btn_filter_value"
+                android:id="@+id/btn_filter_combined"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_marginStart="@dimen/_7sdp"
@@ -162,7 +157,7 @@
                 android:paddingHorizontal="@dimen/_10sdp"
                 android:text="@string/text_all_countries"
                 android:textColor="@color/white"
-                android:textSize="@dimen/_9ssp" />
+                android:textSize="@dimen/_10ssp" />
         </LinearLayout>
 
         <LinearLayout
@@ -200,84 +195,18 @@
                 android:singleLine="true"
                 android:textColor="@color/white"
                 android:textColorHint="#8F8F96"
-                android:textSize="@dimen/_9ssp" />
+                android:textSize="@dimen/_10ssp" />
         </LinearLayout>
 
-        <FrameLayout
+        <include
             android:id="@+id/player_container"
+            layout="@layout/custom_player_view"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/_150sdp"
+            android:layout_height="@dimen/_200sdp"
             android:layout_marginHorizontal="@dimen/_12sdp"
             android:layout_marginTop="@dimen/_10sdp"
-            android:background="@drawable/bg_iptv_bottom_player"
-            android:clipToOutline="true"
             android:visibility="gone"
-            tools:visibility="visible">
-
-            <androidx.media3.ui.PlayerView
-                android:id="@+id/player_view"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@color/black"
-                app:resize_mode="zoom"
-                app:show_buffering="never"
-                app:use_controller="false" />
-
-            <ProgressBar
-                android:id="@+id/player_loading"
-                android:layout_width="@dimen/_30sdp"
-                android:layout_height="@dimen/_30sdp"
-                android:layout_gravity="center"
-                android:indeterminateTint="@color/white"
-                android:visibility="gone" />
-
-            <LinearLayout
-                android:id="@+id/player_unavailable"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_iptv_player_overlay"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:paddingHorizontal="@dimen/_20sdp"
-                android:visibility="gone">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/inter"
-                    android:includeFontPadding="false"
-                    android:text="@string/text_channel_unavailable"
-                    android:textColor="@color/white"
-                    android:textSize="@dimen/_11ssp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/_6sdp"
-                    android:fontFamily="@font/inter"
-                    android:gravity="center"
-                    android:includeFontPadding="false"
-                    android:text="@string/text_channel_unavailable_message"
-                    android:textColor="#B7B7BD"
-                    android:textSize="@dimen/_8ssp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/btn_cast_to_tv"
-                android:layout_width="@dimen/_74sdp"
-                android:layout_height="@dimen/_30sdp"
-                android:layout_gravity="bottom|center"
-                android:layout_marginBottom="@dimen/_10sdp"
-                android:background="@drawable/bg_iptv_cast_button"
-                android:fontFamily="@font/inter"
-                android:gravity="center"
-                android:includeFontPadding="false"
-                android:text="@string/text_cast_to_tv"
-                android:textColor="@color/white"
-                android:textSize="@dimen/_8ssp"
-                android:textStyle="bold" />
-        </FrameLayout>
+            tools:visibility="visible" />
 
         <FrameLayout
             android:id="@+id/list_container"
@@ -304,7 +233,7 @@
                 android:padding="@dimen/_24sdp"
                 android:text="@string/text_no_categories_found"
                 android:textColor="#8F8F96"
-                android:textSize="@dimen/_11ssp"
+                android:textSize="@dimen/_12ssp"
                 android:visibility="gone" />
 
             <androidx.recyclerview.widget.RecyclerView
@@ -327,49 +256,8 @@
                 android:padding="@dimen/_24sdp"
                 android:text="@string/text_no_channels_found"
                 android:textColor="#8F8F96"
-                android:textSize="@dimen/_11ssp"
+                android:textSize="@dimen/_12ssp"
                 android:visibility="gone" />
         </FrameLayout>
     </LinearLayout>
-
-    <FrameLayout
-        android:id="@+id/refresh_loading_overlay"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@drawable/bg_iptv_loading_overlay"
-        android:clickable="true"
-        android:focusable="true"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <LinearLayout
-            android:layout_width="@dimen/_170sdp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:background="@drawable/bg_iptv_row"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="@dimen/_18sdp">
-
-            <ProgressBar
-                android:layout_width="@dimen/_32sdp"
-                android:layout_height="@dimen/_32sdp"
-                android:indeterminateTint="@color/white" />
-
-            <TextView
-                android:id="@+id/tv_refresh_progress"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/_12sdp"
-                android:fontFamily="@font/inter"
-                android:gravity="center"
-                android:includeFontPadding="false"
-                android:textColor="@color/white"
-                android:textSize="@dimen/_10ssp"
-                tools:text="Refreshing playlist 45%" />
-        </LinearLayout>
-    </FrameLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

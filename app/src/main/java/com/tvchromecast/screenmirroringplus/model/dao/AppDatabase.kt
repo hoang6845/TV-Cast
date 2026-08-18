@@ -5,10 +5,12 @@ import androidx.room.migration.Migration
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.tvchromecast.screenmirroringplus.model.entity.Channel
+import com.tvchromecast.screenmirroringplus.model.entity.PinnedCategory
 
-@Database(entities = [Channel::class], version = 2, exportSchema = false)
+@Database(entities = [Channel::class, PinnedCategory::class], version = 3, exportSchema = false)
 abstract class AppDatabase: RoomDatabase() {
     abstract fun channelDao(): ChannelDao
+    abstract fun pinnedCategoryDao(): PinnedCategoryDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -36,6 +38,19 @@ abstract class AppDatabase: RoomDatabase() {
                 )
                 db.execSQL("DROP TABLE Channel")
                 db.execSQL("ALTER TABLE Channel_new RENAME TO Channel")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS PinnedCategory (
+                        categoryName TEXT NOT NULL,
+                        PRIMARY KEY(categoryName)
+                    )
+                    """.trimIndent()
+                )
             }
         }
     }

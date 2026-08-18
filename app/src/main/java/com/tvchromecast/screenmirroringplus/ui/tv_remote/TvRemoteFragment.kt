@@ -396,35 +396,52 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun showManualIpDialog() {
-        val input = EditText(requireContext()).apply {
-            inputType = InputType.TYPE_CLASS_PHONE
-            hint = getString(R.string.text_tv_ip_hint)
-            filters = arrayOf(InputFilter.LengthFilter(MAX_MANUAL_HOST_LENGTH))
-            setSingleLine(true)
+        val dialogView = layoutInflater.inflate(
+            R.layout.dialog_enter_ip_address,
+            null
+        )
+        
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView)
+            .create()
+        
+        val input = dialogView.findViewById<EditText>(R.id.input_ip_address)
+        
+        dialogView.findViewById<View>(R.id.button_cancel).setOnClickListener {
+            dialog.dismiss()
         }
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.text_enter_tv_ip_title)
-            .setMessage(R.string.text_enter_tv_ip_message)
-            .setView(input)
-            .setNegativeButton(R.string.text_cancel, null)
-            .setPositiveButton(R.string.text_connect) { _, _ ->
-                val host = input.text?.toString()?.trim().orEmpty()
-                if (host.isBlank()) {
-                    Toast.makeText(requireContext(), R.string.text_invalid_tv_ip, Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                connectToDevice(
-                    TvRemoteDevice(
-                        id = "manual:$host",
-                        name = host,
-                        host = host,
-                        remotePort = DEFAULT_ANDROID_TV_REMOTE_PORT,
-                        pairPort = TvRemoteDevice.DEFAULT_PAIRING_PORT
-                    )
-                )
+        
+        dialogView.findViewById<View>(R.id.button_connect).setOnClickListener {
+            val host = input.text?.toString()?.trim().orEmpty()
+            if (host.isBlank()) {
+                Toast.makeText(requireContext(), R.string.text_invalid_tv_ip, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
-            .show()
+            dialog.dismiss()
+            hideKeyboard(input)
+            connectToDevice(
+                TvRemoteDevice(
+                    id = "manual:$host",
+                    name = host,
+                    host = host,
+                    remotePort = DEFAULT_ANDROID_TV_REMOTE_PORT,
+                    pairPort = TvRemoteDevice.DEFAULT_PAIRING_PORT
+                )
+            )
+        }
+        
+        dialog.setOnShowListener {
+            dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+            dialog.window?.setLayout(
+                resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._280sdp),
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            input.requestFocus()
+            dialog.window?.setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+            )
+        }
+        dialog.show()
     }
 
     private suspend fun beginPairing(device: TvRemoteDevice) {
@@ -897,6 +914,15 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun initBluetoothConnection() {
+        if (!::bluetoothController.isInitialized) {
+            Toast.makeText(
+                requireContext(),
+                R.string.text_bluetooth_not_available,
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        
         if (!bluetoothController.isBluetoothAvailable()) {
             Toast.makeText(
                 requireContext(),

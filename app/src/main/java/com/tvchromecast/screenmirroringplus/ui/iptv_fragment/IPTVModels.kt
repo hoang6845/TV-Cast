@@ -30,7 +30,8 @@ data class IPTVFilterOption(
 
 data class IPTVCategoryItem(
     val name: String,
-    val channelCount: Int
+    val channelCount: Int,
+    val isPinned: Boolean = false
 )
 
 data class IPTVUiState(

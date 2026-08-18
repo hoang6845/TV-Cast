@@ -539,9 +539,13 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
     }
 
     private fun updateCameraCapabilities() {
-        val hasTorch = webRtcStreamer?.hasTorchForCurrentCamera() == true
-        binding.btnFlash.isEnabled = hasTorch
-        binding.btnFlash.alpha = if (hasTorch) 1f else 0.45f
+        val hasTorch =
+            !useFrontCamera &&
+                    webRtcStreamer?.hasTorchForCurrentCamera() == true
+
+        binding.btnFlash.isEnabled = cameraReady && hasTorch
+        binding.btnFlash.alpha =
+            if (binding.btnFlash.isEnabled) 1f else 0.45f
         supportedZoomRatios = webRtcStreamer?.getSupportedZoomRatios(useFrontCamera)
             ?: listOf(DEFAULT_ZOOM_RATIO, DOUBLE_ZOOM_RATIO)
         if (supportedZoomRatios.none { isSameZoom(it, currentZoomRatio) }) {
@@ -556,18 +560,16 @@ class CameraCastFragment : BaseFragment<FragmentCameraCastBinding, CameraCastVie
         }
     }
 
+
     private fun toggleTorch() {
-        if (!cameraReady) return
+        if (!cameraReady || useFrontCamera) return
 
         val nextState = !torchEnabled
-        val applied = webRtcStreamer?.setTorchEnabled(nextState) == true
-        if (applied) {
+
+        if (webRtcStreamer?.setTorchEnabled(nextState) == true) {
             torchEnabled = nextState
-        } else {
-            torchEnabled = false
-            binding.btnFlash.isEnabled = false
-            binding.btnFlash.alpha = 0.45f
         }
+
         updateControls()
     }
 

@@ -28,6 +28,8 @@ class MainViewModel @Inject constructor(
     override fun onCreate(owner: LifecycleOwner) {
         super.onCreate(owner)
         viewModelScope.launch(Dispatchers.IO) {
+            Log.d("check data", "loadM3U: parsed=${channelDao.countChannels()}, saved=${channelDao.countChannelsWithLanguageOrCountry()}")
+
             if (channelDao.countChannels() == 0 || channelDao.countChannelsWithLanguageOrCountry() == 0) {
                 loadM3UInternal()
             }
@@ -49,18 +51,26 @@ class MainViewModel @Inject constructor(
         _error.value = null
 
         try {
+            Log.d("check data", "loadM3U: start")
+
             val existingChannels = channelDao.getAllChannelsOnce().associateBy { it.id }
             val parsedChannels = AppConstants.CHANNEL_SOURCES.flatMap { (source, url) ->
                 val m3uText = fetchM3U(okHttpClient, url)
                 parseM3U(m3uText, source)
             }
+            Log.d("check data", "loadM3U: start $parsedChannels")
+
             val mergedChannels = mergeChannels(parsedChannels, existingChannels)
             channelDao.insertChannels(mergedChannels)
-            Log.d("check data", "loadM3U: parsed=${parsedChannels.size}, saved=${mergedChannels.size}")
+            Log.d("check data", "loadM3U: start end load parsed=${parsedChannels.size}, saved=${mergedChannels.size}")
         } catch (e: Exception) {
             _error.value = e.message
+            Log.d("check data", "loadM3U: parsed=${e.message}")
+
         } finally {
             _loading.value = false
+            Log.d("check data", "loadM3U: end")
+
         }
     }
 

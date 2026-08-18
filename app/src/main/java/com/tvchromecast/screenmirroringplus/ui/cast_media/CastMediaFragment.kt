@@ -194,7 +194,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     override fun initListener() {
         binding.btnBack.setOnClickListener { handleBackPressed() }
         binding.btnStartCasting.setOnClickListener { handleCastButton() }
-        binding.photoPreview.setOnClickListener { openPicker() }
+//        binding.photoPreview.setOnClickListener { openPicker() }
         binding.videoPlayer.setOnClickListener { openPicker() }
         binding.emptyMediaContainer.setOnClickListener { requestMediaPermissionAndOpen() }
         binding.btnAddPhotos.setOnClickListener { openPicker() }

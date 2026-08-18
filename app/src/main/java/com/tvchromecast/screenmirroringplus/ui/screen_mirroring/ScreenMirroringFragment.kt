@@ -10,6 +10,7 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.hardware.display.DisplayManager
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
@@ -896,7 +897,13 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         dialogView.findViewById<android.widget.TextView>(R.id.button_ok).setOnClickListener {
             dialog.dismiss()
         }
-        
+        dialog.setOnShowListener {
+            dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            dialog.window?.setLayout(
+                resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._280sdp),
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
         dialog.show()
     }
 

@@ -29,9 +29,12 @@ class BluetoothTvRemoteController(
     private val onDevicesChanged: (List<BluetoothTvDevice>) -> Unit,
     private val onStateChanged: (BluetoothConnectionState) -> Unit
 ) {
-    private val bluetoothManager: BluetoothManager? = 
+    private val bluetoothManager: BluetoothManager? by lazy {
         context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-    private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager?.adapter
+    }
+    private val bluetoothAdapter: BluetoothAdapter? by lazy { 
+        bluetoothManager?.adapter
+    }
     
     private val discoveredDevices = mutableListOf<BluetoothTvDevice>()
     private var bluetoothSocket: BluetoothSocket? = null
@@ -91,7 +94,10 @@ class BluetoothTvRemoteController(
      * Check if Bluetooth is available on this device
      */
     fun isBluetoothAvailable(): Boolean {
-        return bluetoothAdapter != null
+        // Check if device has Bluetooth hardware
+        val hasBluetooth = context.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)
+        Log.d("BluetoothController", "isBluetoothAvailable: hasBluetooth=$hasBluetooth, adapter=${bluetoothAdapter != null}")
+        return hasBluetooth && bluetoothAdapter != null
     }
 
     /**
