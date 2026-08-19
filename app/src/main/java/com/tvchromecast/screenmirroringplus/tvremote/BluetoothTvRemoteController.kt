@@ -115,7 +115,8 @@ class BluetoothTvRemoteController(
      */
     @SuppressLint("MissingPermission")
     fun enableBluetooth(): Boolean {
-        if (!hasBluetoothPermission() || bluetoothAdapter == null) {
+        val adapter = bluetoothAdapter
+        if (!hasBluetoothPermission() || adapter == null) {
             return false
         }
         
@@ -123,7 +124,7 @@ class BluetoothTvRemoteController(
         return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             try {
                 @Suppress("DEPRECATION")
-                bluetoothAdapter.enable()
+                adapter.enable()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to enable Bluetooth", e)
                 false
@@ -165,12 +166,13 @@ class BluetoothTvRemoteController(
      */
     @SuppressLint("MissingPermission")
     fun getPairedDevices(): List<BluetoothTvDevice> {
-        if (!hasBluetoothPermission() || bluetoothAdapter == null) {
+        val adapter = bluetoothAdapter
+        if (!hasBluetoothPermission() || adapter == null) {
             return emptyList()
         }
 
         return try {
-            bluetoothAdapter.bondedDevices
+            adapter.bondedDevices
                 ?.filter { device ->
                     val name = device.name ?: ""
                     name.contains("TV", ignoreCase = true) ||
@@ -201,12 +203,13 @@ class BluetoothTvRemoteController(
             return
         }
 
-        if (bluetoothAdapter == null) {
+        val adapter = bluetoothAdapter
+        if (adapter == null) {
             onStateChanged(BluetoothConnectionState.BluetoothNotAvailable)
             return
         }
 
-        if (!bluetoothAdapter.isEnabled) {
+        if (!adapter.isEnabled) {
             onStateChanged(BluetoothConnectionState.BluetoothDisabled)
             return
         }
@@ -225,12 +228,12 @@ class BluetoothTvRemoteController(
         context.registerReceiver(discoveryReceiver, filter)
 
         // Cancel any ongoing discovery
-        if (bluetoothAdapter.isDiscovering) {
-            bluetoothAdapter.cancelDiscovery()
+        if (adapter.isDiscovering) {
+            adapter.cancelDiscovery()
         }
 
         // Start discovery
-        isDiscovering = bluetoothAdapter.startDiscovery()
+        isDiscovering = adapter.startDiscovery()
         onStateChanged(BluetoothConnectionState.Scanning)
     }
 
@@ -239,11 +242,12 @@ class BluetoothTvRemoteController(
      */
     @SuppressLint("MissingPermission")
     fun stopDiscovery() {
-        if (!hasBluetoothPermission() || bluetoothAdapter == null) return
+        val adapter = bluetoothAdapter
+        if (!hasBluetoothPermission() || adapter == null) return
 
         try {
-            if (bluetoothAdapter.isDiscovering) {
-                bluetoothAdapter.cancelDiscovery()
+            if (adapter.isDiscovering) {
+                adapter.cancelDiscovery()
             }
             context.unregisterReceiver(discoveryReceiver)
         } catch (e: Exception) {

@@ -128,8 +128,8 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         view.findViewById<TextView>(R.id.des_1).isVisible = false
         view.findViewById<TextView>(R.id.title_2).isVisible = false
         view.findViewById<TextView>(R.id.des_2).isVisible = false
-        view.findViewById<TextView>(R.id.title_3).isVisible = true
-        view.findViewById<TextView>(R.id.des_3).isVisible = true
+        view.findViewById<TextView>(R.id.title_3).isVisible = position!=0
+        view.findViewById<TextView>(R.id.des_3).isVisible = position!=0
 //        view.findViewById<TextView>(R.id.title_3).text = buildSpannedString {
 //            color(Color.parseColor("#ffffff")) {
 //                append(getString(R.string.text_start))
@@ -143,6 +143,7 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
 //                append(getString(R.string.text_trial))
 //            }
 //        }
+
         view.findViewById<TextView>(R.id.title_3).text = item.title
         view.findViewById<TextView>(R.id.des_3).text = item.description
         val button = view.findViewById<TextView>(R.id.btn_save)
