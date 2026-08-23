@@ -91,7 +91,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:contentDescription="@string/text_cast_photos"
-            android:scaleType="center"
+            android:scaleType="fitCenter"
             tools:src="@drawable/thumbnail" />
 
         <androidx.media3.ui.PlayerView

@@ -446,11 +446,21 @@ class LocalMediaHttpServer(
     }
 
     companion object {
+        @Volatile
+        private var sharedInstance: LocalMediaHttpServer? = null
+
         private const val REMOTE_CONNECT_TIMEOUT_MS = 15_000
         private const val REMOTE_READ_TIMEOUT_MS = 30_000
         private const val REMOTE_USER_AGENT =
             "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
         private const val TAG = "LocalMediaServer"
+
+        fun shared(context: Context): LocalMediaHttpServer {
+            return sharedInstance ?: synchronized(this) {
+                sharedInstance ?: LocalMediaHttpServer(context.applicationContext)
+                    .also { sharedInstance = it }
+            }
+        }
 
         fun queryDisplayName(context: Context, uri: Uri): String {
             return uri.queryOpenableColumn(context, OpenableColumns.DISPLAY_NAME)

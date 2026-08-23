@@ -26,9 +26,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DecodeFormat
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
 import com.google.android.gms.cast.Cast
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
@@ -63,7 +60,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val mediaServer by lazy { LocalMediaHttpServer(requireContext().applicationContext) }
+    private val mediaServer by lazy { LocalMediaHttpServer.shared(requireContext()) }
     private val photoAdapter by lazy { PhotoThumbAdapter(::selectPhoto) }
     private val mode: String by lazy {
         arguments?.getString(ARG_MODE, MODE_PHOTO) ?: MODE_PHOTO
@@ -244,7 +241,6 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         currentCastSession()?.let(::removeReceiverDebugCallback)
         player?.release()
         player = null
-        mediaServer.close()
         super.onDestroyView()
     }
 
@@ -385,11 +381,10 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private fun setPhotos(uris: List<Uri>) {
         photos = uris
         selectedPhotoIndex = 0
-        binding.photoPreview.loadLocalPhoto(
-            uri = uris.first(),
-            widthPx = PHOTO_PREVIEW_MAX_SIZE_PX,
-            heightPx = PHOTO_PREVIEW_MAX_SIZE_PX
-        )
+        Glide.with(binding.photoPreview)
+            .load(uris.first())
+            .dontTransform()
+            .into(binding.photoPreview)
         photoAdapter.submit(uris, selectedPhotoIndex)
 
         // Scroll về đầu danh sách
@@ -432,11 +427,10 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private fun selectPhoto(position: Int) {
         val uri = photos.getOrNull(position) ?: return
         selectedPhotoIndex = position
-        binding.photoPreview.loadLocalPhoto(
-            uri = uri,
-            widthPx = PHOTO_PREVIEW_MAX_SIZE_PX,
-            heightPx = PHOTO_PREVIEW_MAX_SIZE_PX
-        )
+        Glide.with(binding.photoPreview)
+            .load(uri)
+            .dontTransform()
+            .into(binding.photoPreview)
         photoAdapter.submit(photos, selectedPhotoIndex)
 
         // Scroll RecyclerView tới ảnh đang chọn để không bị mất khỏi màn hình
@@ -629,6 +623,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
     private fun stopCasting() {
         currentCastSession()?.remoteMediaClient?.stop()
+        mediaServer.clear()
         isCasting = false
         binding.preparingOverlay.isVisible = false
         updateControls()
@@ -737,7 +732,6 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         const val MODE_PHOTO = "photo"
         const val MODE_VIDEO = "video"
         private const val MAX_PHOTOS = 20
-        private const val PHOTO_PREVIEW_MAX_SIZE_PX = 2048
         private const val VIDEO_PROGRESS_INTERVAL_MS = 500L
         private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
         private const val RECEIVER_NAMESPACE = "urn:x-cast:com.example.camera.webrtc"
@@ -771,18 +765,17 @@ private class PhotoThumbAdapter(
                 R.drawable.bg_cast_media_thumb
             )
             clipToOutline = true
-            scaleType = ImageView.ScaleType.CENTER_CROP
+            scaleType = ImageView.ScaleType.FIT_CENTER
             setPadding(2, 2, 2, 2)
         }
         return PhotoThumbViewHolder(imageView)
     }
 
     override fun onBindViewHolder(holder: PhotoThumbViewHolder, position: Int) {
-        holder.imageView.loadLocalPhoto(
-            uri = items[position],
-            widthPx = holder.imageView.layoutParams.width,
-            heightPx = holder.imageView.layoutParams.height
-        )
+        Glide.with(holder.imageView)
+            .load(items[position])
+            .dontTransform()
+            .into(holder.imageView)
         holder.imageView.background = androidx.core.content.ContextCompat.getDrawable(
             holder.imageView.context,
             if (position == selectedIndex) {
@@ -804,18 +797,4 @@ private class PhotoThumbAdapter(
     class PhotoThumbViewHolder(
         val imageView: ImageView
     ) : RecyclerView.ViewHolder(imageView)
-}
-
-private fun ImageView.loadLocalPhoto(uri: Uri, widthPx: Int, heightPx: Int) {
-    Glide.with(this)
-        .load(uri)
-        .override(widthPx.coerceAtLeast(1), heightPx.coerceAtLeast(1))
-        .downsample(DownsampleStrategy.AT_MOST)
-        .format(DecodeFormat.PREFER_RGB_565)
-        .centerCrop()
-        .thumbnail(0.25f)
-        .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-        .skipMemoryCache(false)
-        .dontAnimate()
-        .into(this)
 }

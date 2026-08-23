@@ -64,7 +64,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val mediaServer by lazy { LocalMediaHttpServer(requireContext().applicationContext) }
+    private val mediaServer by lazy { LocalMediaHttpServer.shared(requireContext()) }
     private val detectedVideos = linkedMapOf<String, DetectedVideo>()
     private val sessionBookmarks = mutableSetOf<String>()
     private var castContext: CastContext? = null
@@ -220,7 +220,6 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
 
     override fun onDestroyView() {
         currentCastSession()?.let(::removeReceiverDebugCallback)
-        disconnectCastingOnExit(updateUi = false)
         mainHandler.removeCallbacksAndMessages(null)
 
         binding.webView.apply {
@@ -233,7 +232,6 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         }
 
         CookieManager.getInstance().flush()
-        mediaServer.close()
         super.onDestroyView()
     }
 
@@ -768,6 +766,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
 
     private fun stopCasting() {
         currentCastSession()?.remoteMediaClient?.stop()
+        mediaServer.clear()
         isCasting = false
         resetCastingState()
         updateControls()
@@ -778,6 +777,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
 
         currentCastSession()?.remoteMediaClient?.stop()
         castContext?.sessionManager?.endCurrentSession(true)
+        mediaServer.clear()
         pendingVideo = null
         isCasting = false
         resetCastingState()

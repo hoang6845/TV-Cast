@@ -210,7 +210,6 @@ class CastYoutubeFragment : BaseFragment<FragmentCastYoutubeBinding, CastYoutube
     }
 
     override fun onDestroyView() {
-        disconnectYoutubeCastingOnExit(updateUi = false)
         mainHandler.removeCallbacksAndMessages(null)
         currentCastSession()?.let(::removeReceiverCallback)
         binding.webView.apply {
