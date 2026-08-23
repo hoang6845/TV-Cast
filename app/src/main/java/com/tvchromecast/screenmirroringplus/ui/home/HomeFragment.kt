@@ -1,14 +1,21 @@
 package com.tvchromecast.screenmirroringplus.ui.home
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
+import android.hardware.display.DisplayManager
 import android.os.Bundle
 import android.graphics.Color
+import android.graphics.PorterDuff
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.provider.Settings
+import android.view.Display
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.mediarouter.media.MediaRouteSelector
 import androidx.mediarouter.media.MediaRouter
@@ -26,6 +33,8 @@ import com.tvchromecast.screenmirroringplus.ui.intro.ViewPager2Adapter
 import com.tvchromecast.screenmirroringplus.utils.AppConstants
 import com.google.android.gms.cast.CastMediaControlIntent
 import com.google.android.gms.cast.framework.CastContext
+import com.google.android.gms.cast.framework.CastSession
+import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -46,6 +55,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     ): FragmentHomeBinding {
         return FragmentHomeBinding.inflate(inflater, container, false)
     }
+
+    private var castContext: CastContext? = null
+    private var currentCastSession: CastSession? = null
+    private var displayManager: DisplayManager? = null
 
     private val listItem: List<ItemFunc> by lazy {
         listOf(
@@ -104,10 +117,67 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
         HomeFuncAdapter()
     }
 
+    private val castSessionListener = object : SessionManagerListener<CastSession> {
+        override fun onSessionStarting(session: CastSession) {
+            updateConnectionButton()
+        }
+
+        override fun onSessionStarted(session: CastSession, sessionId: String) {
+            currentCastSession = session
+            updateConnectionButton()
+        }
+
+        override fun onSessionStartFailed(session: CastSession, error: Int) {
+            updateConnectionButton()
+        }
+
+        override fun onSessionEnding(session: CastSession) {
+            updateConnectionButton()
+        }
+
+        override fun onSessionEnded(session: CastSession, error: Int) {
+            currentCastSession = null
+            updateConnectionButton()
+        }
+
+        override fun onSessionResuming(session: CastSession, sessionId: String) {
+            updateConnectionButton()
+        }
+
+        override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
+            currentCastSession = session
+            updateConnectionButton()
+        }
+
+        override fun onSessionResumeFailed(session: CastSession, error: Int) {
+            updateConnectionButton()
+        }
+
+        override fun onSessionSuspended(session: CastSession, reason: Int) {
+            updateConnectionButton()
+        }
+    }
+
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) {
+            updateConnectionButton()
+        }
+
+        override fun onDisplayRemoved(displayId: Int) {
+            updateConnectionButton()
+        }
+
+        override fun onDisplayChanged(displayId: Int) {
+            updateConnectionButton()
+        }
+    }
+
     override fun initView() {
         adjustInsetsForBottomNavigation(binding.top)
         adjustInsetsForBottomMargin(binding.rvHomeFunc)
         setUpAdapter()
+        setupDisplayManager()
+        setupCastContext()
     }
 
     override fun initListener() {
@@ -115,7 +185,11 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
             navigate(R.id.IAPFragment)
         }
         binding.btnHowToConnect.setOnClickListener {
-            showHowToConnectSheet()
+            if (connectedDeviceState() != null) {
+                showConnectedDeviceSheet()
+            } else {
+                showHowToConnectSheet()
+            }
         }
 
         binding.icHelp.setOnClickListener {
@@ -128,6 +202,73 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     }
 
     override fun initData() {
+    }
+
+    override fun onStart() {
+        super.onStart()
+        castContext?.sessionManager?.addSessionManagerListener(
+            castSessionListener,
+            CastSession::class.java
+        )
+        displayManager?.registerDisplayListener(displayListener, null)
+        currentCastSession = castContext?.sessionManager?.currentCastSession
+        updateConnectionButton()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        currentCastSession = castContext?.sessionManager?.currentCastSession
+        updateConnectionButton()
+    }
+
+    override fun onStop() {
+        displayManager?.unregisterDisplayListener(displayListener)
+        castContext?.sessionManager?.removeSessionManagerListener(
+            castSessionListener,
+            CastSession::class.java
+        )
+        super.onStop()
+    }
+
+    private fun setupDisplayManager() {
+        displayManager = requireContext()
+            .getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager
+    }
+
+    private fun setupCastContext() {
+        runCatching {
+            castContext = CastContext.getSharedInstance(requireContext())
+            currentCastSession = castContext?.sessionManager?.currentCastSession
+            updateConnectionButton()
+        }
+    }
+
+    private fun updateConnectionButton() {
+        if (_binding == null || view == null) return
+
+        val connectedDevice = connectedDeviceState()
+
+        if (connectedDevice != null) {
+            binding.tvConnectStatus.text = connectedDevice.name
+            binding.btnHowToConnect.setBackgroundResource(R.drawable.bg_connect_active)
+            binding.icConnect.setColorFilter(
+                ContextCompat.getColor(requireContext(), android.R.color.black),
+                PorterDuff.Mode.SRC_IN
+            )
+            binding.tvConnectStatus.setTextColor(
+                ContextCompat.getColor(requireContext(), android.R.color.black)
+            )
+        } else {
+            binding.tvConnectStatus.text = getString(R.string.text_connect_tv)
+            binding.btnHowToConnect.setBackgroundResource(R.drawable.bg_connect)
+            binding.icConnect.setColorFilter(
+                ContextCompat.getColor(requireContext(), android.R.color.white),
+                PorterDuff.Mode.SRC_IN
+            )
+            binding.tvConnectStatus.setTextColor(
+                ContextCompat.getColor(requireContext(), android.R.color.white)
+            )
+        }
     }
 
     fun setUpAdapter() {
@@ -199,6 +340,89 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
             )
         }
         dialog.show()
+    }
+
+    private fun showConnectedDeviceSheet() {
+        val connectedDevice = connectedDeviceState() ?: run {
+            showHowToConnectSheet()
+            return
+        }
+        val dialog = BottomSheetDialog(requireContext())
+        val sheetBinding = com.tvchromecast.screenmirroringplus.databinding.LayoutHomeConnectedDeviceSheetBinding.inflate(layoutInflater)
+
+        sheetBinding.tvDeviceName.text = connectedDevice.name
+        sheetBinding.tvDeviceMeta.text = connectedDevice.description
+        
+        sheetBinding.btnDisconnect.setOnClickListener {
+            if (connectedDevice.isSystemMirroring) {
+                dialog.dismiss()
+                openSystemMirroringControls()
+                return@setOnClickListener
+            }
+
+            MaterialAlertDialogBuilder(requireContext())
+                .setMessage(R.string.text_stop_casting_message)
+                .setPositiveButton(R.string.text_disconnect) { _, _ ->
+                    currentCastSession?.remoteMediaClient?.stop()
+                    castContext?.sessionManager?.endCurrentSession(true)
+                    currentCastSession = null
+                    updateConnectionButton()
+                    dialog.dismiss()
+                }
+                .setNegativeButton(R.string.text_cancel, null)
+                .show()
+        }
+        
+        sheetBinding.btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        dialog.setContentView(sheetBinding.root)
+        dialog.setOnShowListener {
+            val bottomSheet = dialog.findViewById<View>(
+                com.google.android.material.R.id.design_bottom_sheet
+            ) ?: return@setOnShowListener
+
+            bottomSheet.setBackgroundColor(Color.TRANSPARENT)
+            BottomSheetBehavior.from(bottomSheet).apply {
+                state = BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
+        dialog.show()
+    }
+
+    private fun connectedDeviceState(): ConnectedDeviceState? {
+        currentCastSession?.takeIf { it.isConnected }?.let { session ->
+            return ConnectedDeviceState(
+                name = session.castDevice?.friendlyName ?: "TV",
+                description = session.castDevice?.modelName
+                    ?: getString(R.string.text_home_connect_available_to_connect),
+                isSystemMirroring = false
+            )
+        }
+
+        val display = activePresentationDisplay() ?: return null
+        return ConnectedDeviceState(
+            name = display.name.takeIf { it.isNotBlank() } ?: "TV",
+            description = getString(R.string.text_screen_cast_managed_by_android),
+            isSystemMirroring = true
+        )
+    }
+
+    private fun activePresentationDisplay(): Display? {
+        return displayManager
+            ?.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
+            ?.firstOrNull { display ->
+                display.displayId != Display.DEFAULT_DISPLAY &&
+                    display.isValid &&
+                    (display.flags and Display.FLAG_PRESENTATION) != 0
+            }
+    }
+
+    private fun openSystemMirroringControls() {
+        runCatching {
+            startActivity(Intent(Settings.ACTION_CAST_SETTINGS))
+        }
     }
 
     private fun showHowToConnectSheet() {
@@ -363,4 +587,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
         private const val HOW_TO_CONNECT_BROWSER_TAB_POSITION = 1
         private const val BOTTOM_SHEET_HEIGHT_RATIO = 0.8f
     }
+
+    private data class ConnectedDeviceState(
+        val name: String,
+        val description: String,
+        val isSystemMirroring: Boolean
+    )
 }

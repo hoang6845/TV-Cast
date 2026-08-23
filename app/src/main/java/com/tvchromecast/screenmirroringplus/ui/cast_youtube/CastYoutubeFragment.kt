@@ -767,22 +767,10 @@ class CastYoutubeFragment : BaseFragment<FragmentCastYoutubeBinding, CastYoutube
     private fun handleBackPressed() {
         if (binding.webView.canGoBack()) {
             binding.webView.goBack()
-        } else if (currentCastSession()?.isConnected == true) {
-            showDisconnectBeforeExitDialog()
         } else {
+            // Không tự động ngắt kết nối, chỉ quay lại màn trước
             popBackStack()
         }
-    }
-
-    private fun showDisconnectBeforeExitDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setMessage(R.string.text_stop_casting_message)
-            .setPositiveButton(R.string.text_disconnect) { _, _ ->
-                disconnectYoutubeCastingOnExit()
-                popBackStack()
-            }
-            .setNegativeButton(R.string.text_cancel, null)
-            .show()
     }
 
     private enum class CastConnectionState {

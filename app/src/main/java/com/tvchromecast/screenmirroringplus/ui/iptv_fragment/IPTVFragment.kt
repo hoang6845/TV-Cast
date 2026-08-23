@@ -35,6 +35,7 @@ import com.tvchromecast.screenmirroringplus.databinding.FragmentIPTVBinding
 import com.tvchromecast.screenmirroringplus.databinding.LayoutIptvFilterSheetBinding
 import com.tvchromecast.screenmirroringplus.media.LocalMediaHttpServer
 import com.tvchromecast.screenmirroringplus.model.entity.Channel
+import com.tvchromecast.screenmirroringplus.ui.common.showReceiverMediaErrorIfAny
 import com.tvchromecast.screenmirroringplus.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.CastMediaControlIntent
 import com.google.android.gms.cast.Cast
@@ -695,6 +696,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         val streamType = inferCastStreamType(channel.url)
 
         val mediaInfo = MediaInfo.Builder(castUrl)
+            .setContentUrl(castUrl)
             .setStreamType(streamType)
             .setContentType(contentType)
             .setMetadata(metadata)
@@ -767,24 +769,10 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     private fun handleBackPress() {
         if (currentUiState.selectedCategory != null) {
             viewModel.closeCategory()
-        } else if (castSession?.isConnected == true) {
-            showDisconnectBeforeExitDialog()
         } else {
+            // Không tự động ngắt kết nối, chỉ quay lại màn trước
             popBackStack()
         }
-    }
-
-    private fun showDisconnectBeforeExitDialog() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(getString(R.string.text_casting_to_tv_plain))
-            .setMessage(getString(R.string.text_stop_casting_message))
-            .setPositiveButton(getString(R.string.text_disconnect)) { _, _ ->
-                castSession?.remoteMediaClient?.stop()
-                castContext?.sessionManager?.endCurrentSession(true)
-                popBackStack()
-            }
-            .setNegativeButton(getString(R.string.text_cancel), null)
-            .show()
     }
 
     override fun onResume() {
@@ -847,7 +835,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     }
 
     private fun logReceiverMessage(rawMessage: String) {
-        Log.d(TAG, "Receiver message: $rawMessage")
+        showReceiverMediaErrorIfAny(rawMessage, TAG)
     }
 
     private fun releasePlayer() {

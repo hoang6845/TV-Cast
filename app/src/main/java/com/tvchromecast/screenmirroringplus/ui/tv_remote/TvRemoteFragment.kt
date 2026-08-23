@@ -66,6 +66,19 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val scanTimeoutRunnable = Runnable {
+        if (!canUseBinding()) return@Runnable
+        isScanning = false
+        renderDisconnected()
+    }
+    private val bluetoothScanTimeoutRunnable = Runnable {
+        if (!canUseBinding()) return@Runnable
+        isScanning = false
+        if (::bluetoothController.isInitialized) {
+            bluetoothController.stopDiscovery()
+        }
+        renderBluetoothDevices()
+    }
     private val appShortcuts = arrayOf(
         TvRemoteApp("YouTube", "com.google.android.youtube.tv"),
         TvRemoteApp("Netflix", "com.netflix.ninja"),
@@ -260,18 +273,20 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
             return
         }
         selectedDevice = null
+        selectedBluetoothDevice = null
+        isUsingBluetooth = false
         isConnected = false
         isReconnecting = false
         isScanning = true
         discoveredDevices = emptyList()
         renderDisconnected()
-        mainHandler.removeCallbacksAndMessages(null)
+        mainHandler.removeCallbacks(scanTimeoutRunnable)
+        mainHandler.removeCallbacks(bluetoothScanTimeoutRunnable)
+        if (::bluetoothController.isInitialized) {
+            bluetoothController.stopDiscovery()
+        }
         controller.startDiscovery()
-        mainHandler.postDelayed({
-            if (_binding == null || view == null) return@postDelayed
-            isScanning = false
-            renderDisconnected()
-        }, SCAN_TIMEOUT_MS)
+        mainHandler.postDelayed(scanTimeoutRunnable, SCAN_TIMEOUT_MS)
     }
 
     private fun renderDisconnected() {
@@ -968,23 +983,26 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun startBluetoothScan() {
+        selectedDevice = null
+        selectedBluetoothDevice = null
         isUsingBluetooth = true
         isScanning = true
         discoveredBluetoothDevices = emptyList()
+        mainHandler.removeCallbacks(scanTimeoutRunnable)
+        mainHandler.removeCallbacks(bluetoothScanTimeoutRunnable)
+        if (::controller.isInitialized) {
+            controller.stopDiscovery()
+        }
         
+        binding.scanContainer.isVisible = true
+        binding.remoteContainer.isVisible = false
         binding.textScanState.text = getString(R.string.text_scanning_bluetooth_devices)
         binding.textScanHelp.text = getString(R.string.text_tv_remote_scan_help)
         binding.progressSearching.isVisible = true
         binding.deviceList.removeAllViews()
         
         bluetoothController.startDiscovery()
-        
-        mainHandler.postDelayed({
-            if (_binding == null || view == null) return@postDelayed
-            isScanning = false
-            bluetoothController.stopDiscovery()
-            renderBluetoothDevices()
-        }, SCAN_TIMEOUT_MS)
+        mainHandler.postDelayed(bluetoothScanTimeoutRunnable, SCAN_TIMEOUT_MS)
     }
 
     private fun renderBluetoothDevices() {
@@ -1036,6 +1054,8 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     private fun connectToBluetoothDevice(device: BluetoothTvDevice) {
         selectedBluetoothDevice = device
         isUsingBluetooth = true
+        isScanning = false
+        mainHandler.removeCallbacks(bluetoothScanTimeoutRunnable)
         
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -1103,6 +1123,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
                 isScanning = false
                 if (isUsingBluetooth) {
                     renderBluetoothDevices()
+                    binding.textScanHelp.text = state.message
                 } else {
                     renderDisconnected()
                 }

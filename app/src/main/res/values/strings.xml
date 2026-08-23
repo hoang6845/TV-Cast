@@ -47,6 +47,8 @@
     <string name="text_iap_waiting_billing">Waiting for billing connection.</string>
     <string name="text_iap_no_product_selected">No product selected.</string>
     <string name="text_connect_tv">Connect TV</string>
+    <string name="text_connected_device">Connected Device</string>
+    <string name="text_connected_to">Connected to %1$s</string>
     <string name="text_mirror_screen">Mirror Screen</string>
     <string name="text_display_the_content_from_phone_to_tv">Display the content from Phone to TV</string>
     <string name="text_cast_media">Cast Media</string>
@@ -161,6 +163,8 @@
     <string name="text_ok">OK</string>
     <string name="text_could_not_prepare_media">Could not prepare this media</string>
     <string name="text_could_not_cast_media">Could not cast this media</string>
+    <string name="text_receiver_media_error_title">TV couldn\'t play this media</string>
+    <string name="text_receiver_media_error_detail">Detail: %1$s</string>
     <string name="text_allow_camera">Allow Camera</string>
     <string name="text_allow_microphone">Allow Microphone</string>
     <string name="text_not_now">Not now</string>

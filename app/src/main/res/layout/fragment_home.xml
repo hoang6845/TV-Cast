@@ -58,17 +58,22 @@
         app:layout_constraintTop_toTopOf="@id/ic_setting">
 
         <ImageView
+            android:id="@+id/ic_connect"
             android:layout_width="@dimen/_20sdp"
             android:layout_height="@dimen/_20sdp"
             android:src="@drawable/ic_connect"
             app:tint="@color/white" />
 
         <TextView
+            android:id="@+id/tv_connect_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="@font/inter"
             android:text="@string/text_connect_tv"
-            android:textColor="@color/white" />
+            android:textColor="@color/white"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:maxWidth="@dimen/_150sdp" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

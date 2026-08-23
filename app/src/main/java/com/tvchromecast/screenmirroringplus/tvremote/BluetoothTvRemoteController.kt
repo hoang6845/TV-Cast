@@ -41,6 +41,7 @@ class BluetoothTvRemoteController(
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
     private var isDiscovering = false
+    private var isDiscoveryReceiverRegistered = false
 
     private val discoveryReceiver = object : BroadcastReceiver() {
         @SuppressLint("MissingPermission")
@@ -198,6 +199,8 @@ class BluetoothTvRemoteController(
      */
     @SuppressLint("MissingPermission")
     fun startDiscovery() {
+        stopDiscovery()
+
         if (!hasBluetoothPermission()) {
             onStateChanged(BluetoothConnectionState.PermissionRequired)
             return
@@ -226,6 +229,7 @@ class BluetoothTvRemoteController(
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         }
         context.registerReceiver(discoveryReceiver, filter)
+        isDiscoveryReceiverRegistered = true
 
         // Cancel any ongoing discovery
         if (adapter.isDiscovering) {
@@ -243,16 +247,26 @@ class BluetoothTvRemoteController(
     @SuppressLint("MissingPermission")
     fun stopDiscovery() {
         val adapter = bluetoothAdapter
-        if (!hasBluetoothPermission() || adapter == null) return
-
-        try {
-            if (adapter.isDiscovering) {
+        if (hasBluetoothPermission() && adapter?.isDiscovering == true) {
+            try {
                 adapter.cancelDiscovery()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error cancelling Bluetooth discovery", e)
             }
-            context.unregisterReceiver(discoveryReceiver)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error stopping discovery", e)
         }
+
+        if (isDiscoveryReceiverRegistered) {
+            try {
+                context.unregisterReceiver(discoveryReceiver)
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Discovery receiver was already unregistered", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error unregistering discovery receiver", e)
+            } finally {
+                isDiscoveryReceiverRegistered = false
+            }
+        }
+
         isDiscovering = false
     }
 
@@ -270,23 +284,63 @@ class BluetoothTvRemoteController(
             stopDiscovery()
             onStateChanged(BluetoothConnectionState.Connecting(device.name))
 
-            // Create socket using SPP UUID (Serial Port Profile)
-            val socket = device.device.createRfcommSocketToServiceRecord(SPP_UUID)
-            
-            bluetoothSocket = socket
-            socket.connect()
+            val candidates = buildSocketCandidates(device.device)
+            if (candidates.isEmpty()) {
+                withContext(Dispatchers.Main) {
+                    onStateChanged(BluetoothConnectionState.Error(UNSUPPORTED_BLUETOOTH_REMOTE_MESSAGE))
+                }
+                return@withContext
+            }
 
-            inputStream = socket.inputStream
-            outputStream = socket.outputStream
+            var lastError: IOException? = null
+            for (candidate in candidates) {
+                val socket = if (candidate.secure) {
+                    device.device.createRfcommSocketToServiceRecord(candidate.uuid)
+                } else {
+                    device.device.createInsecureRfcommSocketToServiceRecord(candidate.uuid)
+                }
+
+                try {
+                    bluetoothSocket = socket
+                    socket.connect()
+
+                    inputStream = socket.inputStream
+                    outputStream = socket.outputStream
+
+                    withContext(Dispatchers.Main) {
+                        onStateChanged(BluetoothConnectionState.Connected(device.name))
+                    }
+                    return@withContext
+                } catch (e: IOException) {
+                    lastError = e
+                    Log.w(TAG, "Connection failed for ${candidate.label}", e)
+                    closeSocket(socket)
+                    if (bluetoothSocket === socket) {
+                        bluetoothSocket = null
+                    }
+                }
+            }
 
             withContext(Dispatchers.Main) {
-                onStateChanged(BluetoothConnectionState.Connected(device.name))
+                val errorMessage = lastError?.message?.takeIf { it.isNotBlank() }
+                onStateChanged(
+                    BluetoothConnectionState.Error(
+                        errorMessage?.let { "Bluetooth connection failed: $it" }
+                            ?: UNSUPPORTED_BLUETOOTH_REMOTE_MESSAGE
+                    )
+                )
+            }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Bluetooth permission error", e)
+            closeCurrentConnection()
+            withContext(Dispatchers.Main) {
+                onStateChanged(BluetoothConnectionState.Error("Bluetooth permission not granted"))
             }
         } catch (e: IOException) {
             Log.e(TAG, "Connection failed", e)
-            disconnect()
+            closeCurrentConnection()
             withContext(Dispatchers.Main) {
-                onStateChanged(BluetoothConnectionState.Error("Connection failed: ${e.message}"))
+                onStateChanged(BluetoothConnectionState.Error("Bluetooth connection failed: ${e.message}"))
             }
         }
     }
@@ -295,6 +349,11 @@ class BluetoothTvRemoteController(
      * Disconnect from the current Bluetooth device
      */
     fun disconnect() {
+        closeCurrentConnection()
+        onStateChanged(BluetoothConnectionState.Disconnected)
+    }
+
+    private fun closeCurrentConnection() {
         try {
             inputStream?.close()
             outputStream?.close()
@@ -305,8 +364,28 @@ class BluetoothTvRemoteController(
             inputStream = null
             outputStream = null
             bluetoothSocket = null
-            onStateChanged(BluetoothConnectionState.Disconnected)
         }
+    }
+
+    private fun closeSocket(socket: BluetoothSocket) {
+        try {
+            socket.close()
+        } catch (e: IOException) {
+            Log.e(TAG, "Error closing failed Bluetooth socket", e)
+        }
+    }
+
+    private fun buildSocketCandidates(device: BluetoothDevice): List<BluetoothSocketCandidate> {
+        val cachedUuids = device.uuids?.map { it.uuid }.orEmpty()
+        if (cachedUuids.isNotEmpty() && SPP_UUID !in cachedUuids) {
+            Log.w(TAG, "Device does not advertise Bluetooth SPP. UUIDs=$cachedUuids")
+            return emptyList()
+        }
+
+        return listOf(
+            BluetoothSocketCandidate(SPP_UUID, secure = true),
+            BluetoothSocketCandidate(SPP_UUID, secure = false)
+        )
     }
 
     /**
@@ -379,6 +458,16 @@ class BluetoothTvRemoteController(
         // Command bytes (these would need to match the TV's protocol)
         private const val CMD_SEND_KEY: Byte = 0x01
         private const val CMD_SEND_TEXT: Byte = 0x02
+        private const val UNSUPPORTED_BLUETOOTH_REMOTE_MESSAGE =
+            "This TV does not support Bluetooth remote control from this app. Use Wi-Fi or IP connection instead."
+    }
+
+    private data class BluetoothSocketCandidate(
+        val uuid: UUID,
+        val secure: Boolean
+    ) {
+        val label: String
+            get() = if (secure) "secure RFCOMM $uuid" else "insecure RFCOMM $uuid"
     }
 }
 

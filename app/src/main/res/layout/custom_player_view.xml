@@ -64,16 +64,16 @@
         <!-- Brightness Control Panel (Left Side) -->
         <androidx.cardview.widget.CardView
             android:id="@+id/brightness_panel"
-            android:layout_width="@dimen/_48sdp"
+            android:layout_width="@dimen/_40sdp"
             android:layout_height="@dimen/_150sdp"
             android:layout_gravity="center_vertical|start"
             android:layout_marginStart="@dimen/_16sdp"
             android:elevation="8dp"
-            app:cardBackgroundColor="#CC1E2332"
+            app:cardBackgroundColor="@color/transparent"
             app:cardCornerRadius="@dimen/_24sdp">
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
@@ -81,7 +81,7 @@
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_marginTop="@dimen/_2sdp"
                     android:layout_weight="1"
                     android:clipToPadding="false">
 
@@ -90,7 +90,7 @@
                         android:layout_width="@dimen/_120sdp"
                         android:layout_height="wrap_content"
                         android:layout_gravity="bottom|center"
-                        android:layout_marginBottom="@dimen/_8sdp"
+                        android:layout_marginBottom="@dimen/_4sdp"
                         android:max="100"
                         android:progress="50"
                         android:progressTint="@color/white"
@@ -115,12 +115,12 @@
         <!-- Volume Control Panel (Right Side) -->
         <androidx.cardview.widget.CardView
             android:id="@+id/volume_panel"
-            android:layout_width="@dimen/_48sdp"
+            android:layout_width="@dimen/_40sdp"
             android:layout_height="@dimen/_150sdp"
             android:layout_gravity="center_vertical|end"
             android:layout_marginEnd="@dimen/_16sdp"
             android:elevation="8dp"
-            app:cardBackgroundColor="#CC1E2332"
+            app:cardBackgroundColor="@color/transparent"
             app:cardCornerRadius="@dimen/_24sdp">
 
             <LinearLayout
@@ -132,7 +132,7 @@
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_marginTop="@dimen/_2sdp"
                     android:layout_weight="1"
                     android:clipToPadding="false">
 
@@ -141,9 +141,8 @@
                         android:layout_width="@dimen/_120sdp"
                         android:layout_height="wrap_content"
                         android:layout_gravity="bottom|center"
-                        android:layout_marginBottom="@dimen/_8sdp"
                         android:max="100"
-                        android:progress="100"
+                        android:progress="0"
                         android:progressTint="@color/white"
                         android:rotation="-90"
                         android:thumbTint="@color/white" />
@@ -224,6 +223,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
+                android:visibility="gone"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:padding="@dimen/_8sdp">
@@ -252,6 +252,7 @@
             <LinearLayout
                 android:id="@+id/btn_forward"
                 android:layout_width="wrap_content"
+                android:visibility="gone"
                 android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"

@@ -30,7 +30,9 @@ import com.tvchromecast.screenmirroringplus.databinding.FragmentCastWebBinding
 import com.tvchromecast.screenmirroringplus.databinding.ItemCastWebSiteBinding
 import com.tvchromecast.screenmirroringplus.media.LocalMediaHttpServer
 import com.tvchromecast.screenmirroringplus.ui.cast_youtube.CastYoutubeFragment
+import com.tvchromecast.screenmirroringplus.ui.common.showReceiverMediaErrorIfAny
 import com.tvchromecast.screenmirroringplus.ui.common.showCastFailureDialog
+import com.google.android.gms.cast.Cast
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
 import com.google.android.gms.cast.MediaMetadata
@@ -45,6 +47,7 @@ import hoang.dqm.codebase.base.activity.navigate
 import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
 import org.json.JSONArray
+import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.Locale
 import kotlin.math.abs
@@ -75,6 +78,10 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     private var lastPhoneTimelineSeconds: Float? = null
     private var lastPhoneTimelineSyncAtMs = 0L
     private var lastSeekSentAtMs = 0L
+
+    private val receiverMessageCallback = Cast.MessageReceivedCallback { _, _, message ->
+        logReceiverMessage(message)
+    }
 
     private val phoneTimelinePollRunnable = object : Runnable {
         override fun run() {
@@ -109,6 +116,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         override fun onSessionStarted(session: CastSession, sessionId: String) {
             Log.i(TAG, "Cast web session started: sessionId=$sessionId device=${session.castDevice?.friendlyName}")
             updateCastStatus(CastConnectionState.Connected)
+            setReceiverDebugCallback(session)
             pendingVideo?.let {
                 pendingVideo = null
                 castVideo(it)
@@ -128,6 +136,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
 
         override fun onSessionEnded(session: CastSession, error: Int) {
             Log.i(TAG, "Cast web session ended: error=$error")
+            removeReceiverDebugCallback(session)
             pendingVideo = null
             isCasting = false
             resetCastingState()
@@ -141,6 +150,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
 
         override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
             updateCastStatus(CastConnectionState.Connected)
+            setReceiverDebugCallback(session)
             updateControls()
         }
 
@@ -209,6 +219,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     }
 
     override fun onDestroyView() {
+        currentCastSession()?.let(::removeReceiverDebugCallback)
         disconnectCastingOnExit(updateUi = false)
         mainHandler.removeCallbacksAndMessages(null)
 
@@ -671,6 +682,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         }
 
         val mediaInfo = MediaInfo.Builder(castUrl)
+            .setContentUrl(castUrl)
             .setStreamType(video.inferCastStreamType())
             .setContentType(video.mimeType ?: "video/mp4")
             .setMetadata(metadata)
@@ -689,6 +701,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         )
         isCasting = true
         updateControls()
+        setReceiverDebugCallback(session)
 
         session.remoteMediaClient
             ?.load(requestData)
@@ -1006,6 +1019,37 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         return castContext?.sessionManager?.currentCastSession
     }
 
+    private fun setReceiverDebugCallback(session: CastSession) {
+        runCatching {
+            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
+            session.setMessageReceivedCallbacks(RECEIVER_NAMESPACE, receiverMessageCallback)
+            sendReceiverPing(session)
+        }.onFailure {
+            Log.e(TAG, "Could not set receiver debug callback", it)
+        }
+    }
+
+    private fun removeReceiverDebugCallback(session: CastSession) {
+        runCatching {
+            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
+        }
+    }
+
+    private fun sendReceiverPing(session: CastSession) {
+        runCatching {
+            session.sendMessage(
+                RECEIVER_NAMESPACE,
+                JSONObject().put("type", "PING").toString()
+            )
+        }.onFailure {
+            Log.e(TAG, "Could not ping receiver", it)
+        }
+    }
+
+    private fun logReceiverMessage(rawMessage: String) {
+        showReceiverMediaErrorIfAny(rawMessage, TAG)
+    }
+
     private fun openCastYoutube(startUrl: String) {
         navigate(
             R.id.castYoutubeFragment,
@@ -1018,22 +1062,10 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     private fun handleBackPressed() {
         if (binding.webView.isVisible && binding.webView.canGoBack()) {
             binding.webView.goBack()
-        } else if (currentCastSession()?.isConnected == true) {
-            showDisconnectBeforeExitDialog()
         } else {
+            // Không tự động ngắt kết nối, chỉ quay lại màn trước
             popBackStack()
         }
-    }
-
-    private fun showDisconnectBeforeExitDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setMessage(R.string.text_stop_casting_message)
-            .setPositiveButton(R.string.text_disconnect) { _, _ ->
-                disconnectCastingOnExit()
-                popBackStack()
-            }
-            .setNegativeButton(R.string.text_cancel, null)
-            .show()
     }
 
     private fun String.toVideoTypeLabel(): String {
@@ -1129,6 +1161,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         private const val PHONE_TIMELINE_SYNC_IGNORE_MS = 1_200L
         private const val PHONE_SEEK_THROTTLE_MS = 800L
         private const val LOCAL_SEEK_GRACE_MS = 2_000L
+        private const val RECEIVER_NAMESPACE = "urn:x-cast:com.example.camera.webrtc"
         private const val TAG = "CastWebDebug"
         private const val GOOGLE_SEARCH_URL = "https://www.google.com/search?q="
         private const val YOUTUBE_URL = "https://m.youtube.com"

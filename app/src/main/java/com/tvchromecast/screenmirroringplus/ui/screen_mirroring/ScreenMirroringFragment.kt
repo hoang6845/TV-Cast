@@ -377,7 +377,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
     override fun onDestroyView() {
         releaseLog("ScreenMirroring.onDestroyView")
-        runCatching { stopMirroring(updateUi = false, endSession = true) }
+        runCatching { stopMirroring(updateUi = false, endSession = false) }
             .onFailure { releaseLog("ScreenMirroring.onDestroyView: stopMirroring failed", it) }
         mainHandler.removeCallbacksAndMessages(null)
         runCatching {
@@ -1179,35 +1179,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
     private fun handleBackPressed() {
         releaseLog("ScreenMirroring.handleBackPressed")
-        if (isMirroring || isPreparing || isReconnecting) {
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.text_stop_screen_mirroring_title)
-                .setMessage(
-                    if (usesSystemMirroring) {
-                        R.string.text_stop_system_mirroring_message
-                    } else {
-                        R.string.text_stop_screen_mirroring_message
-                    }
-                )
-                .setNegativeButton(R.string.text_cancel, null)
-                .setPositiveButton(
-                    if (usesSystemMirroring) {
-                        R.string.text_open_system_mirroring_controls
-                    } else {
-                        R.string.text_stop_mirroring
-                    }
-                ) { _, _ ->
-                    if (usesSystemMirroring) {
-                        openSystemMirroringControls()
-                    } else {
-                        stopMirroring(endSession = true)
-                    }
-                    popBackStack()
-                }
-                .show()
-        } else {
-            popBackStack()
-        }
+        popBackStack()
     }
 
     private fun disableMirroringControls(error: Throwable) {

@@ -25,25 +25,26 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.tvchromecast.screenmirroringplus.R
-import com.tvchromecast.screenmirroringplus.cast.CastReceiverIds
-import com.tvchromecast.screenmirroringplus.databinding.FragmentCastMediaBinding
-import com.tvchromecast.screenmirroringplus.media.LocalMediaHttpServer
-import com.tvchromecast.screenmirroringplus.ui.common.showCastFailureDialog
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DecodeFormat
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
+import com.google.android.gms.cast.Cast
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
 import com.google.android.gms.cast.MediaMetadata
-import com.google.android.gms.cast.Cast
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.gms.common.images.WebImage
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DecodeFormat
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.tvchromecast.screenmirroringplus.R
+import com.tvchromecast.screenmirroringplus.cast.CastReceiverIds
+import com.tvchromecast.screenmirroringplus.databinding.FragmentCastMediaBinding
+import com.tvchromecast.screenmirroringplus.media.LocalMediaHttpServer
+import com.tvchromecast.screenmirroringplus.ui.common.showReceiverMediaErrorIfAny
+import com.tvchromecast.screenmirroringplus.ui.common.showCastFailureDialog
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
@@ -184,6 +185,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     }
 
     override fun initView() {
+        adjustInsetsForBottomMargin(binding.barSetting)
         applySystemInsets()
         setupCastButton()
         setupModeUi()
@@ -258,13 +260,6 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             }
             binding.toolbar.updatePadding(top = systemBars.top)
 
-            val params = binding.btnStartCasting.layoutParams as ViewGroup.MarginLayoutParams
-            if (bottomButtonBaseMargin == 0) {
-                bottomButtonBaseMargin = params.bottomMargin
-            }
-            params.bottomMargin = bottomButtonBaseMargin + systemBars.bottom
-            binding.btnStartCasting.layoutParams = params
-
             insets
         }
     }
@@ -312,7 +307,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             } else {
                 Manifest.permission.READ_MEDIA_VIDEO
             }
-            
+
             when {
                 ContextCompat.checkSelfPermission(
                     requireContext(),
@@ -320,6 +315,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     openPicker()
                 }
+
                 shouldShowRequestPermissionRationale(permission) -> {
                     Toast.makeText(
                         requireContext(),
@@ -328,6 +324,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
                     ).show()
                     mediaPermissionLauncher.launch(permission)
                 }
+
                 else -> {
                     mediaPermissionLauncher.launch(permission)
                 }
@@ -362,7 +359,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private fun updateNavigationButtons() {
         val hasPhotos = photos.isNotEmpty()
         val canNavigate = photos.size > 1
-        
+
         // Chỉ hiện nút previous/next khi có ảnh
         binding.btnPreviousPhoto.isVisible = hasPhotos
         binding.btnNextPhoto.isVisible = hasPhotos
@@ -394,10 +391,10 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             heightPx = PHOTO_PREVIEW_MAX_SIZE_PX
         )
         photoAdapter.submit(uris, selectedPhotoIndex)
-        
+
         // Scroll về đầu danh sách
         binding.photoList.scrollToPosition(0)
-        
+
         if (isCasting) {
             castSelectedMedia()
         }
@@ -414,15 +411,15 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         }
         photos = allPhotos
         photoAdapter.submit(photos, selectedPhotoIndex)
-        
+
         // Đảm bảo ảnh đang chọn vẫn hiển thị trên màn hình
         binding.photoList.post {
             binding.photoList.smoothScrollToPosition(selectedPhotoIndex)
         }
-        
+
         updateNavigationButtons()
         updateControls()
-        
+
         if (newUris.isNotEmpty()) {
             Toast.makeText(
                 requireContext(),
@@ -441,10 +438,10 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             heightPx = PHOTO_PREVIEW_MAX_SIZE_PX
         )
         photoAdapter.submit(photos, selectedPhotoIndex)
-        
+
         // Scroll RecyclerView tới ảnh đang chọn để không bị mất khỏi màn hình
         binding.photoList.smoothScrollToPosition(position)
-        
+
         if (isCasting) {
             castSelectedMedia()
         }
@@ -512,7 +509,8 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         val session = currentCastSession()
         if (session?.isConnected != true) {
             pendingCast = true
-            Toast.makeText(requireContext(), R.string.text_select_tv_to_cast, Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.text_select_tv_to_cast, Toast.LENGTH_SHORT)
+                .show()
             binding.btnTopCast.performClick()
             mainHandler.postDelayed({
                 if (_binding != null &&
@@ -534,7 +532,11 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             selected.mimeType
         )
         if (castUrl == null) {
-            Toast.makeText(requireContext(), R.string.text_could_not_prepare_media, Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                R.string.text_could_not_prepare_media,
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
@@ -558,6 +560,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         }
 
         val mediaInfo = MediaInfo.Builder(castUrl)
+            .setContentUrl(castUrl)
             .setStreamType(
                 if (selected.isPhoto) MediaInfo.STREAM_TYPE_NONE else MediaInfo.STREAM_TYPE_BUFFERED
             )
@@ -581,7 +584,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
                     Log.d(
                         TAG,
                         "Cast media load result success=${result.status.isSuccess} " +
-                            "code=${result.status.statusCode} message=${result.status.statusMessage}"
+                                "code=${result.status.statusCode} message=${result.status.statusMessage}"
                     )
                     if (!result.status.isSuccess) {
                         Toast.makeText(
@@ -651,7 +654,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         binding.btnStartCasting.setBackgroundResource(
             if (isCasting) R.drawable.bg_cast_media_stop_action else R.drawable.bg_cast_youtube_action
         )
-        
+
         updateNavigationButtons()
     }
 
@@ -707,31 +710,12 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     }
 
     private fun logReceiverMessage(rawMessage: String) {
-        Log.d(TAG, "Receiver message: $rawMessage")
+        showReceiverMediaErrorIfAny(rawMessage, TAG)
     }
 
     private fun handleBackPressed() {
-        if (currentCastSession()?.isConnected == true) {
-            showDisconnectBeforeExitDialog()
-            return
-        }
+        // Không tự động ngắt kết nối, chỉ quay lại màn trước
         popBackStack()
-    }
-
-    private fun showDisconnectBeforeExitDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setMessage(R.string.text_stop_casting_message)
-            .setPositiveButton(R.string.text_disconnect) { _, _ ->
-                currentCastSession()?.remoteMediaClient?.stop()
-                castContext?.sessionManager?.endCurrentSession(true)
-                pendingCast = false
-                isCasting = false
-                binding.preparingOverlay.isVisible = false
-                updateControls()
-                popBackStack()
-            }
-            .setNegativeButton(R.string.text_cancel, null)
-            .show()
     }
 
     private data class SelectedMedia(

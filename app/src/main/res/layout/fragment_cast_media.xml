@@ -91,7 +91,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:contentDescription="@string/text_cast_photos"
-            android:scaleType="fitCenter"
+            android:scaleType="center"
             tools:src="@drawable/thumbnail" />
 
         <androidx.media3.ui.PlayerView
@@ -183,7 +183,7 @@
         android:layout_height="@dimen/_64sdp"
         android:layout_marginStart="@dimen/_12sdp"
         android:layout_marginEnd="@dimen/_12sdp"
-        app:layout_constraintBottom_toTopOf="@id/btn_start_casting"
+        app:layout_constraintBottom_toTopOf="@id/bar_setting"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -212,6 +212,7 @@
                 android:clipToPadding="false"
                 android:overScrollMode="never"
                 android:paddingStart="@dimen/_8sdp"
+                android:paddingVertical="@dimen/_4sdp"
                 android:paddingEnd="@dimen/_8sdp"
                 tools:itemCount="5"
                 tools:listitem="@layout/item_media_thumbnail" />
@@ -276,6 +277,7 @@
     </FrameLayout>
 
     <LinearLayout
+        android:id="@+id/bar_setting"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/_16sdp"

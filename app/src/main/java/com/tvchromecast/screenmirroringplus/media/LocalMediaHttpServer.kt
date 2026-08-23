@@ -8,13 +8,16 @@ import android.provider.OpenableColumns
 import android.util.Log
 import java.io.BufferedReader
 import java.io.Closeable
+import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.io.OutputStream
 import java.net.Inet4Address
 import java.net.HttpURLConnection
 import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketException
 import java.net.URL
 import java.util.Collections
 import java.util.UUID
@@ -56,7 +59,7 @@ class LocalMediaHttpServer(
         entries[token] = Entry(
             source = MediaSource.LocalUri(uri),
             mimeType = mimeType,
-            size = uri.querySize(context)
+            size = uri.querySize(context) ?: uri.queryAssetFileDescriptorSize(context)
         )
         return buildMediaUrl(token)?.also {
             Log.d(TAG, "Registered local media token=$token url=$it mime=$mimeType")
@@ -90,7 +93,13 @@ class LocalMediaHttpServer(
             val client = runCatching { socket.accept() }.getOrNull() ?: break
             executor?.execute {
                 runCatching { handle(client) }
-                    .onFailure { Log.e(TAG, "Failed to handle media request", it) }
+                    .onFailure {
+                        if (it.isExpectedClientDisconnect()) {
+                            Log.d(TAG, "Media request closed by client: ${it.message}")
+                        } else {
+                            Log.e(TAG, "Failed to handle media request", it)
+                        }
+                    }
             }
         }
     }
@@ -115,7 +124,12 @@ class LocalMediaHttpServer(
             val parts = requestLine.split(" ")
             val method = parts.getOrNull(0).orEmpty()
             val path = parts.getOrNull(1).orEmpty()
-            Log.d(TAG, "Incoming media request method=$method path=$path")
+            Log.d(
+                TAG,
+                "Incoming media request method=$method path=$path " +
+                    "range=${headers["range"]} " +
+                    "privateNetwork=${headers["access-control-request-private-network"]}"
+            )
             val token = path.substringAfter("/media/", missingDelimiterValue = "")
                 .substringBefore("?")
 
@@ -137,7 +151,12 @@ class LocalMediaHttpServer(
                 return
             }
 
-            val range = headers["range"]?.let { parseRange(it, entry.size) }
+            val rangeHeader = headers["range"]
+            val range = rangeHeader?.let { parseRange(it, entry.size) }
+            if (rangeHeader != null && range == null) {
+                client.writeRangeNotSatisfiable(entry.size)
+                return
+            }
             val start = range?.first ?: 0L
             val end = range?.second ?: entry.size?.minus(1)
             val contentLength = end?.let { it - start + 1 }
@@ -177,9 +196,12 @@ class LocalMediaHttpServer(
 
             if (!method.equals("HEAD", ignoreCase = true)) {
                 val source = entry.source as MediaSource.LocalUri
-                context.contentResolver.openInputStream(source.uri)?.use { input ->
+                val copied = context.contentResolver.openInputStream(source.uri)?.use { input ->
                     input.skipFully(start)
                     input.copyLimitedTo(output, contentLength)
+                }
+                if (copied == null) {
+                    Log.w(TAG, "Could not open local media stream uri=${source.uri}")
                 }
             }
             output.flush()
@@ -304,25 +326,39 @@ class LocalMediaHttpServer(
     private fun StringBuilder.appendCorsHeaders() {
         append("Access-Control-Allow-Origin: *\r\n")
         append("Access-Control-Allow-Methods: GET, HEAD, OPTIONS\r\n")
-        append("Access-Control-Allow-Headers: Range, Content-Type, Origin, Accept\r\n")
-        append("Access-Control-Expose-Headers: Content-Length, Content-Range, Accept-Ranges\r\n")
+        append(
+            "Access-Control-Allow-Headers: " +
+                "Range, Content-Type, Origin, Accept, Access-Control-Request-Private-Network\r\n"
+        )
+        append("Access-Control-Allow-Private-Network: true\r\n")
+        append("Access-Control-Expose-Headers: Content-Length, Content-Range, Accept-Ranges, Content-Type\r\n")
     }
 
     private fun parseRange(rawRange: String, size: Long?): Pair<Long, Long?>? {
         if (!rawRange.startsWith("bytes=", ignoreCase = true)) return null
-        val value = rawRange.removePrefix("bytes=").substringBefore(",")
+        val value = rawRange.substringAfter("=").substringBefore(",").trim()
+        if (!value.contains("-")) return null
+
         val startValue = value.substringBefore("-").trim()
         val endValue = value.substringAfter("-", "").trim()
 
         if (startValue.isBlank() && size != null && endValue.isNotBlank()) {
-            val suffixLength = endValue.toLongOrNull() ?: return null
+            val suffixLength = endValue.toLongOrNull()?.takeIf { it > 0 } ?: return null
             val start = max(0L, size - suffixLength)
             return start to size - 1
         }
 
-        val start = startValue.toLongOrNull() ?: return null
-        val end = endValue.toLongOrNull()
-        val boundedEnd = if (size != null && end != null) min(end, size - 1) else end
+        val start = startValue.toLongOrNull()?.takeIf { it >= 0 } ?: return null
+        if (size != null && start >= size) return null
+
+        val end = endValue.toLongOrNull()?.takeIf { it >= 0 }
+        val boundedEnd = when {
+            size != null && end != null -> min(end, size - 1)
+            size != null && endValue.isBlank() -> size - 1
+            else -> end
+        }
+        if (boundedEnd != null && boundedEnd < start) return null
+
         return start to boundedEnd
     }
 
@@ -344,6 +380,20 @@ class LocalMediaHttpServer(
             buildString {
                 append("HTTP/1.1 204 No Content\r\n")
                 appendCorsHeaders()
+                append("Connection: close\r\n")
+                append("Content-Length: 0\r\n")
+                append("\r\n")
+            }
+                .toByteArray()
+        )
+    }
+
+    private fun Socket.writeRangeNotSatisfiable(size: Long?) {
+        getOutputStream().write(
+            buildString {
+                append("HTTP/1.1 416 Range Not Satisfiable\r\n")
+                appendCorsHeaders()
+                size?.let { append("Content-Range: bytes */").append(it).append("\r\n") }
                 append("Connection: close\r\n")
                 append("Content-Length: 0\r\n")
                 append("\r\n")
@@ -383,6 +433,16 @@ class LocalMediaHttpServer(
 
     private fun Uri.querySize(context: Context): Long? {
         return queryOpenableColumn(context, OpenableColumns.SIZE)?.toLongOrNull()
+    }
+
+    private fun Uri.queryAssetFileDescriptorSize(context: Context): Long? {
+        return runCatching {
+            context.contentResolver.openAssetFileDescriptor(this, "r")?.use { descriptor ->
+                descriptor.length
+                    .takeIf { it >= 0 }
+                    ?: descriptor.parcelFileDescriptor.statSize.takeIf { it >= 0 }
+            }
+        }.getOrNull()
     }
 
     companion object {
@@ -545,7 +605,7 @@ private fun InputStream.skipFully(bytes: Long) {
 }
 
 private fun InputStream.copyLimitedTo(
-    output: java.io.OutputStream,
+    output: OutputStream,
     limit: Long?
 ) {
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
@@ -561,4 +621,22 @@ private fun InputStream.copyLimitedTo(
         output.write(buffer, 0, read)
         remaining = remaining?.minus(read)
     }
+}
+
+private fun Throwable.isExpectedClientDisconnect(): Boolean {
+    var current: Throwable? = this
+    while (current != null) {
+        if (current is SocketException || current is IOException) {
+            val message = current.message.orEmpty().lowercase()
+            if (
+                message.contains("connection reset") ||
+                message.contains("broken pipe") ||
+                message.contains("socket closed")
+            ) {
+                return true
+            }
+        }
+        current = current.cause
+    }
+    return false
 }
