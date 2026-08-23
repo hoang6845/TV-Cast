@@ -30,6 +30,9 @@ import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.navigateWithIntermediate
 import hoang.dqm.codebase.base.activity.navigate
 import hoang.dqm.codebase.base.activity.onBackPressed
+import hoang.dqm.codebase.utils.AppMonetization
+import hoang.dqm.codebase.utils.billing
+import hoang.dqm.codebase.utils.premium
 import tpt.dev.monetization.ads.nativeAd.view.ViewNativeAd
 
 
@@ -336,13 +339,17 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
                 putBoolean("isFromSplash", true)
             }
 
-            navigateWithIntermediate(
-                R.id.homeFragment,
-                R.id.IAPIntroFragment,
-                bundle,
-                null,
-                isPopA = true
-            )
+            if (!AppMonetization.premium.isSubscribed()){
+                navigateWithIntermediate(
+                    R.id.homeFragment,
+                    R.id.IAPIntroFragment,
+                    bundle,
+                    null,
+                    isPopA = true
+                )
+            }else {
+                navigate(R.id.homeFragment, isPop = true)
+            }
         }
     }
 
