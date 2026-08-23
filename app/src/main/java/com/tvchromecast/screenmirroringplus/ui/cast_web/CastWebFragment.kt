@@ -1169,6 +1169,6 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         private const val TED_URL = "https://www.ted.com"
         private const val VEVO_URL = "https://www.vevo.com"
         private const val TWITCH_URL = "https://m.twitch.tv"
-        private const val VEOH_URL = "https://www.veoh.com"
+        private const val VEOH_URL = "https://veoh.com/"
     }
 }

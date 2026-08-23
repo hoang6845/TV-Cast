@@ -211,6 +211,7 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
     override fun onDestroy() {
         super.onDestroy()
         try {
+            onBackPressedCallback.remove()
             lifecycle.removeObserver(viewModel)
             ActivityManager.removeActivity(this)
         } catch (e: Exception) {
@@ -229,7 +230,7 @@ abstract class BaseActivity<VB : ViewBinding, VM : BaseViewModel> : AppCompatAct
     }
 
     open fun onBackPressedDispatcher() {
-        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+        onBackPressedDispatcher.addCallback(onBackPressedCallback)
     }
 
     open fun handleOnBackPressed() {
