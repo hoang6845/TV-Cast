@@ -81,3 +81,9 @@ private fun FragmentManager.dismissMediaRouteDialogs() {
         }
         .forEach { it.dismissAllowingStateLoss() }
 }
+
+internal fun dismissActiveCastFailureDialog() {
+    activeCastFailureDialog.get()
+        ?.takeIf { it.isShowing }
+        ?.dismiss()
+}

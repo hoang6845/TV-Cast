@@ -165,7 +165,7 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
     private fun bindIntroFooter(view: View, position: Int) {
         val legalText: TextView? = view.findViewById(R.id.tv_intro_terms_policy)
         val dotsLayout: LinearLayout? = view.findViewById(R.id.layout_intro_dots)
-        val showLegal = position == 0
+        val showLegal = position == -1
 
         legalText?.isVisible = showLegal
         dotsLayout?.isVisible = !showLegal

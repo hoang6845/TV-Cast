@@ -2,6 +2,7 @@ package com.tvchromecast.screenmirroringplus.ui.iptv_fragment
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -44,20 +45,20 @@ class IPTVCategoryAdapter(
                 .orEmpty()
 
             // Show/hide pin icon based on pinned state
-            binding.ivPin.setImageResource(
-                if (!item.isPinned) R.drawable.ic_iptv_pin
-                else R.drawable.ic_iptv_un_pin
+            binding.ivPin.setColorFilter(
+                if (!item.isPinned) "#b99041".toColorInt()
+                else "#7A7A80".toColorInt()
             )
             binding.ivPin.contentDescription = context.getString(
                 if (item.isPinned) R.string.text_unpin_category else R.string.text_pin_category
             )
 
             binding.root.setOnClickListener { onClick(item) }
-            binding.root.setOnLongClickListener { 
+            binding.root.setOnLongClickListener {
                 onPinClick(item)
                 true
             }
-            binding.ivPin.setOnClickListener { 
+            binding.ivPin.setOnClickListener {
                 onPinClick(item)
             }
         }

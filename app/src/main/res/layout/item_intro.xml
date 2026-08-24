@@ -147,6 +147,7 @@
             android:includeFontPadding="false"
             android:lineSpacingExtra="@dimen/_1sdp"
             android:textColor="#D7D7D7"
+            android:visibility="gone"
             android:textSize="@dimen/_8ssp"
             android:textColorLink="@color/white"
             app:layout_constraintBottom_toBottomOf="parent"

@@ -26,6 +26,9 @@ class AndroidTvRemoteController(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var pairingSession: AndroidTvPairingSession? = null
     private var remoteSession: AndroidTvRemoteSession? = null
+    private var rokuSession: RokuTvRemoteSession? = null
+    private var samsungSession: SamsungTvRemoteSession? = null
+    private var webOsSession: WebOsTvRemoteSession? = null
     private var currentDevice: TvRemoteDevice? = null
     private var manualDisconnect = false
 
@@ -43,7 +46,28 @@ class AndroidTvRemoteController(
         currentDevice = device
         onStateChanged(TvRemoteConnectionState.Connecting(device.name))
         runCatching { remoteSession?.close() }
+        runCatching { rokuSession?.close() }
+        runCatching { samsungSession?.close() }
+        runCatching { webOsSession?.close() }
         remoteSession = null
+        rokuSession = null
+        samsungSession = null
+        webOsSession = null
+        when (device.protocol) {
+            TvRemoteProtocol.AndroidTv -> connectAndroidTv(device)
+            TvRemoteProtocol.Roku -> connectRoku(device)
+            TvRemoteProtocol.Samsung -> connectSamsung(device)
+            TvRemoteProtocol.WebOs -> connectWebOs(device)
+            TvRemoteProtocol.FireTv -> throw TvRemoteException(
+                "${device.type} was found on the network, but this remote adapter needs a separate pairing implementation."
+            )
+            TvRemoteProtocol.CastOrDlna -> throw TvRemoteException(
+                "${device.type} supports casting, but it does not support phone remote control. Choose an Android TV, Roku, Samsung TV, or LG webOS TV."
+            )
+        }
+    }
+
+    private suspend fun connectAndroidTv(device: TvRemoteDevice) {
         val ports = checkRemotePorts(device)
         if (!ports.remoteOpen && !ports.pairingOpen) {
             throw TvRemoteException(appContext.getString(com.tvchromecast.screenmirroringplus.R.string.text_tv_remote_service_unavailable))
@@ -76,7 +100,31 @@ class AndroidTvRemoteController(
         }
     }
 
+    private fun connectRoku(device: TvRemoteDevice) {
+        val session = RokuTvRemoteSession(device)
+        session.start()
+        rokuSession = session
+        onStateChanged(TvRemoteConnectionState.Connected(device.name))
+    }
+
+    private fun connectSamsung(device: TvRemoteDevice) {
+        val session = SamsungTvRemoteSession(appContext, device)
+        session.start()
+        samsungSession = session
+        onStateChanged(TvRemoteConnectionState.Connected(device.name))
+    }
+
+    private fun connectWebOs(device: TvRemoteDevice) {
+        val session = WebOsTvRemoteSession(appContext, device)
+        session.start()
+        webOsSession = session
+        onStateChanged(TvRemoteConnectionState.Connected(device.name))
+    }
+
     suspend fun startPairing(device: TvRemoteDevice) = withContext(Dispatchers.IO) {
+        if (device.protocol != TvRemoteProtocol.AndroidTv) {
+            throw TvRemoteException("${device.type} does not use Android TV pairing.")
+        }
         currentDevice = device
         onStateChanged(TvRemoteConnectionState.Pairing(device.name))
         runCatching { pairingSession?.close() }
@@ -108,14 +156,50 @@ class AndroidTvRemoteController(
     }
 
     suspend fun sendKey(key: TvRemoteKey) {
+        samsungSession?.let {
+            it.sendKey(key)
+            return
+        }
+        webOsSession?.let {
+            it.sendKey(key)
+            return
+        }
+        rokuSession?.let {
+            it.sendKey(key)
+            return
+        }
         remoteSessionOrThrow().sendKey(key)
     }
 
     suspend fun sendText(text: String) {
+        samsungSession?.let {
+            it.sendText(text)
+            return
+        }
+        webOsSession?.let {
+            it.sendText(text)
+            return
+        }
+        rokuSession?.let {
+            it.sendText(text)
+            return
+        }
         remoteSessionOrThrow().sendText(text)
     }
 
     suspend fun launchApp(packageNameOrDeepLink: String) {
+        samsungSession?.let {
+            it.launchApp(packageNameOrDeepLink)
+            return
+        }
+        webOsSession?.let {
+            it.launchApp(packageNameOrDeepLink)
+            return
+        }
+        rokuSession?.let {
+            it.launchApp(packageNameOrDeepLink)
+            return
+        }
         remoteSessionOrThrow().launchApp(packageNameOrDeepLink)
     }
 
@@ -123,8 +207,14 @@ class AndroidTvRemoteController(
         manualDisconnect = true
         runCatching { pairingSession?.close() }
         runCatching { remoteSession?.close() }
+        runCatching { rokuSession?.close() }
+        runCatching { samsungSession?.close() }
+        runCatching { webOsSession?.close() }
         pairingSession = null
         remoteSession = null
+        rokuSession = null
+        samsungSession = null
+        webOsSession = null
         val deviceName = currentDevice?.name
         currentDevice = null
         onStateChanged(TvRemoteConnectionState.Disconnected(deviceName?.let { "Disconnected from $it" }))

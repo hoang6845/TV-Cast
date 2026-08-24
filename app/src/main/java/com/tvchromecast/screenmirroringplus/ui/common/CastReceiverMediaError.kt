@@ -32,6 +32,7 @@ fun Fragment.showReceiverMediaErrorIfAny(
         return true
     }
     lastShownReceiverErrors[this] = ShownReceiverError(key, now)
+    dismissActiveCastFailureDialog()
 
     val message = buildString {
         append(error.userMessage)
@@ -48,6 +49,11 @@ fun Fragment.showReceiverMediaErrorIfAny(
         .show()
 
     return true
+}
+
+fun Fragment.hasRecentReceiverMediaError(windowMs: Long = RECEIVER_ERROR_THROTTLE_MS): Boolean {
+    val lastShown = lastShownReceiverErrors[this] ?: return false
+    return SystemClock.elapsedRealtime() - lastShown.shownAtMs < windowMs
 }
 
 private fun String.toReceiverMediaError(): ReceiverMediaError? {

@@ -840,7 +840,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         if (!canUseBinding()) return
         Log.d("renderState", "renderState: ${error.message}")
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.text_connection_lost)
+            .setTitle(R.string.text_could_not_connect_tv)
             .setMessage(error.message ?: getString(R.string.text_cast_failure_message))
             .setPositiveButton(R.string.text_ok, null)
             .show()

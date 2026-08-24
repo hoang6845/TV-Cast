@@ -30,6 +30,7 @@ import com.tvchromecast.screenmirroringplus.databinding.FragmentCastWebBinding
 import com.tvchromecast.screenmirroringplus.databinding.ItemCastWebSiteBinding
 import com.tvchromecast.screenmirroringplus.media.LocalMediaHttpServer
 import com.tvchromecast.screenmirroringplus.ui.cast_youtube.CastYoutubeFragment
+import com.tvchromecast.screenmirroringplus.ui.common.hasRecentReceiverMediaError
 import com.tvchromecast.screenmirroringplus.ui.common.showReceiverMediaErrorIfAny
 import com.tvchromecast.screenmirroringplus.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.Cast
@@ -718,15 +719,20 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
                         lastPhoneTimelineSeconds = startSeconds
                         startTimelinePolling()
                     } else {
-                        Toast.makeText(
-                            requireContext(),
-                            R.string.text_could_not_cast_video,
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        showLoadFailureToastIfNoReceiverError(R.string.text_could_not_cast_video)
                     }
                     updateControls()
                 }
             }
+    }
+
+    private fun showLoadFailureToastIfNoReceiverError(messageRes: Int) {
+        mainHandler.postDelayed({
+            if (_binding == null || view == null || hasRecentReceiverMediaError()) {
+                return@postDelayed
+            }
+            Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show()
+        }, CAST_LOAD_FAILURE_FALLBACK_DELAY_MS)
     }
 
     private fun buildRemoteRequestHeaders(video: DetectedVideo): Map<String, String> {
@@ -1154,6 +1160,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         private const val JS_BRIDGE_NAME = "AndroidVideoDetector"
         private const val DETECTOR_RETRY_DELAY_MS = 900L
         private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
+        private const val CAST_LOAD_FAILURE_FALLBACK_DELAY_MS = 1_200L
         private const val AUTO_CAST_CHANGED_VIDEO_DELAY_MS = 900L
         private const val PHONE_TIMELINE_POLL_INTERVAL_MS = 900L
         private const val PHONE_SEEK_DETECTION_THRESHOLD_SECONDS = 2.0f

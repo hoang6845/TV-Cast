@@ -3,11 +3,13 @@ package com.tvchromecast.screenmirroringplus.media
 import android.content.Context
 import android.database.Cursor
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
 import java.io.BufferedReader
 import java.io.Closeable
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -42,7 +44,10 @@ class LocalMediaHttpServer(
     fun start(): Boolean {
         if (isRunning) return true
 
-        val socket = runCatching { ServerSocket(0) }.getOrNull() ?: return false
+        val socket = runCatching { ServerSocket(PREFERRED_MEDIA_PORT) }
+            .recoverCatching { ServerSocket(0) }
+            .getOrNull()
+            ?: return false
         serverSocket = socket
         executor = Executors.newCachedThreadPool()
         acceptThread = Thread({ acceptLoop(socket) }, "LocalMediaHttpServer").apply {
@@ -52,17 +57,60 @@ class LocalMediaHttpServer(
         return true
     }
 
-    fun register(uri: Uri, mimeType: String): String? {
+    fun register(uri: Uri, mimeType: String, displayName: String? = null): String? {
         if (!start()) return null
 
         val token = UUID.randomUUID().toString()
+        val extension = mediaExtension(
+            hint = displayName ?: uri.lastPathSegment,
+            mimeType = mimeType
+        )
         entries[token] = Entry(
             source = MediaSource.LocalUri(uri),
             mimeType = mimeType,
-            size = uri.querySize(context) ?: uri.queryAssetFileDescriptorSize(context)
+            size = uri.querySize(context) ?: uri.queryAssetFileDescriptorSize(context),
+            extension = extension
         )
-        return buildMediaUrl(token)?.also {
+        return buildMediaUrl(token, extension)?.also {
             Log.d(TAG, "Registered local media token=$token url=$it mime=$mimeType")
+        }
+    }
+
+    fun registerCached(uri: Uri, mimeType: String, displayName: String? = null): String? {
+        if (!start()) return null
+
+        val token = UUID.randomUUID().toString()
+        val extension = mediaExtension(
+            hint = displayName ?: uri.lastPathSegment,
+            mimeType = mimeType
+        ) ?: "mp4"
+        val cachedFile = File(cacheDirectory(), "$token.$extension")
+
+        val copied = runCatching {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                cachedFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+        }.getOrNull()
+
+        if (copied == null || cachedFile.length() <= 0L) {
+            cachedFile.delete()
+            Log.w(TAG, "Could not cache local media uri=$uri")
+            return null
+        }
+
+        entries[token] = Entry(
+            source = MediaSource.CachedFile(cachedFile),
+            mimeType = mimeType,
+            size = cachedFile.length(),
+            extension = extension
+        )
+        return buildMediaUrl(token, extension)?.also {
+            Log.d(
+                TAG,
+                "Registered cached media token=$token url=$it mime=$mimeType size=${cachedFile.length()}"
+            )
         }
     }
 
@@ -74,17 +122,25 @@ class LocalMediaHttpServer(
         if (!start()) return null
 
         val token = UUID.randomUUID().toString()
+        val extension = mediaExtension(
+            hint = url.substringBefore('?').substringBefore('#'),
+            mimeType = mimeType
+        )
         entries[token] = Entry(
             source = MediaSource.RemoteUrl(url, requestHeaders.sanitizedRemoteHeaders()),
             mimeType = mimeType,
-            size = null
+            size = null,
+            extension = extension
         )
-        return buildMediaUrl(token)?.also {
+        return buildMediaUrl(token, extension)?.also {
             Log.d(TAG, "Registered remote media token=$token proxyUrl=$it upstream=$url mime=$mimeType")
         }
     }
 
     fun clear() {
+        entries.values.forEach { entry ->
+            (entry.source as? MediaSource.CachedFile)?.file?.delete()
+        }
         entries.clear()
     }
 
@@ -127,11 +183,15 @@ class LocalMediaHttpServer(
             Log.d(
                 TAG,
                 "Incoming media request method=$method path=$path " +
+                    "from=${client.inetAddress?.hostAddress} " +
                     "range=${headers["range"]} " +
+                    "userAgent=${headers["user-agent"]} " +
                     "privateNetwork=${headers["access-control-request-private-network"]}"
             )
-            val token = path.substringAfter("/media/", missingDelimiterValue = "")
+            val mediaPath = path.substringAfter("/media/", missingDelimiterValue = "")
                 .substringBefore("?")
+                .substringBefore("/")
+            val token = mediaPath.substringBefore(".")
 
             if (method.equals("OPTIONS", ignoreCase = true)) {
                 client.writeOptionsStatus()
@@ -176,6 +236,7 @@ class LocalMediaHttpServer(
             val header = buildString {
                 append(statusLine).append("\r\n")
                 appendCorsHeaders()
+                appendStreamingHeaders()
                 append("Content-Type: ").append(entry.mimeType).append("\r\n")
                 append("Accept-Ranges: bytes\r\n")
                 append("Connection: close\r\n")
@@ -195,13 +256,25 @@ class LocalMediaHttpServer(
             output.write(header.toByteArray())
 
             if (!method.equals("HEAD", ignoreCase = true)) {
-                val source = entry.source as MediaSource.LocalUri
-                val copied = context.contentResolver.openInputStream(source.uri)?.use { input ->
-                    input.skipFully(start)
-                    input.copyLimitedTo(output, contentLength)
+                val copied = when (val source = entry.source) {
+                    is MediaSource.LocalUri -> {
+                        context.contentResolver.openInputStream(source.uri)?.use { input ->
+                            input.skipFully(start)
+                            input.copyLimitedTo(output, contentLength)
+                        }
+                    }
+
+                    is MediaSource.CachedFile -> {
+                        source.file.inputStream().use { input ->
+                            input.skipFully(start)
+                            input.copyLimitedTo(output, contentLength)
+                        }
+                    }
+
+                    is MediaSource.RemoteUrl -> null
                 }
                 if (copied == null) {
-                    Log.w(TAG, "Could not open local media stream uri=${source.uri}")
+                    Log.w(TAG, "Could not open local media stream source=${entry.source}")
                 }
             }
             output.flush()
@@ -272,6 +345,7 @@ class LocalMediaHttpServer(
                         buildString {
                             append("HTTP/1.1 200 OK\r\n")
                             appendCorsHeaders()
+                            appendStreamingHeaders()
                             append("Content-Type: ").append(upstreamContentType).append("\r\n")
                             append("Accept-Ranges: bytes\r\n")
                             append("Connection: close\r\n")
@@ -295,6 +369,7 @@ class LocalMediaHttpServer(
                         .append(responseMessage)
                         .append("\r\n")
                     appendCorsHeaders()
+                    appendStreamingHeaders()
                     append("Content-Type: ").append(upstreamContentType).append("\r\n")
                     append("Accept-Ranges: ")
                         .append(connection.getHeaderField("Accept-Ranges") ?: "bytes")
@@ -332,6 +407,14 @@ class LocalMediaHttpServer(
         )
         append("Access-Control-Allow-Private-Network: true\r\n")
         append("Access-Control-Expose-Headers: Content-Length, Content-Range, Accept-Ranges, Content-Type\r\n")
+    }
+
+    private fun StringBuilder.appendStreamingHeaders() {
+        append("Content-Disposition: inline\r\n")
+        append("transferMode.dlna.org: Streaming\r\n")
+        append("contentFeatures.dlna.org: ")
+        append("DLNA.ORG_OP=01;DLNA.ORG_CI=0;")
+        append("DLNA.ORG_FLAGS=01700000000000000000000000000000\r\n")
     }
 
     private fun parseRange(rawRange: String, size: Long?): Pair<Long, Long?>? {
@@ -402,14 +485,15 @@ class LocalMediaHttpServer(
         )
     }
 
-    private fun buildMediaUrl(token: String): String? {
+    private fun buildMediaUrl(token: String, extension: String?): String? {
         val host = findLocalIpv4Address(context) ?: return null
         val port = serverSocket?.localPort ?: return null
-        return "http://$host:$port/media/$token"
+        val suffix = extension?.let { ".$it" }.orEmpty()
+        return "http://$host:$port/media/$token$suffix"
     }
 
     override fun close() {
-        entries.clear()
+        clear()
         runCatching { serverSocket?.close() }
         executor?.shutdownNow()
         serverSocket = null
@@ -420,11 +504,13 @@ class LocalMediaHttpServer(
     private data class Entry(
         val source: MediaSource,
         val mimeType: String,
-        val size: Long?
+        val size: Long?,
+        val extension: String?
     )
 
     private sealed class MediaSource {
         data class LocalUri(val uri: Uri) : MediaSource()
+        data class CachedFile(val file: File) : MediaSource()
         data class RemoteUrl(
             val url: String,
             val requestHeaders: Map<String, String>
@@ -453,6 +539,7 @@ class LocalMediaHttpServer(
         private const val REMOTE_READ_TIMEOUT_MS = 30_000
         private const val REMOTE_USER_AGENT =
             "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
+        private const val PREFERRED_MEDIA_PORT = 8080
         private const val TAG = "LocalMediaServer"
 
         fun shared(context: Context): LocalMediaHttpServer {
@@ -468,26 +555,111 @@ class LocalMediaHttpServer(
                 ?: "Media"
         }
 
+        private fun LocalMediaHttpServer.cacheDirectory(): File {
+            return File(context.cacheDir, LOCAL_MEDIA_CACHE_DIR).apply {
+                mkdirs()
+            }
+        }
+
         private fun findLocalIpv4Address(context: Context): String? {
             val connectivityManager =
                 context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-            val activeNetwork = connectivityManager?.activeNetwork
-            if (connectivityManager != null && activeNetwork != null) {
-                connectivityManager.getLinkProperties(activeNetwork)
+            if (connectivityManager != null) {
+                connectivityManager.allNetworks
+                    .asSequence()
+                    .filter { network ->
+                        connectivityManager.getNetworkCapabilities(network)
+                            ?.isCastReachableTransport() == true
+                    }
+                    .mapNotNull { network ->
+                        connectivityManager.getLinkProperties(network)
+                            ?.linkAddresses
+                            ?.mapNotNull { it.address as? Inet4Address }
+                            ?.firstOrNull { it.isUsableLanAddress() }
+                            ?.hostAddress
+                    }
+                    .firstOrNull()
+                    ?.let { return it }
+
+                connectivityManager.activeNetwork
+                    ?.let { connectivityManager.getLinkProperties(it) }
                     ?.linkAddresses
                     ?.mapNotNull { it.address as? Inet4Address }
-                    ?.firstOrNull { !it.isLoopbackAddress }
+                    ?.firstOrNull { it.isUsableLanAddress() }
                     ?.hostAddress
                     ?.let { return it }
             }
 
             val interfaces = Collections.list(NetworkInterface.getNetworkInterfaces())
+                .filter { runCatching { it.isUp && !it.isLoopback }.getOrDefault(false) }
+                .sortedBy { it.castInterfacePriority() }
+
             return interfaces
-                .flatMap { Collections.list(it.inetAddresses) }
-                .filterIsInstance<Inet4Address>()
-                .firstOrNull { !it.isLoopbackAddress }
+                .flatMap { networkInterface ->
+                    Collections.list(networkInterface.inetAddresses)
+                        .filterIsInstance<Inet4Address>()
+                        .map { networkInterface to it }
+                }
+                .firstOrNull { (_, address) -> address.isUsableLanAddress() }
+                ?.second
                 ?.hostAddress
+                ?: interfaces
+                    .flatMap { Collections.list(it.inetAddresses) }
+                    .filterIsInstance<Inet4Address>()
+                    .firstOrNull { !it.isLoopbackAddress }
+                    ?.hostAddress
         }
+
+        private fun NetworkCapabilities.isCastReachableTransport(): Boolean {
+            if (hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return false
+            return hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        }
+
+        private fun Inet4Address.isUsableLanAddress(): Boolean {
+            return !isAnyLocalAddress &&
+                !isLoopbackAddress &&
+                !isLinkLocalAddress &&
+                !isMulticastAddress &&
+                isSiteLocalAddress
+        }
+
+        private fun NetworkInterface.castInterfacePriority(): Int {
+            val name = name.lowercase()
+            return when {
+                name.startsWith("wlan") || name.startsWith("wifi") -> 0
+                name.startsWith("eth") -> 1
+                name.startsWith("ap") || name.startsWith("swlan") -> 2
+                else -> 3
+            }
+        }
+
+        private fun mediaExtension(hint: String?, mimeType: String): String? {
+            val fromHint = hint
+                ?.substringBeforeLast('?')
+                ?.substringBeforeLast('#')
+                ?.substringAfterLast('.', missingDelimiterValue = "")
+                ?.lowercase()
+                ?.takeIf { it.matches(Regex("[a-z0-9]{2,5}")) }
+            if (fromHint != null) return fromHint
+
+            return when (mimeType.substringBefore(";").trim().lowercase()) {
+                "image/jpeg", "image/jpg" -> "jpg"
+                "image/png" -> "png"
+                "image/webp" -> "webp"
+                "image/gif" -> "gif"
+                "video/mp4", "video/m4v", "video/quicktime" -> "mp4"
+                "video/webm" -> "webm"
+                "video/mp2t" -> "ts"
+                "audio/mpeg" -> "mp3"
+                "audio/mp4" -> "m4a"
+                "application/x-mpegurl", "application/vnd.apple.mpegurl" -> "m3u8"
+                "application/dash+xml" -> "mpd"
+                else -> null
+            }
+        }
+
+        private const val LOCAL_MEDIA_CACHE_DIR = "cast_media"
     }
 
     private fun isPlaylist(url: String, contentType: String): Boolean {

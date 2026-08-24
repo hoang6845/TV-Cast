@@ -35,6 +35,7 @@ import com.tvchromecast.screenmirroringplus.databinding.FragmentIPTVBinding
 import com.tvchromecast.screenmirroringplus.databinding.LayoutIptvFilterSheetBinding
 import com.tvchromecast.screenmirroringplus.media.LocalMediaHttpServer
 import com.tvchromecast.screenmirroringplus.model.entity.Channel
+import com.tvchromecast.screenmirroringplus.ui.common.hasRecentReceiverMediaError
 import com.tvchromecast.screenmirroringplus.ui.common.showReceiverMediaErrorIfAny
 import com.tvchromecast.screenmirroringplus.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.CastMediaControlIntent
@@ -722,10 +723,19 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
                     if (result.status.isSuccess) {
                         player?.pause()
                     } else {
-                        showCastFailureDialog()
+                        showCastFailureDialogIfNoReceiverError()
                     }
                 }
             }
+    }
+
+    private fun showCastFailureDialogIfNoReceiverError() {
+        uiHandler.postDelayed({
+            if (view == null || hasRecentReceiverMediaError()) {
+                return@postDelayed
+            }
+            showCastFailureDialog()
+        }, CAST_LOAD_FAILURE_FALLBACK_DELAY_MS)
     }
 
     private fun inferCastStreamType(url: String): Int {
@@ -1224,6 +1234,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
 
     companion object {
         private const val RECEIVER_NAMESPACE = "urn:x-cast:com.example.camera.webrtc"
+        private const val CAST_LOAD_FAILURE_FALLBACK_DELAY_MS = 1_200L
         private const val TAG = "IPTVDebug"
     }
 }

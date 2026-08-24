@@ -6,7 +6,8 @@ data class TvRemoteDevice(
     val host: String,
     val remotePort: Int,
     val pairPort: Int = DEFAULT_PAIRING_PORT,
-    val type: String = "Android TV"
+    val type: String = "Android TV",
+    val protocol: TvRemoteProtocol = TvRemoteProtocol.AndroidTv
 ) {
     val subtitle: String
         get() = "$type - $host"
@@ -14,6 +15,15 @@ data class TvRemoteDevice(
     companion object {
         const val DEFAULT_PAIRING_PORT = 6467
     }
+}
+
+enum class TvRemoteProtocol {
+    AndroidTv,
+    Roku,
+    WebOs,
+    Samsung,
+    FireTv,
+    CastOrDlna
 }
 
 data class TvRemoteApp(
