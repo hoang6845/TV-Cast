@@ -452,6 +452,12 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     private fun setupCastButton() {
         releaseLog("ScreenMirroring.setupCastButton: usesSystemMirroring=$usesSystemMirroring")
         mediaRouter = MediaRouter.getInstance(requireContext())
+        runCatching {
+            castContext = CastContext.getSharedInstance(requireContext())
+        }.onFailure {
+            releaseLog("ScreenMirroring.setupCastButton: cast context unavailable", it)
+        }
+
         if (usesSystemMirroring) {
             binding.btnTopCast.isVisible = false
             syncMirroringState()
@@ -460,7 +466,6 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
         binding.btnTopCast.isVisible = true
         runCatching {
-            castContext = CastContext.getSharedInstance(requireContext())
             castContext?.setReceiverApplicationId(CastReceiverIds.CAMERA_WEBRTC)
             CastButtonFactory.setUpMediaRouteButton(requireContext(), binding.btnTopCast)
             binding.btnTopCast.setDialogFactory(mediaRouteDialogFactory)
@@ -605,7 +610,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
 
     private fun startSystemMirroringFlow() {
         releaseLog("ScreenMirroring.startSystemMirroringFlow")
-        if (hasSystemMirroringSession()) {
+        if (hasActiveSystemMirroringSession()) {
             syncMirroringState()
             return
         }
@@ -922,9 +927,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         binding.statusContainer.isVisible = isMirroring ||
             isPreparing ||
             pendingMirroring ||
-            isReconnecting ||
-            hasConnectedCastRoute() ||
-            (usesSystemMirroring && hasSystemMirroringSession())
+            isReconnecting
 
         binding.btnStartMirroring.isEnabled = !pendingMirroring && !isReconnecting
         binding.btnStartMirroring.alpha = if (binding.btnStartMirroring.isEnabled) 1f else 0.72f
@@ -958,8 +961,6 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
             isPreparing -> getString(R.string.text_preparing_screen)
             pendingMirroring || selectingTv -> getString(R.string.text_select_a_tv)
             isReconnecting -> getString(R.string.text_reconnecting)
-            hasAndroidManagedScreenCast() -> getString(R.string.text_screen_cast_managed_by_android)
-            hasConnectedCastRoute() -> getString(R.string.text_casting_to_tv, deviceName)
             else -> getString(R.string.text_mirroring_not_started)
         }
     }
@@ -988,7 +989,7 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
     }
 
     private fun syncSystemMirroringState() {
-        if (hasSystemMirroringSession()) {
+        if (hasActiveSystemMirroringSession()) {
             pendingMirroring = false
             isPreparing = false
             isMirroring = true
@@ -1124,10 +1125,8 @@ class ScreenMirroringFragment : BaseFragment<FragmentScreenMirroringBinding, Scr
         return selectedNonLocalRoute()?.let(::isRouteConnecting) == true
     }
 
-    private fun hasAndroidManagedScreenCast(): Boolean {
-        return currentCastSession()?.isConnected != true &&
-            selectedNonLocalRoute() == null &&
-            activePresentationDisplay() != null
+    private fun hasActiveSystemMirroringSession(): Boolean {
+        return hasSystemMirroringSession() && currentCastSession()?.isConnected != true
     }
 
     private fun hasSystemMirroringSession(): Boolean {

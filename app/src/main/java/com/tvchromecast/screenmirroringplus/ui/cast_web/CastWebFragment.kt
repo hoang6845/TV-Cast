@@ -8,7 +8,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.util.Log
 import android.util.Patterns
 import android.view.inputmethod.EditorInfo
@@ -31,6 +30,7 @@ import com.tvchromecast.screenmirroringplus.databinding.ItemCastWebSiteBinding
 import com.tvchromecast.screenmirroringplus.media.LocalMediaHttpServer
 import com.tvchromecast.screenmirroringplus.ui.cast_youtube.CastYoutubeFragment
 import com.tvchromecast.screenmirroringplus.ui.common.hasRecentReceiverMediaError
+import com.tvchromecast.screenmirroringplus.ui.common.resetReceiverMediaErrorUiState
 import com.tvchromecast.screenmirroringplus.ui.common.showReceiverMediaErrorIfAny
 import com.tvchromecast.screenmirroringplus.ui.common.showCastFailureDialog
 import com.google.android.gms.cast.Cast
@@ -51,7 +51,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.Locale
-import kotlin.math.abs
 
 class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>() {
     override val viewModelClass: Class<CastWebViewModel>
@@ -70,27 +69,15 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     private val sessionBookmarks = mutableSetOf<String>()
     private var castContext: CastContext? = null
     private var pendingVideo: DetectedVideo? = null
+    private var isSwitchingCastReceiver = false
     private var isCasting = false
     private var isPageLoading = false
     private var toolbarBaseHeight = 0
     private var bottomBarBaseHeight = 0
     private var lastCastVideoKey: String? = null
     private var pendingAutoCastVideoKey: String? = null
-    private var lastPhoneTimelineSeconds: Float? = null
-    private var lastPhoneTimelineSyncAtMs = 0L
-    private var lastSeekSentAtMs = 0L
-
     private val receiverMessageCallback = Cast.MessageReceivedCallback { _, _, message ->
         logReceiverMessage(message)
-    }
-
-    private val phoneTimelinePollRunnable = object : Runnable {
-        override fun run() {
-            pollPhoneTimelineForSeek()
-            if (isCasting) {
-                mainHandler.postDelayed(this, PHONE_TIMELINE_POLL_INTERVAL_MS)
-            }
-        }
     }
 
     private val autoCastChangedVideoRunnable = Runnable {
@@ -102,10 +89,12 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
             currentCastSession()?.isConnected == true &&
             key != lastCastVideoKey
         ) {
-            detectedVideos[key]?.let { video ->
-                Log.i(TAG, "Auto casting changed web video: key=$key url=${video.url}")
-                castVideo(video)
-            }
+            detectedVideos[key]
+                ?.takeUnless { it.isLikelyStreamingSegment() }
+                ?.let { video ->
+                    Log.i(TAG, "Auto casting changed web video: key=$key url=${video.url}")
+                    castVideo(video)
+                }
         }
     }
 
@@ -116,8 +105,9 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
 
         override fun onSessionStarted(session: CastSession, sessionId: String) {
             Log.i(TAG, "Cast web session started: sessionId=$sessionId device=${session.castDevice?.friendlyName}")
+            isSwitchingCastReceiver = false
             updateCastStatus(CastConnectionState.Connected)
-            setReceiverDebugCallback(session)
+            configureReceiverDebugCallback(session)
             pendingVideo?.let {
                 pendingVideo = null
                 castVideo(it)
@@ -125,6 +115,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         }
 
         override fun onSessionStartFailed(session: CastSession, error: Int) {
+            isSwitchingCastReceiver = false
             pendingVideo = null
             updateCastStatus(CastConnectionState.Error)
             showCastFailureDialog()
@@ -138,7 +129,9 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         override fun onSessionEnded(session: CastSession, error: Int) {
             Log.i(TAG, "Cast web session ended: error=$error")
             removeReceiverDebugCallback(session)
-            pendingVideo = null
+            if (!isSwitchingCastReceiver) {
+                pendingVideo = null
+            }
             isCasting = false
             resetCastingState()
             updateCastStatus(CastConnectionState.Disconnected)
@@ -151,7 +144,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
 
         override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
             updateCastStatus(CastConnectionState.Connected)
-            setReceiverDebugCallback(session)
+            configureReceiverDebugCallback(session)
             updateControls()
         }
 
@@ -381,10 +374,10 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
             url = FACEBOOK_URL
         )
         configureSite(
-            binding.siteTed,
-            logoRes = R.drawable.ted,
-            title = getString(R.string.text_ted),
-            url = TED_URL
+            binding.siteArchive,
+            logoRes = R.drawable.ic_archive_org,
+            title = getString(R.string.text_archive_org),
+            url = ARCHIVE_ORG_SAMPLE_VIDEO_URL
         )
         configureSite(
             binding.siteVevo,
@@ -444,7 +437,9 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     }
 
     private fun loadUrl(url: String) {
+        Log.i(TAG, "Loading web page: url=$url")
         showWebPage(url)
+        detectMediaUrl(url)
         binding.webView.loadUrl(url)
     }
 
@@ -468,6 +463,11 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         if (url.isYoutubeRelatedUrl()) return
 
         val video = url.toDetectedVideoOrNull() ?: return
+        if (video.isLikelyStreamingSegment()) {
+            Log.d(TAG, "Ignoring streaming segment candidate: ${video.url}")
+            return
+        }
+
         mainHandler.post {
             if (_binding == null || view == null) return@post
 
@@ -476,6 +476,11 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
             if (existing != null) {
                 if (existing.requestHeaders.isEmpty() && requestHeaders.isNotEmpty()) {
                     detectedVideos[key] = existing.copy(requestHeaders = requestHeaders)
+                    Log.i(
+                        TAG,
+                        "Updated detected web video headers: key=$key url=${video.url} " +
+                            "headerNames=${requestHeaders.toDebugHeaderNames()}"
+                    )
                     if (pendingAutoCastVideoKey == key) {
                         scheduleAutoCastChangedVideo(key)
                     }
@@ -486,6 +491,12 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
             detectedVideos[key] = video.copy(
                 title = binding.webView.title?.takeIf { it.isNotBlank() } ?: video.title,
                 requestHeaders = requestHeaders
+            )
+            Log.i(
+                TAG,
+                "Detected castable web video: page=${binding.webView.url} key=$key " +
+                    "title=${binding.webView.title} mime=${video.mimeType} " +
+                    "headerNames=${requestHeaders.toDebugHeaderNames()} url=${video.url}"
             )
             if (isCasting && key != lastCastVideoKey) {
                 scheduleAutoCastChangedVideo(key)
@@ -589,7 +600,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
             return
         }
 
-        val videos = detectedVideos.values.toList()
+        val videos = castableVideos()
         if (videos.isEmpty()) {
             Toast.makeText(
                 requireContext(),
@@ -615,13 +626,39 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.text_select_video)
-            .setItems(labels) { _, which -> castOrConnect(videos[which]) }
+            .setItems(labels) { _, which ->
+                val selected = videos[which]
+                Log.i(
+                    TAG,
+                    "Selected detected web video: index=$which title=${selected.title} " +
+                        "mime=${selected.mimeType} url=${selected.url}"
+                )
+                castOrConnect(selected)
+            }
             .setNegativeButton(R.string.text_cancel, null)
             .show()
     }
 
     private fun castOrConnect(video: DetectedVideo) {
+        if (video.isLikelyStreamingSegment()) {
+            Toast.makeText(
+                requireContext(),
+                R.string.text_play_video_on_webpage_first,
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
         val session = currentCastSession()
+        val receiverId = video.preferredReceiverId()
+        resetReceiverMediaErrorUiState()
+        castContext?.setReceiverApplicationId(receiverId)
+        Log.i(
+            TAG,
+            "Cast web video requested: connected=${session?.isConnected == true} " +
+                "receiverId=$receiverId currentReceiverId=${session?.applicationMetadata?.applicationId} " +
+                "page=${binding.webView.url} title=${video.title} mime=${video.mimeType} url=${video.url}"
+        )
         if (session?.isConnected != true) {
             pendingVideo = video
             Toast.makeText(requireContext(), R.string.text_select_tv_to_cast, Toast.LENGTH_SHORT).show()
@@ -641,10 +678,48 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
             return
         }
 
+        if (!session.isRunningReceiver(receiverId)) {
+            pendingVideo = video
+            isSwitchingCastReceiver = true
+            Log.i(
+                TAG,
+                "Switching Cast receiver for web video: currentReceiverId=" +
+                    "${session.applicationMetadata?.applicationId} targetReceiverId=$receiverId url=${video.url}"
+            )
+            castContext?.sessionManager?.endCurrentSession(true)
+            Toast.makeText(requireContext(), R.string.text_select_tv_to_cast, Toast.LENGTH_SHORT).show()
+            mainHandler.postDelayed({
+                if (_binding != null &&
+                    view != null &&
+                    pendingVideo === video &&
+                    currentCastSession()?.isConnected != true
+                ) {
+                    binding.btnTopCast.performClick()
+                }
+            }, RECEIVER_SWITCH_CAST_PICKER_DELAY_MS)
+            mainHandler.postDelayed({
+                if (_binding != null &&
+                    view != null &&
+                    pendingVideo === video &&
+                    currentCastSession()?.isConnected != true
+                ) {
+                    isSwitchingCastReceiver = false
+                    pendingVideo = null
+                    updateCastStatusFromSession()
+                    showCastFailureDialog()
+                    updateControls()
+                }
+            }, RECEIVER_SWITCH_CAST_PICKER_DELAY_MS + CAST_SELECTION_TIMEOUT_MS)
+            updateControls()
+            return
+        }
+
         castVideo(video)
     }
 
     private fun castVideo(video: DetectedVideo) {
+        if (video.isLikelyStreamingSegment()) return
+
         val session = currentCastSession()
         if (session?.isConnected != true) {
             castOrConnect(video)
@@ -666,12 +741,23 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
             video.thumbnail?.let { addImage(WebImage(Uri.parse(it))) }
         }
 
-        val castUrl = mediaServer.registerRemoteUrl(
-            video.url,
-            video.mimeType ?: "video/mp4",
-            buildRemoteRequestHeaders(video)
-        )
+        val requestHeaders = buildRemoteRequestHeaders(video)
+        val useDirectCastUrl = video.shouldUseDirectCastUrl()
+        val castUrl = if (useDirectCastUrl) {
+            video.url
+        } else {
+            mediaServer.registerRemoteUrl(
+                video.url,
+                video.mimeType ?: "video/mp4",
+                requestHeaders
+            )
+        }
         if (castUrl == null) {
+            Log.e(
+                TAG,
+                "Could not register web video for Cast: page=${binding.webView.url} " +
+                    "mime=${video.mimeType} url=${video.url}"
+            )
             Toast.makeText(
                 requireContext(),
                 R.string.text_could_not_cast_video,
@@ -696,11 +782,14 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         Log.i(
             TAG,
             "Loading web video on Cast: key=${video.castKey()} startSeconds=$startSeconds " +
-                "url=${video.url} mime=${video.mimeType}"
+                "page=${binding.webView.url} receiverDevice=${session.castDevice?.friendlyName} " +
+                "delivery=${if (useDirectCastUrl) "direct" else "proxy"} " +
+                "castUrl=$castUrl sourceUrl=${video.url} mime=${video.mimeType} " +
+                "headerNames=${requestHeaders.toDebugHeaderNames()}"
         )
         isCasting = true
         updateControls()
-        setReceiverDebugCallback(session)
+        configureReceiverDebugCallback(session)
 
         session.remoteMediaClient
             ?.load(requestData)
@@ -712,12 +801,12 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
                     Log.i(
                         TAG,
                         "Cast web load result: success=${result.status.isSuccess} " +
-                            "code=${result.status.statusCode} message=${result.status.statusMessage}"
+                            "code=${result.status.statusCode} message=${result.status.statusMessage} " +
+                            "delivery=${if (useDirectCastUrl) "direct" else "proxy"} " +
+                            "castUrl=$castUrl sourceUrl=${video.url}"
                     )
                     if (result.status.isSuccess) {
                         lastCastVideoKey = video.castKey()
-                        lastPhoneTimelineSeconds = startSeconds
-                        startTimelinePolling()
                     } else {
                         showLoadFailureToastIfNoReceiverError(R.string.text_could_not_cast_video)
                     }
@@ -784,6 +873,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         currentCastSession()?.remoteMediaClient?.stop()
         castContext?.sessionManager?.endCurrentSession(true)
         mediaServer.clear()
+        isSwitchingCastReceiver = false
         pendingVideo = null
         isCasting = false
         resetCastingState()
@@ -797,89 +887,6 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         lastCastVideoKey = null
         pendingAutoCastVideoKey = null
         mainHandler.removeCallbacks(autoCastChangedVideoRunnable)
-        stopTimelinePolling()
-    }
-
-    private fun startTimelinePolling() {
-        mainHandler.removeCallbacks(phoneTimelinePollRunnable)
-        mainHandler.postDelayed(phoneTimelinePollRunnable, PHONE_TIMELINE_POLL_INTERVAL_MS)
-    }
-
-    private fun stopTimelinePolling() {
-        mainHandler.removeCallbacks(phoneTimelinePollRunnable)
-        lastPhoneTimelineSeconds = null
-    }
-
-    private fun pollPhoneTimelineForSeek() {
-        if (!isCasting) return
-
-        pausePhoneWebPlayback { phoneTime ->
-            if (!isCasting || phoneTime == null) return@pausePhoneWebPlayback
-
-            val now = SystemClock.elapsedRealtime()
-            val lastPhoneTime = lastPhoneTimelineSeconds
-            if (lastPhoneTime != null &&
-                abs(phoneTime - lastPhoneTime) >= PHONE_SEEK_DETECTION_THRESHOLD_SECONDS &&
-                now - lastPhoneTimelineSyncAtMs > PHONE_TIMELINE_SYNC_IGNORE_MS &&
-                now - lastSeekSentAtMs > PHONE_SEEK_THROTTLE_MS
-            ) {
-                seekCastWebVideo(phoneTime)
-                lastPhoneTimelineSeconds = phoneTime
-                return@pausePhoneWebPlayback
-            }
-
-            val tvPositionSeconds = currentCastSession()
-                ?.remoteMediaClient
-                ?.approximateStreamPosition
-                ?.takeIf { it > 0L }
-                ?.let { it / 1000f }
-
-            if (tvPositionSeconds != null) {
-                syncPhoneTimelineToTv(tvPositionSeconds)
-            } else {
-                lastPhoneTimelineSeconds = phoneTime
-            }
-        }
-    }
-
-    private fun seekCastWebVideo(seconds: Float) {
-        val client = currentCastSession()?.remoteMediaClient ?: return
-        lastSeekSentAtMs = SystemClock.elapsedRealtime()
-        val positionMs = (seconds * 1000L).toLong().coerceAtLeast(0L)
-        Log.i(TAG, "Seeking Cast web video: seconds=$seconds positionMs=$positionMs")
-        client.seek(positionMs)
-    }
-
-    private fun syncPhoneTimelineToTv(seconds: Float) {
-        val now = SystemClock.elapsedRealtime()
-        if (now - lastSeekSentAtMs < LOCAL_SEEK_GRACE_MS) return
-
-        val lastPhoneTime = lastPhoneTimelineSeconds
-        if (lastPhoneTime != null && abs(lastPhoneTime - seconds) < PHONE_TIMELINE_SYNC_THRESHOLD_SECONDS) {
-            lastPhoneTimelineSeconds = seconds
-            return
-        }
-
-        lastPhoneTimelineSyncAtMs = now
-        evaluatePhoneVideoTime(
-            """
-            (function() {
-                const video = document.querySelector('video');
-                const seconds = ${"%.3f".format(Locale.US, seconds)};
-                if (!video || !Number.isFinite(seconds)) return null;
-                video.pause();
-                if (Number.isFinite(video.duration) &&
-                    video.duration > 0 &&
-                    seconds <= video.duration + 1 &&
-                    Math.abs(video.currentTime - seconds) > 0.5) {
-                    video.currentTime = seconds;
-                }
-                return Number.isFinite(video.currentTime) ? video.currentTime : null;
-            })();
-            """.trimIndent()
-        ) { phoneTime ->
-            lastPhoneTimelineSeconds = phoneTime ?: seconds
-        }
     }
 
     private fun pausePhoneWebPlayback(onPosition: (Float?) -> Unit = {}) {
@@ -987,7 +994,7 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
             if (isPageLoading) R.drawable.ic_close_web_white else R.drawable.ic_reload_white
         )
 
-        val videos = detectedVideos.values.toList()
+        val videos = castableVideos()
         binding.btnCastWebAction.isEnabled = true
         binding.btnCastWebAction.text = when {
             isCasting -> getString(R.string.text_playing_on_tv)
@@ -1023,6 +1030,19 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
 
     private fun currentCastSession(): CastSession? {
         return castContext?.sessionManager?.currentCastSession
+    }
+
+    private fun configureReceiverDebugCallback(session: CastSession) {
+        if (session.isRunningReceiver(CastReceiverIds.CUSTOM_RECEIVER)) {
+            setReceiverDebugCallback(session)
+            return
+        }
+
+        removeReceiverDebugCallback(session)
+        Log.i(
+            TAG,
+            "Skipping custom receiver debug callback: receiverId=${session.applicationMetadata?.applicationId}"
+        )
     }
 
     private fun setReceiverDebugCallback(session: CastSession) {
@@ -1094,6 +1114,14 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         return "$scheme://$host$port"
     }
 
+    private fun Map<String, String>.toDebugHeaderNames(): String {
+        if (isEmpty()) return "[]"
+        return keys
+            .map { name -> if (name.equals("Cookie", ignoreCase = true)) "Cookie(redacted)" else name }
+            .sorted()
+            .joinToString(prefix = "[", postfix = "]")
+    }
+
     private fun String.isYoutubeUrl(): Boolean {
         val host = runCatching { Uri.parse(this).host?.lowercase(Locale.US) }
             .getOrNull()
@@ -1117,14 +1145,87 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
     }
 
     private fun DetectedVideo.inferCastStreamType(): Int {
-        return when (mimeType) {
-            "application/x-mpegURL" -> MediaInfo.STREAM_TYPE_LIVE
-            else -> MediaInfo.STREAM_TYPE_BUFFERED
-        }
+        return MediaInfo.STREAM_TYPE_BUFFERED
     }
 
     private fun DetectedVideo.castKey(): String {
         return url.substringBefore("#")
+    }
+
+    private fun DetectedVideo.shouldUseDirectCastUrl(): Boolean {
+        val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return false
+        if (!uri.scheme.equals("https", ignoreCase = true)) return false
+
+        val host = uri.host?.lowercase(Locale.US) ?: return false
+        val isArchiveOrgHost = host == "archive.org" ||
+            host.endsWith(".archive.org")
+        if (!isArchiveOrgHost) return false
+
+        val normalizedMimeType = mimeType?.lowercase(Locale.US)
+        val isDirectVideoMimeType = normalizedMimeType == "video/mp4" ||
+            normalizedMimeType == "video/webm" ||
+            normalizedMimeType == "application/x-mpegurl" ||
+            normalizedMimeType == "application/vnd.apple.mpegurl"
+        val isProgressiveVideoUrl = uri.path.orEmpty().endsWith(".mp4", ignoreCase = true) ||
+            uri.path.orEmpty().endsWith(".webm", ignoreCase = true)
+        val isHlsUrl = uri.path.orEmpty().endsWith(".m3u8", ignoreCase = true)
+        return isDirectVideoMimeType || isProgressiveVideoUrl || isHlsUrl
+    }
+
+    private fun DetectedVideo.preferredReceiverId(): String {
+        return if (shouldUseDirectCastUrl()) {
+            CastReceiverIds.MEDIA_RECEIVER
+        } else {
+            CastReceiverIds.CUSTOM_RECEIVER
+        }
+    }
+
+    private fun CastSession.isRunningReceiver(receiverId: String): Boolean {
+        return applicationMetadata?.applicationId == receiverId
+    }
+
+    private fun castableVideos(): List<DetectedVideo> {
+        return detectedVideos.values
+            .filterNot { it.isLikelyStreamingSegment() }
+            .sortedWith(
+                compareByDescending<DetectedVideo> { it.castCandidateScore() }
+                    .thenBy { it.title.orEmpty() }
+                    .thenBy { it.url }
+            )
+    }
+
+    private fun DetectedVideo.castCandidateScore(): Int {
+        return when (mimeType) {
+            "video/mp4" -> 400
+            "video/webm" -> 350
+            "application/x-mpegURL" -> 250
+            "application/dash+xml" -> 200
+            "audio/mp4",
+            "audio/mpeg" -> 100
+            else -> 0
+        }
+    }
+
+    private fun DetectedVideo.isLikelyStreamingSegment(): Boolean {
+        val cleanUrl = url.lowercase(Locale.US).substringBefore("#").substringBefore("?")
+        val path = runCatching { Uri.parse(url).path?.lowercase(Locale.US) }
+            .getOrNull()
+            ?: cleanUrl
+        val fileName = path.substringAfterLast("/")
+
+        if (cleanUrl.endsWith(".m4s") ||
+            cleanUrl.contains(".m4s/") ||
+            cleanUrl.endsWith(".cmfv") ||
+            cleanUrl.endsWith(".cmfa")
+        ) {
+            return true
+        }
+
+        if (mimeType != "video/mp4") return false
+        if (fileName.startsWith("init.") || fileName == "init.mp4") return true
+        if (STREAMING_SEGMENT_FILE_REGEX.matches(fileName)) return true
+
+        return STREAMING_SEGMENT_PATH_MARKERS.any { marker -> path.contains(marker) }
     }
 
     private class VideoDetectorBridge(
@@ -1161,21 +1262,30 @@ class CastWebFragment : BaseFragment<FragmentCastWebBinding, CastWebViewModel>()
         private const val DETECTOR_RETRY_DELAY_MS = 900L
         private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
         private const val CAST_LOAD_FAILURE_FALLBACK_DELAY_MS = 1_200L
+        private const val RECEIVER_SWITCH_CAST_PICKER_DELAY_MS = 650L
         private const val AUTO_CAST_CHANGED_VIDEO_DELAY_MS = 900L
-        private const val PHONE_TIMELINE_POLL_INTERVAL_MS = 900L
-        private const val PHONE_SEEK_DETECTION_THRESHOLD_SECONDS = 2.0f
-        private const val PHONE_TIMELINE_SYNC_THRESHOLD_SECONDS = 1.25f
-        private const val PHONE_TIMELINE_SYNC_IGNORE_MS = 1_200L
-        private const val PHONE_SEEK_THROTTLE_MS = 800L
-        private const val LOCAL_SEEK_GRACE_MS = 2_000L
         private const val RECEIVER_NAMESPACE = "urn:x-cast:com.example.camera.webrtc"
         private const val TAG = "CastWebDebug"
         private const val GOOGLE_SEARCH_URL = "https://www.google.com/search?q="
         private const val YOUTUBE_URL = "https://m.youtube.com"
         private const val FACEBOOK_URL = "https://m.facebook.com"
-        private const val TED_URL = "https://www.ted.com"
+        private const val ARCHIVE_ORG_SAMPLE_VIDEO_URL =
+            "https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4"
         private const val VEVO_URL = "https://www.vevo.com"
         private const val TWITCH_URL = "https://m.twitch.tv"
         private const val VEOH_URL = "https://veoh.com/"
+        private val STREAMING_SEGMENT_FILE_REGEX =
+            Regex(""".*(^|[-_.])(seg|segment|frag|fragment|chunk|part)[-_.]?\d+.*\.(mp4|m4v)$""")
+        private val STREAMING_SEGMENT_PATH_MARKERS = listOf(
+            "/hls/",
+            "/dash/",
+            "/cmaf/",
+            "/segment",
+            "/segments/",
+            "/fragment",
+            "/fragments/",
+            "/chunk",
+            "/chunks/"
+        )
     }
 }

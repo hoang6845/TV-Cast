@@ -34,8 +34,8 @@ android {
         applicationId = "com.tvchromecast.screenmirroringplus"
         minSdk = 28
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0.1"
+        versionCode = 6
+        versionName = "1.0.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -92,6 +92,8 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.androidx.media3.ui)
+    implementation("androidx.media3:media3-transformer:1.9.0")
+    implementation("androidx.media3:media3-effect:1.9.0")
     implementation(libs.shimmer)
 
     implementation(libs.billing.ktx)

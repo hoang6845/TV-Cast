@@ -18,6 +18,136 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
+        android:id="@+id/tv_intro_review_headline"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/_16sdp"
+        android:layout_marginBottom="@dimen/_20sdp"
+        android:fontFamily="@font/inter"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:lineSpacingExtra="@dimen/_2sdp"
+        android:text="@string/text_intro_review_headline"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_20ssp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/layout_intro_review"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:visibility="visible" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_intro_review"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/_124sdp"
+        android:layout_marginHorizontal="@dimen/_16sdp"
+        android:layout_marginBottom="@dimen/_46sdp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/btn_save"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:visibility="visible">
+
+        <ImageView
+            android:id="@+id/img_intro_review_frame"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:contentDescription="@null"
+            android:scaleType="fitXY"
+            android:src="@drawable/frame_review"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_intro_review_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/_14sdp"
+            android:layout_marginTop="@dimen/_10sdp"
+            android:layout_marginEnd="@dimen/_14sdp"
+            android:fontFamily="@font/inter"
+            android:includeFontPadding="false"
+            android:text="@string/text_intro_review_title"
+            android:textColor="@color/white"
+            android:textSize="@dimen/_15ssp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/layout_intro_review_stars"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/_20sdp"
+            android:layout_marginStart="@dimen/_14sdp"
+            android:layout_marginTop="@dimen/_8sdp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_intro_review_title">
+
+            <ImageView
+                android:layout_width="@dimen/_19sdp"
+                android:layout_height="@dimen/_19sdp"
+                android:contentDescription="@null"
+                android:src="@drawable/star_review" />
+
+            <ImageView
+                android:layout_width="@dimen/_19sdp"
+                android:layout_height="@dimen/_19sdp"
+                android:layout_marginStart="@dimen/_3sdp"
+                android:contentDescription="@null"
+                android:src="@drawable/star_review" />
+
+            <ImageView
+                android:layout_width="@dimen/_19sdp"
+                android:layout_height="@dimen/_19sdp"
+                android:layout_marginStart="@dimen/_3sdp"
+                android:contentDescription="@null"
+                android:src="@drawable/star_review" />
+
+            <ImageView
+                android:layout_width="@dimen/_19sdp"
+                android:layout_height="@dimen/_19sdp"
+                android:layout_marginStart="@dimen/_3sdp"
+                android:contentDescription="@null"
+                android:src="@drawable/star_review" />
+
+            <ImageView
+                android:layout_width="@dimen/_19sdp"
+                android:layout_height="@dimen/_19sdp"
+                android:layout_marginStart="@dimen/_3sdp"
+                android:contentDescription="@null"
+                android:src="@drawable/star_review" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_intro_review_description"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="@dimen/_14sdp"
+            android:layout_marginTop="@dimen/_8sdp"
+            android:layout_marginEnd="@dimen/_14sdp"
+            android:layout_marginBottom="@dimen/_6sdp"
+            android:ellipsize="end"
+            android:fontFamily="@font/inter"
+            android:lineSpacingExtra="@dimen/_2sdp"
+            android:maxLines="3"
+            android:text="@string/text_intro_review_description"
+            android:textColor="#E0E0E0"
+            android:textSize="@dimen/_10ssp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/layout_intro_review_stars" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <TextView
         android:id="@+id/title_2"
         android:layout_width="0dp"
         android:layout_height="wrap_content"

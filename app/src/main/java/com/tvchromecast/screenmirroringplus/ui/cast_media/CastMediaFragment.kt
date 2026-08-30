@@ -1,20 +1,18 @@
 package com.tvchromecast.screenmirroringplus.ui.cast_media
 
-import android.Manifest
-import android.content.pm.PackageManager
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.media.MediaExtractor
+import android.media.MediaFormat
 import android.net.Uri
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -23,10 +21,13 @@ import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.google.android.gms.cast.Cast
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
 import com.google.android.gms.cast.MediaMetadata
@@ -43,6 +44,8 @@ import com.tvchromecast.screenmirroringplus.cast.CastReceiverIds
 import com.tvchromecast.screenmirroringplus.databinding.FragmentCastMediaBinding
 import com.tvchromecast.screenmirroringplus.media.LocalMediaHttpServer
 import com.tvchromecast.screenmirroringplus.ui.common.hasRecentReceiverMediaError
+import com.tvchromecast.screenmirroringplus.ui.common.resetReceiverMediaErrorUiState
+import com.tvchromecast.screenmirroringplus.ui.common.showReceiverMediaErrorIfAny
 import com.tvchromecast.screenmirroringplus.ui.common.showCastFailureDialog
 import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
@@ -50,8 +53,11 @@ import hoang.dqm.codebase.base.activity.popBackStack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.File
 import hoang.dqm.codebase.R as CodeBaseR
 
+@UnstableApi
 class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewModel>() {
     override val viewModelClass: Class<CastMediaViewModel>
         get() = CastMediaViewModel::class.java
@@ -72,7 +78,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
     private var castContext: CastContext? = null
     private var pendingCast = false
-    private var reconnectingForMediaReceiver = false
+    private var reconnectingForCustomReceiver = false
     private var isCasting = false
     private var selectedPhotoIndex = 0
     private var photos = emptyList<Uri>()
@@ -81,6 +87,11 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private var toolbarBaseHeight = 0
     private var bottomButtonBaseMargin = 0
     private var observedRemoteClient: RemoteMediaClient? = null
+    private var cancelActiveTransform: (() -> Unit)? = null
+
+    private val receiverMessageCallback = Cast.MessageReceivedCallback { _, _, message ->
+        logReceiverMessage(message)
+    }
 
     private val mediaClientCallback = object : RemoteMediaClient.Callback() {
         override fun onStatusUpdated() {
@@ -100,42 +111,30 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     }
 
     private val photoPicker = registerForActivityResult(
-        ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS)
+        ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         if (uris.isEmpty()) {
             if (photos.isEmpty()) {
                 updateControls()
             }
         } else {
+            val pickedUris = uris.take(MAX_PHOTOS).onEach(::persistReadPermission)
             if (photos.isEmpty()) {
-                setPhotos(uris)
+                setPhotos(pickedUris)
             } else {
-                addPhotos(uris)
+                addPhotos(pickedUris)
             }
         }
     }
 
     private val videoPicker = registerForActivityResult(
-        ActivityResultContracts.PickVisualMedia()
+        ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri == null) {
             updateControls()
         } else {
+            persistReadPermission(uri)
             setVideo(uri)
-        }
-    }
-
-    private val mediaPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            openPicker()
-        } else {
-            Toast.makeText(
-                requireContext(),
-                R.string.text_media_pick_error_message,
-                Toast.LENGTH_SHORT
-            ).show()
         }
     }
 
@@ -146,6 +145,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
         override fun onSessionStarted(session: CastSession, sessionId: String) {
             updateCastStatus(CastConnectionState.Connected)
+            setReceiverDebugCallback(session)
             observeRemoteMediaClient(session)
             if (pendingCast) {
                 pendingCast = false
@@ -155,7 +155,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
         override fun onSessionStartFailed(session: CastSession, error: Int) {
             pendingCast = false
-            reconnectingForMediaReceiver = false
+            reconnectingForCustomReceiver = false
             updateCastStatus(CastConnectionState.Error)
             updateControls()
         }
@@ -165,9 +165,10 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         }
 
         override fun onSessionEnded(session: CastSession, error: Int) {
+            removeReceiverDebugCallback(session)
             stopObservingRemoteMediaClient()
-            if (reconnectingForMediaReceiver) {
-                reconnectingForMediaReceiver = false
+            if (reconnectingForCustomReceiver) {
+                reconnectingForCustomReceiver = false
             } else {
                 pendingCast = false
             }
@@ -182,17 +183,19 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
         override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
             updateCastStatus(CastConnectionState.Connected)
+            setReceiverDebugCallback(session)
             observeRemoteMediaClient(session)
             updateControls()
         }
 
         override fun onSessionResumeFailed(session: CastSession, error: Int) {
-            reconnectingForMediaReceiver = false
+            reconnectingForCustomReceiver = false
             updateCastStatus(CastConnectionState.Error)
             updateControls()
         }
 
         override fun onSessionSuspended(session: CastSession, reason: Int) {
+            removeReceiverDebugCallback(session)
             stopObservingRemoteMediaClient()
             isCasting = false
             updateCastStatus(CastConnectionState.Disconnected)
@@ -214,7 +217,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         binding.btnStartCasting.setOnClickListener { handleCastButton() }
 //        binding.photoPreview.setOnClickListener { openPicker() }
         binding.videoPlayer.setOnClickListener { openPicker() }
-        binding.emptyMediaContainer.setOnClickListener { requestMediaPermissionAndOpen() }
+        binding.emptyMediaContainer.setOnClickListener { openPicker() }
         binding.btnAddPhotos.setOnClickListener { openPicker() }
         binding.btnPreviousPhoto.setOnClickListener { navigateToPreviousPhoto() }
         binding.btnNextPhoto.setOnClickListener { navigateToNextPhoto() }
@@ -222,7 +225,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     }
 
     override fun initData() {
-        requestMediaPermissionAndOpen()
+//        openPicker()
     }
 
     override fun onStart() {
@@ -231,11 +234,13 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             castSessionListener,
             CastSession::class.java
         )
+        currentCastSession()?.let(::setReceiverDebugCallback)
         currentCastSession()?.let(::observeRemoteMediaClient)
         updateCastStatusFromSession()
     }
 
     override fun onStop() {
+        currentCastSession()?.let(::removeReceiverDebugCallback)
         stopObservingRemoteMediaClient()
         castContext?.sessionManager?.removeSessionManagerListener(
             castSessionListener,
@@ -259,6 +264,9 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
     override fun onDestroyView() {
         mainHandler.removeCallbacksAndMessages(null)
+        cancelActiveTransform?.invoke()
+        cancelActiveTransform = null
+        currentCastSession()?.let(::removeReceiverDebugCallback)
         player?.release()
         player = null
         super.onDestroyView()
@@ -283,7 +291,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     private fun setupCastButton() {
         runCatching {
             castContext = CastContext.getSharedInstance(requireContext())
-            castContext?.setReceiverApplicationId(CastReceiverIds.MEDIA_RECEIVER)
+            castContext?.setReceiverApplicationId(CastReceiverIds.CUSTOM_RECEIVER)
             CastButtonFactory.setUpMediaRouteButton(requireContext(), binding.btnTopCast)
             updateCastStatusFromSession()
         }.onFailure {
@@ -314,40 +322,6 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             LinearLayoutManager.HORIZONTAL,
             false
         )
-    }
-
-    private fun requestMediaPermissionAndOpen() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val permission = if (mode == MODE_PHOTO) {
-                Manifest.permission.READ_MEDIA_IMAGES
-            } else {
-                Manifest.permission.READ_MEDIA_VIDEO
-            }
-
-            when {
-                ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    permission
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    openPicker()
-                }
-
-                shouldShowRequestPermissionRationale(permission) -> {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.text_media_pick_error_message,
-                        Toast.LENGTH_LONG
-                    ).show()
-                    mediaPermissionLauncher.launch(permission)
-                }
-
-                else -> {
-                    mediaPermissionLauncher.launch(permission)
-                }
-            }
-        } else {
-            openPicker()
-        }
     }
 
     private fun navigateToPreviousPhoto() {
@@ -388,13 +362,20 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
     private fun openPicker() {
         if (mode == MODE_PHOTO) {
-            photoPicker.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-            )
+            photoPicker.launch(arrayOf(IMAGE_MIME_TYPE))
         } else {
-            videoPicker.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+            videoPicker.launch(arrayOf(VIDEO_MIME_TYPE))
+        }
+    }
+
+    private fun persistReadPermission(uri: Uri) {
+        runCatching {
+            requireContext().contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
+        }.onFailure {
+            Log.d(TAG, "Could not persist media read permission for uri=$uri", it)
         }
     }
 
@@ -464,6 +445,11 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
 
     private fun setVideo(uri: Uri) {
         videoUri = uri
+        Log.i(
+            TAG,
+            "Selected cast video: uri=$uri title=${LocalMediaHttpServer.queryDisplayName(requireContext(), uri)} " +
+                "rawMime=${requireContext().contentResolver.getType(uri)} sizeBytes=${uri.queryDebugSizeBytes()}"
+        )
         if (player == null) {
             player = ExoPlayer.Builder(requireContext()).build()
             binding.videoPlayer.player = player
@@ -521,8 +507,18 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         }
 
         val session = currentCastSession()
+        if (!selected.isPhoto) {
+            Log.i(
+                TAG,
+                "Cast video requested: connected=${session?.isConnected == true} " +
+                    "receiverDevice=${session?.castDevice?.friendlyName} title=${selected.title} " +
+                    "mime=${selected.mimeType} uri=${selected.uri} sizeBytes=${selected.uri.queryDebugSizeBytes()}"
+            )
+        }
+        resetReceiverMediaErrorUiState()
         if (session?.isConnected != true) {
             pendingCast = true
+            castContext?.setReceiverApplicationId(CastReceiverIds.CUSTOM_RECEIVER)
             Toast.makeText(requireContext(), R.string.text_select_tv_to_cast, Toast.LENGTH_SHORT)
                 .show()
             binding.btnTopCast.performClick()
@@ -541,14 +537,20 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             return
         }
 
-        val remoteClient = session.remoteMediaClient
-        if (remoteClient == null) {
-            reconnectWithMediaReceiver()
+        if (!session.isRunningReceiver(CastReceiverIds.CUSTOM_RECEIVER)) {
+            reconnectWithCustomReceiver()
             return
         }
+
+        val remoteClient = session.remoteMediaClient
+        if (remoteClient == null) {
+            reconnectWithCustomReceiver()
+            return
+        }
+        setReceiverDebugCallback(session)
         observeRemoteMediaClient(session)
 
-        binding.preparingOverlay.isVisible = true
+        showPreparingOverlay(R.string.text_preparing_to_cast, showSpinner = false)
         isCasting = true
         updateControls()
 
@@ -582,25 +584,113 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         selected: SelectedMedia
     ) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val castUrl = withContext(Dispatchers.IO) {
-                mediaServer.registerCached(
-                    selected.uri,
-                    selected.mimeType,
-                    selected.title
-                )
+            Log.i(
+                TAG,
+                "Preparing cast video proxy: title=${selected.title} mime=${selected.mimeType} " +
+                    "uri=${selected.uri} sizeBytes=${selected.uri.queryDebugSizeBytes()} " +
+                    "positionMs=${player?.currentPosition}"
+            )
+            showPreparingOverlay(R.string.text_preparing_to_cast, showSpinner = false)
+
+            val videoInfo = withContext(Dispatchers.IO) {
+                CastMediaVideoPreparer.inspect(requireContext(), selected.uri)
             }
+            Log.i(TAG, "Selected local media tracks: uri=${selected.uri} ${videoInfo.toDebugString()}")
 
             if (_binding == null || view == null) return@launch
 
             val current = currentSelection()
             if (current?.uri != selected.uri) {
+                Log.i(
+                    TAG,
+                    "Skipping prepared cast video because selection changed: " +
+                        "preparedUri=${selected.uri} currentUri=${current?.uri}"
+                )
                 binding.preparingOverlay.isVisible = false
                 isCasting = false
                 updateControls()
                 return@launch
             }
 
+            val preparedMedia = if (videoInfo.isReadyForCast) {
+                Log.i(TAG, "Video already compatible with Cast; using original file")
+                selected.copy(mimeType = MimeTypes.VIDEO_MP4)
+            } else {
+                showPreparingOverlay(R.string.text_converting_video_for_tv, showSpinner = true)
+                val outputFile = runCatching {
+                    CastMediaVideoPreparer.transformForCast(
+                        requireContext().applicationContext,
+                        selected.uri,
+                        selected.title,
+                        videoInfo.transformOutputHeight
+                    ) { cancelTransform ->
+                        cancelActiveTransform = cancelTransform
+                    }
+                }.onFailure { error ->
+                    Log.e(
+                        TAG,
+                        "Could not transform video for Cast: title=${selected.title} " +
+                            "uri=${selected.uri} tracks=${videoInfo.toDebugString()}",
+                        error
+                    )
+                }.getOrNull()
+
+                cancelActiveTransform = null
+
+                if (_binding == null || view == null) return@launch
+                val afterTransformSelection = currentSelection()
+                if (afterTransformSelection?.uri != selected.uri) {
+                    Log.i(
+                        TAG,
+                        "Skipping transformed cast video because selection changed: " +
+                            "preparedUri=${selected.uri} currentUri=${afterTransformSelection?.uri}"
+                    )
+                    outputFile?.delete()
+                    binding.preparingOverlay.isVisible = false
+                    isCasting = false
+                    updateControls()
+                    return@launch
+                }
+
+                if (outputFile == null) {
+                    binding.preparingOverlay.isVisible = false
+                    isCasting = false
+                    updateControls()
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.text_could_not_prepare_media,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@launch
+                }
+
+                selected.copy(
+                    uri = Uri.fromFile(outputFile),
+                    mimeType = MimeTypes.VIDEO_MP4
+                )
+            }
+
+            showPreparingOverlay(R.string.text_preparing_to_cast, showSpinner = false)
+            val castUrl = withContext(Dispatchers.IO) {
+                if (preparedMedia.uri.scheme == "file") {
+                    preparedMedia.uri.path
+                        ?.let(::File)
+                        ?.let { file -> mediaServer.registerCachedFile(file, preparedMedia.mimeType) }
+                } else {
+                    mediaServer.registerCached(
+                        preparedMedia.uri,
+                        preparedMedia.mimeType,
+                        preparedMedia.title
+                    )
+                }
+            }
+
             if (castUrl == null) {
+                Log.e(
+                    TAG,
+                    "Could not prepare cast video proxy: title=${preparedMedia.title} " +
+                        "mime=${preparedMedia.mimeType} uri=${preparedMedia.uri}"
+                )
                 binding.preparingOverlay.isVisible = false
                 isCasting = false
                 updateControls()
@@ -612,7 +702,12 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
                 return@launch
             }
 
-            loadCastMedia(remoteClient, selected, castUrl)
+            Log.i(
+                TAG,
+                "Prepared cast video proxy: castUrl=$castUrl sourceUri=${preparedMedia.uri} " +
+                    "title=${preparedMedia.title} mime=${preparedMedia.mimeType}"
+            )
+            loadCastMedia(remoteClient, preparedMedia, castUrl)
         }
     }
 
@@ -621,10 +716,19 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         selected: SelectedMedia,
         castUrl: String
     ) {
-        Log.d(
-            TAG,
-            "Loading cast media url=$castUrl mime=${selected.mimeType} isPhoto=${selected.isPhoto}"
-        )
+        if (selected.isPhoto) {
+            Log.d(
+                TAG,
+                "Loading cast photo: castUrl=$castUrl mime=${selected.mimeType} uri=${selected.uri}"
+            )
+        } else {
+            Log.i(
+                TAG,
+                "Loading cast video: castUrl=$castUrl sourceUri=${selected.uri} " +
+                    "title=${selected.title} mime=${selected.mimeType} " +
+                    "streamType=${MediaInfo.STREAM_TYPE_BUFFERED} autoplay=true"
+            )
+        }
 
         val metadata = MediaMetadata(
             if (selected.isPhoto) MediaMetadata.MEDIA_TYPE_PHOTO else MediaMetadata.MEDIA_TYPE_MOVIE
@@ -635,13 +739,21 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             }
         }
 
-        val mediaInfo = MediaInfo.Builder(castUrl)
+        val mediaInfoBuilder = MediaInfo.Builder(castUrl)
             .setContentUrl(castUrl)
             .setStreamType(
                 if (selected.isPhoto) MediaInfo.STREAM_TYPE_NONE else MediaInfo.STREAM_TYPE_BUFFERED
             )
             .setContentType(selected.mimeType)
             .setMetadata(metadata)
+
+        if (!selected.isPhoto) {
+            player?.duration
+                ?.takeIf { it != C.TIME_UNSET && it > 0 }
+                ?.let { mediaInfoBuilder.setStreamDuration(it) }
+        }
+
+        val mediaInfo = mediaInfoBuilder
             .build()
 
         remoteClient
@@ -660,7 +772,8 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
                     Log.d(
                         TAG,
                         "Cast media load result success=${result.status.isSuccess} " +
-                                "code=${result.status.statusCode} message=${result.status.statusMessage}"
+                                "code=${result.status.statusCode} message=${result.status.statusMessage} " +
+                                "castUrl=$castUrl sourceUri=${selected.uri} isPhoto=${selected.isPhoto}"
                     )
                     if (result.status.isSuccess && !selected.isPhoto) {
                         remoteClient.play()
@@ -722,14 +835,19 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         showLoadFailureToastIfNoReceiverError(R.string.text_could_not_cast_media)
     }
 
-    private fun reconnectWithMediaReceiver() {
-        Log.w(TAG, "Connected Cast session has no RemoteMediaClient; reconnecting media receiver")
+    private fun reconnectWithCustomReceiver() {
+        Log.w(
+            TAG,
+            "Reconnecting with custom receiver: currentReceiver=" +
+                "${currentCastSession()?.applicationMetadata?.applicationId}"
+        )
         pendingCast = true
-        reconnectingForMediaReceiver = true
+        reconnectingForCustomReceiver = true
         isCasting = false
         binding.preparingOverlay.isVisible = false
         updateControls()
 
+        castContext?.setReceiverApplicationId(CastReceiverIds.CUSTOM_RECEIVER)
         Toast.makeText(requireContext(), R.string.text_select_tv_to_cast, Toast.LENGTH_SHORT).show()
         castContext?.sessionManager?.endCurrentSession(true)
         mainHandler.postDelayed({
@@ -741,7 +859,7 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
                 return@postDelayed
             }
             binding.btnTopCast.performClick()
-        }, MEDIA_RECEIVER_RECONNECT_DELAY_MS)
+        }, CUSTOM_RECEIVER_RECONNECT_DELAY_MS)
     }
 
     private fun showLoadFailureToastIfNoReceiverError(messageRes: Int) {
@@ -751,6 +869,57 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
             }
             Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show()
         }, CAST_LOAD_FAILURE_FALLBACK_DELAY_MS)
+    }
+
+    private fun describeLocalMediaTracks(uri: Uri): String {
+        return runCatching {
+            val extractor = MediaExtractor()
+            try {
+                extractor.setDataSource(requireContext(), uri, null)
+                if (extractor.trackCount <= 0) {
+                    return@runCatching "no tracks"
+                }
+
+                (0 until extractor.trackCount).joinToString(separator = "; ") { index ->
+                    val format = extractor.getTrackFormat(index)
+                    val mime = format.getString(MediaFormat.KEY_MIME).orEmpty()
+                    val width = format.optionalInteger(MediaFormat.KEY_WIDTH)
+                    val height = format.optionalInteger(MediaFormat.KEY_HEIGHT)
+                    val durationUs = format.optionalLong(MediaFormat.KEY_DURATION)
+                    buildString {
+                        append("#").append(index).append(" mime=").append(mime)
+                        if (width != null && height != null) {
+                            append(" size=").append(width).append("x").append(height)
+                        }
+                        if (durationUs != null && durationUs > 0) {
+                            append(" durationMs=").append(durationUs / 1000L)
+                        }
+                    }
+                }
+            } finally {
+                extractor.release()
+            }
+        }.getOrElse { error ->
+            "unavailable: ${error.message}"
+        }
+    }
+
+    private fun MediaFormat.optionalInteger(key: String): Int? {
+        return if (containsKey(key)) runCatching { getInteger(key) }.getOrNull() else null
+    }
+
+    private fun MediaFormat.optionalLong(key: String): Long? {
+        return if (containsKey(key)) runCatching { getLong(key) }.getOrNull() else null
+    }
+
+    private fun Uri.queryDebugSizeBytes(): Long? {
+        return runCatching {
+            requireContext().contentResolver.openAssetFileDescriptor(this, "r")?.use { descriptor ->
+                descriptor.length
+                    .takeIf { it >= 0 }
+                    ?: descriptor.parcelFileDescriptor.statSize.takeIf { it >= 0 }
+            }
+        }.getOrNull()
     }
 
     private fun currentSelection(): SelectedMedia? {
@@ -783,11 +952,20 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
     }
 
     private fun stopCasting() {
+        cancelActiveTransform?.invoke()
+        cancelActiveTransform = null
         currentCastSession()?.remoteMediaClient?.stop()
         mediaServer.clear()
         isCasting = false
         binding.preparingOverlay.isVisible = false
         updateControls()
+    }
+
+    private fun showPreparingOverlay(messageRes: Int, showSpinner: Boolean) {
+        if (_binding == null || view == null) return
+        binding.textPreparingOverlay.setText(messageRes)
+        binding.progressPreparingOverlay.isVisible = showSpinner
+        binding.preparingOverlay.isVisible = true
     }
 
     private fun updateControls() {
@@ -838,6 +1016,52 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         return castContext?.sessionManager?.currentCastSession
     }
 
+    private fun CastSession.isRunningReceiver(receiverId: String): Boolean {
+        return applicationMetadata?.applicationId == receiverId
+    }
+
+    private fun setReceiverDebugCallback(session: CastSession) {
+        if (!session.isRunningReceiver(CastReceiverIds.CUSTOM_RECEIVER)) {
+            Log.d(
+                TAG,
+                "Skipping custom receiver debug callback: receiverId=" +
+                    "${session.applicationMetadata?.applicationId}"
+            )
+            return
+        }
+
+        runCatching {
+            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
+            session.setMessageReceivedCallbacks(RECEIVER_NAMESPACE, receiverMessageCallback)
+            sendReceiverPing(session)
+        }.onFailure {
+            Log.e(TAG, "Could not set receiver debug callback", it)
+        }
+    }
+
+    private fun removeReceiverDebugCallback(session: CastSession) {
+        if (!session.isRunningReceiver(CastReceiverIds.CUSTOM_RECEIVER)) return
+
+        runCatching {
+            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
+        }
+    }
+
+    private fun sendReceiverPing(session: CastSession) {
+        runCatching {
+            session.sendMessage(
+                RECEIVER_NAMESPACE,
+                JSONObject().put("type", "PING").toString()
+            )
+        }.onFailure {
+            Log.e(TAG, "Could not ping receiver", it)
+        }
+    }
+
+    private fun logReceiverMessage(rawMessage: String) {
+        showReceiverMediaErrorIfAny(rawMessage, TAG)
+    }
+
     private fun handleBackPressed() {
         // Không tự động ngắt kết nối, chỉ quay lại màn trước
         popBackStack()
@@ -862,10 +1086,13 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
         const val MODE_PHOTO = "photo"
         const val MODE_VIDEO = "video"
         private const val MAX_PHOTOS = 20
+        private const val IMAGE_MIME_TYPE = "image/*"
+        private const val VIDEO_MIME_TYPE = "video/*"
         private const val VIDEO_PROGRESS_INTERVAL_MS = 500L
         private const val CAST_SELECTION_TIMEOUT_MS = 30_000L
-        private const val MEDIA_RECEIVER_RECONNECT_DELAY_MS = 700L
+        private const val CUSTOM_RECEIVER_RECONNECT_DELAY_MS = 700L
         private const val CAST_LOAD_FAILURE_FALLBACK_DELAY_MS = 1_200L
+        private const val RECEIVER_NAMESPACE = "urn:x-cast:com.example.camera.webrtc"
         private const val TAG = "CastMediaDebug"
 
         private fun normalizeCastMimeType(
@@ -900,6 +1127,21 @@ class CastMediaFragment : BaseFragment<FragmentCastMediaBinding, CastMediaViewMo
                 normalized == "application/octet-stream" || normalized.isBlank() -> "video/mp4"
                 normalized.startsWith("video/") || normalized.startsWith("application/") -> normalized
                 else -> "video/mp4"
+            }
+        }
+
+        private fun String.castMediaUrlExtension(): String? {
+            return when (substringBefore(";").trim().lowercase()) {
+                "video/webm",
+                "video/x-msvideo",
+                "video/avi",
+                "video/quicktime",
+                "video/mkv",
+                "video/mp4",
+                "video/mov",
+                "video/m4v",
+                "video/x-matroska" -> "mp4"
+                else -> null
             }
         }
     }

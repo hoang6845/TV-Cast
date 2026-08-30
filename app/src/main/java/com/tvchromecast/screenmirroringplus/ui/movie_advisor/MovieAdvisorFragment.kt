@@ -3,6 +3,7 @@ package com.tvchromecast.screenmirroringplus.ui.movie_advisor
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -296,13 +297,17 @@ class MovieAdvisorFragment : BaseFragment<FragmentMovieAdvisorBinding, MovieAdvi
             dialog.dismiss()
         }
         renderOptionsOnce()
+        configureOptionSheetHeight(sheetBinding, options.size)
 
         dialog.setContentView(sheetBinding.root)
         dialog.setOnShowListener {
             val bottomSheet =
                 dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
             bottomSheet?.setBackgroundColor(Color.TRANSPARENT)
-            bottomSheet?.layoutParams?.height = (resources.displayMetrics.heightPixels * 0.82f).toInt()
+            bottomSheet?.layoutParams?.let { params ->
+                params.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                bottomSheet.layoutParams = params
+            }
             bottomSheet?.let { sheet ->
                 BottomSheetBehavior.from(sheet).apply {
                     skipCollapsed = true
@@ -311,6 +316,27 @@ class MovieAdvisorFragment : BaseFragment<FragmentMovieAdvisorBinding, MovieAdvi
             }
         }
         dialog.show()
+    }
+
+    private fun configureOptionSheetHeight(
+        sheetBinding: LayoutMovieAdvisorOptionSheetBinding,
+        optionCount: Int
+    ) {
+        val maxSheetHeight = (resources.displayMetrics.heightPixels * OPTION_SHEET_MAX_HEIGHT_RATIO).toInt()
+        val fixedSheetHeight = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._126sdp)
+        val rowHeight = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._40sdp)
+        val rowBottomMargin = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._6sdp)
+        val scrollPaddingBottom = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._8sdp)
+        val optionContentHeight = optionCount * (rowHeight + rowBottomMargin) + scrollPaddingBottom
+        val maxScrollHeight = (maxSheetHeight - fixedSheetHeight).coerceAtLeast(rowHeight)
+
+        sheetBinding.optionScroll.layoutParams = sheetBinding.optionScroll.layoutParams.apply {
+            height = optionContentHeight.coerceAtMost(maxScrollHeight)
+        }
+        sheetBinding.root.layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
     }
 
     private fun selectedListLabel(selected: Set<String>, allLabel: String): String {
@@ -342,6 +368,8 @@ class MovieAdvisorFragment : BaseFragment<FragmentMovieAdvisorBinding, MovieAdvi
     }
 
     companion object {
+        private const val OPTION_SHEET_MAX_HEIGHT_RATIO = 0.82f
+
         fun newInstance() = MovieAdvisorFragment().apply {
             arguments = Bundle()
         }

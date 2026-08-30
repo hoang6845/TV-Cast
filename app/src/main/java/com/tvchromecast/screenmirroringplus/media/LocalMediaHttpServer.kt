@@ -14,6 +14,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.OutputStream
+import java.io.RandomAccessFile
 import java.net.Inet4Address
 import java.net.HttpURLConnection
 import java.net.NetworkInterface
@@ -57,14 +58,20 @@ class LocalMediaHttpServer(
         return true
     }
 
-    fun register(uri: Uri, mimeType: String, displayName: String? = null): String? {
+    fun register(
+        uri: Uri,
+        mimeType: String,
+        displayName: String? = null,
+        urlExtensionOverride: String? = null
+    ): String? {
         if (!start()) return null
 
         val token = UUID.randomUUID().toString()
-        val extension = mediaExtension(
-            hint = displayName ?: uri.lastPathSegment,
-            mimeType = mimeType
-        )
+        val extension = urlExtensionOverride?.asSafeMediaExtension()
+            ?: mediaExtension(
+                hint = displayName ?: uri.lastPathSegment,
+                mimeType = mimeType
+            )
         entries[token] = Entry(
             source = MediaSource.LocalUri(uri),
             mimeType = mimeType,
@@ -114,6 +121,29 @@ class LocalMediaHttpServer(
         }
     }
 
+    fun registerCachedFile(file: File, mimeType: String): String? {
+        if (!start()) return null
+        if (!file.exists() || file.length() <= 0L) return null
+
+        val token = UUID.randomUUID().toString()
+        val extension = mediaExtension(
+            hint = file.name,
+            mimeType = mimeType
+        ) ?: "mp4"
+        entries[token] = Entry(
+            source = MediaSource.CachedFile(file),
+            mimeType = mimeType,
+            size = file.length(),
+            extension = extension
+        )
+        return buildMediaUrl(token, extension)?.also {
+            Log.d(
+                TAG,
+                "Registered cached file token=$token url=$it mime=$mimeType size=${file.length()}"
+            )
+        }
+    }
+
     fun registerRemoteUrl(
         url: String,
         mimeType: String,
@@ -122,18 +152,25 @@ class LocalMediaHttpServer(
         if (!start()) return null
 
         val token = UUID.randomUUID().toString()
+        val headers = requestHeaders
+            .withDefaultRemoteHeaders(url)
+            .sanitizedRemoteHeaders()
         val extension = mediaExtension(
             hint = url.substringBefore('?').substringBefore('#'),
             mimeType = mimeType
         )
         entries[token] = Entry(
-            source = MediaSource.RemoteUrl(url, requestHeaders.sanitizedRemoteHeaders()),
+            source = MediaSource.RemoteUrl(url, headers),
             mimeType = mimeType,
             size = null,
             extension = extension
         )
         return buildMediaUrl(token, extension)?.also {
-            Log.d(TAG, "Registered remote media token=$token proxyUrl=$it upstream=$url mime=$mimeType")
+            Log.d(
+                TAG,
+                "Registered remote media token=$token proxyUrl=$it upstream=$url " +
+                    "mime=$mimeType upstreamHeaders=${headers.toDebugHeaderNames()}"
+            )
         }
     }
 
@@ -211,6 +248,11 @@ class LocalMediaHttpServer(
                 return
             }
 
+            if (entry.source is MediaSource.RemoteUrl) {
+                handleRemote(client, method, entry, headers)
+                return
+            }
+
             val rangeHeader = headers["range"]
             val range = rangeHeader?.let { parseRange(it, entry.size) }
             if (rangeHeader != null && range == null) {
@@ -220,11 +262,6 @@ class LocalMediaHttpServer(
             val start = range?.first ?: 0L
             val end = range?.second ?: entry.size?.minus(1)
             val contentLength = end?.let { it - start + 1 }
-
-            if (entry.source is MediaSource.RemoteUrl) {
-                handleRemote(client, method, entry, headers)
-                return
-            }
 
             val statusLine = if (range != null && entry.size != null) {
                 "HTTP/1.1 206 Partial Content"
@@ -265,9 +302,9 @@ class LocalMediaHttpServer(
                     }
 
                     is MediaSource.CachedFile -> {
-                        source.file.inputStream().use { input ->
-                            input.skipFully(start)
-                            input.copyLimitedTo(output, contentLength)
+                        RandomAccessFile(source.file, "r").use { file ->
+                            file.seek(start)
+                            file.copyLimitedTo(output, contentLength)
                         }
                     }
 
@@ -288,6 +325,9 @@ class LocalMediaHttpServer(
         headers: Map<String, String>
     ) {
         val source = entry.source as MediaSource.RemoteUrl
+        val isKnownPlaylist = isPlaylist(source.url, entry.mimeType)
+        val requestedRange = headers["range"]
+        val forwardedRange = requestedRange.takeUnless { isKnownPlaylist }
         val connection = (URL(source.url).openConnection() as HttpURLConnection).apply {
             instanceFollowRedirects = true
             connectTimeout = REMOTE_CONNECT_TIMEOUT_MS
@@ -299,16 +339,26 @@ class LocalMediaHttpServer(
             source.requestHeaders.forEach { (name, value) ->
                 setRequestProperty(name, value)
             }
-            headers["range"]?.let { setRequestProperty("Range", it) }
+            forwardedRange?.let { setRequestProperty("Range", it) }
         }
 
         try {
             val responseCode = connection.responseCode
             val responseMessage = connection.responseMessage ?: "OK"
+            val upstreamContentType = connection.contentType
+                ?.substringBefore(";")
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?: entry.mimeType
             Log.d(
                 TAG,
-                "Upstream response url=${source.url} code=$responseCode " +
-                    "message=$responseMessage contentType=${connection.contentType}"
+                "Upstream response kind=${source.url.remoteMediaKind(upstreamContentType)} " +
+                    "url=${source.url} code=$responseCode " +
+                    "message=$responseMessage contentType=${connection.contentType} " +
+                    "contentLength=${connection.getHeaderField("Content-Length")} " +
+                    "contentRange=${connection.getHeaderField("Content-Range")} " +
+                    "requestedRange=$requestedRange forwardedRange=$forwardedRange " +
+                    "upstreamHeaders=${source.requestHeaders.toDebugHeaderNames()}"
             )
             val responseStream = runCatching { connection.inputStream }
                 .getOrElse { connection.errorStream }
@@ -318,27 +368,34 @@ class LocalMediaHttpServer(
                 return
             }
 
-            val upstreamContentType = connection.contentType
-                ?.substringBefore(";")
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
-                ?: entry.mimeType
+            if (responseCode >= HttpURLConnection.HTTP_BAD_REQUEST) {
+                val errorPreview = responseStream.readTextLimited(ERROR_BODY_LOG_LIMIT)
+                Log.w(
+                    TAG,
+                    "Upstream error response url=${source.url} code=$responseCode " +
+                        "message=$responseMessage body=${errorPreview.ifBlank { "<empty>" }}"
+                )
+                client.writeStatus(responseCode, responseMessage)
+                return
+            }
 
             val shouldRewritePlaylist = !method.equals("HEAD", ignoreCase = true) &&
-                isPlaylist(source.url, upstreamContentType)
+                (isKnownPlaylist || isPlaylist(source.url, upstreamContentType))
 
             if (shouldRewritePlaylist) {
                 responseStream.use { input ->
                     val playlist = input.bufferedReader().readText()
-                    val rewritten = rewritePlaylist(
+                    val rewrittenPlaylist = rewritePlaylist(
                         playlist,
                         source.url,
                         source.requestHeaders
-                    ).toByteArray()
+                    )
+                    val rewritten = rewrittenPlaylist.toByteArray()
                     Log.d(
                         TAG,
                         "Rewrote playlist url=${source.url} originalBytes=${playlist.length} " +
-                            "rewrittenBytes=${rewritten.size}"
+                            "rewrittenBytes=${rewritten.size} " +
+                            "kind=${playlist.playlistKind()} urls=${playlist.playlistUrlCount()}"
                     )
                     val output = client.getOutputStream()
                     output.write(
@@ -346,7 +403,9 @@ class LocalMediaHttpServer(
                             append("HTTP/1.1 200 OK\r\n")
                             appendCorsHeaders()
                             appendStreamingHeaders()
-                            append("Content-Type: ").append(upstreamContentType).append("\r\n")
+                            append("Content-Type: ")
+                                .append(normalizePlaylistContentType(upstreamContentType))
+                                .append("\r\n")
                             append("Accept-Ranges: bytes\r\n")
                             append("Connection: close\r\n")
                             append("Cache-Control: no-cache\r\n")
@@ -388,9 +447,22 @@ class LocalMediaHttpServer(
             )
 
             if (!method.equals("HEAD", ignoreCase = true)) {
-                responseStream.use { it.copyLimitedTo(output, null) }
+                val copiedBytes = responseStream.use { it.copyLimitedTo(output, null) }
+                Log.d(
+                    TAG,
+                        "Served remote media kind=${source.url.remoteMediaKind(upstreamContentType)} " +
+                        "url=${source.url} code=$responseCode bytes=$copiedBytes " +
+                        "contentType=$upstreamContentType requestedRange=$requestedRange " +
+                        "upstreamHeaders=${source.requestHeaders.toDebugHeaderNames()}"
+                )
             } else {
                 responseStream.close()
+                Log.d(
+                    TAG,
+                    "Served remote HEAD kind=${source.url.remoteMediaKind(upstreamContentType)} " +
+                        "url=${source.url} code=$responseCode contentType=$upstreamContentType " +
+                        "requestedRange=$requestedRange upstreamHeaders=${source.requestHeaders.toDebugHeaderNames()}"
+                )
             }
             output.flush()
         } finally {
@@ -536,10 +608,11 @@ class LocalMediaHttpServer(
         private var sharedInstance: LocalMediaHttpServer? = null
 
         private const val REMOTE_CONNECT_TIMEOUT_MS = 15_000
-        private const val REMOTE_READ_TIMEOUT_MS = 30_000
+        private const val REMOTE_READ_TIMEOUT_MS = 120_000
         private const val REMOTE_USER_AGENT =
             "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
         private const val PREFERRED_MEDIA_PORT = 8080
+        private const val ERROR_BODY_LOG_LIMIT = 700
         private const val TAG = "LocalMediaServer"
 
         fun shared(context: Context): LocalMediaHttpServer {
@@ -653,10 +726,16 @@ class LocalMediaHttpServer(
                 "video/mp2t" -> "ts"
                 "audio/mpeg" -> "mp3"
                 "audio/mp4" -> "m4a"
+                "audio/aac" -> "aac"
                 "application/x-mpegurl", "application/vnd.apple.mpegurl" -> "m3u8"
                 "application/dash+xml" -> "mpd"
+                "text/vtt" -> "vtt"
                 else -> null
             }
+        }
+
+        private fun String.asSafeMediaExtension(): String? {
+            return lowercase().takeIf { it.matches(Regex("[a-z0-9]{2,5}")) }
         }
 
         private const val LOCAL_MEDIA_CACHE_DIR = "cast_media"
@@ -666,6 +745,7 @@ class LocalMediaHttpServer(
         val lowerUrl = url.lowercase()
         val lowerType = contentType.lowercase()
         return lowerUrl.contains(".m3u8") ||
+            lowerUrl.contains("m3u8") ||
             lowerType.contains("mpegurl") ||
             lowerType.contains("vnd.apple.mpegurl")
     }
@@ -675,7 +755,7 @@ class LocalMediaHttpServer(
         baseUrl: String,
         requestHeaders: Map<String, String>
     ): String {
-        return playlist
+        val rewritten = playlist
             .lineSequence()
             .map { line ->
                 when {
@@ -686,6 +766,7 @@ class LocalMediaHttpServer(
                 }
             }
             .joinToString("\n")
+        return if (playlist.endsWith("\n") && !rewritten.endsWith("\n")) "$rewritten\n" else rewritten
     }
 
     private fun rewriteUriAttributes(
@@ -715,15 +796,59 @@ class LocalMediaHttpServer(
     }
 
     private fun inferMimeType(url: String): String {
-        val cleanUrl = url.lowercase().substringBefore("#").substringBefore("?")
+        val lowerUrl = url.lowercase()
+        val cleanUrl = lowerUrl.substringBefore("#").substringBefore("?")
         return when {
-            cleanUrl.endsWith(".m3u8") -> "application/x-mpegURL"
+            cleanUrl.endsWith(".m3u8") || lowerUrl.contains("m3u8") -> "application/x-mpegURL"
             cleanUrl.endsWith(".mpd") -> "application/dash+xml"
             cleanUrl.endsWith(".ts") -> "video/mp2t"
+            cleanUrl.endsWith(".m4s") || cleanUrl.endsWith(".cmfv") -> "video/mp4"
             cleanUrl.endsWith(".webm") -> "video/webm"
             cleanUrl.endsWith(".mp3") -> "audio/mpeg"
             cleanUrl.endsWith(".m4a") -> "audio/mp4"
+            cleanUrl.endsWith(".aac") || cleanUrl.endsWith(".cmfa") -> "audio/aac"
+            cleanUrl.endsWith(".vtt") -> "text/vtt"
             else -> "video/mp4"
+        }
+    }
+
+    private fun String.remoteMediaKind(contentType: String): String {
+        val lowerUrl = lowercase()
+        val cleanUrl = lowerUrl.substringBefore("#").substringBefore("?")
+        val lowerType = contentType.lowercase()
+        return when {
+            cleanUrl.endsWith(".m3u8") || lowerUrl.contains("m3u8") || lowerType.contains("mpegurl") -> "hls-playlist"
+            cleanUrl.endsWith(".mpd") || lowerType.contains("dash+xml") -> "dash-manifest"
+            cleanUrl.endsWith(".ts") || lowerType == "video/mp2t" -> "hls-segment-ts"
+            cleanUrl.endsWith(".m4s") ||
+                cleanUrl.endsWith(".cmfv") ||
+                cleanUrl.endsWith(".cmfa") -> "fragmented-segment"
+            else -> "media"
+        }
+    }
+
+    private fun normalizePlaylistContentType(contentType: String): String {
+        val lowerType = contentType.substringBefore(";").trim().lowercase()
+        return when {
+            lowerType.contains("mpegurl") -> "application/vnd.apple.mpegurl"
+            lowerType.contains("dash+xml") -> "application/dash+xml"
+            else -> "application/vnd.apple.mpegurl"
+        }
+    }
+
+    private fun String.playlistKind(): String {
+        return when {
+            lineSequence().any { it.startsWith("#EXT-X-STREAM-INF", ignoreCase = true) } -> "master"
+            lineSequence().any { it.startsWith("#EXT-X-PLAYLIST-TYPE:VOD", ignoreCase = true) } -> "vod"
+            lineSequence().any { it.startsWith("#EXTINF", ignoreCase = true) } -> "media"
+            else -> "unknown"
+        }
+    }
+
+    private fun String.playlistUrlCount(): Int {
+        return lineSequence().count { line ->
+            val trimmed = line.trim()
+            trimmed.isNotBlank() && !trimmed.startsWith("#")
         }
     }
 }
@@ -745,6 +870,47 @@ private fun Map<String, String>.sanitizedRemoteHeaders(): Map<String, String> {
             else -> null
         }
     }.toMap()
+}
+
+private fun Map<String, String>.withDefaultRemoteHeaders(url: String): Map<String, String> {
+    val headers = linkedMapOf<String, String>()
+    headers.putAll(this)
+
+    if (!headers.containsHeader("Referer")) {
+        headers["Referer"] = url
+    }
+
+    if (!headers.containsHeader("Origin")) {
+        url.toOrigin()?.let { headers["Origin"] = it }
+    }
+
+    return headers
+}
+
+private fun Map<String, String>.containsHeader(name: String): Boolean {
+    return keys.any { it.equals(name, ignoreCase = true) }
+}
+
+private fun String.toOrigin(): String? {
+    val uri = runCatching { Uri.parse(this) }.getOrNull() ?: return null
+    val scheme = uri.scheme ?: return null
+    val host = uri.host ?: return null
+    val port = if (uri.port > 0) ":${uri.port}" else ""
+    return "$scheme://$host$port"
+}
+
+private fun Map<String, String>.toDebugHeaderNames(): String {
+    if (isEmpty()) return "[]"
+    return keys
+        .map { name ->
+            when {
+                name.equals("Cookie", ignoreCase = true) -> "Cookie(redacted)"
+                name.equals("Authorization", ignoreCase = true) -> "Authorization(redacted)"
+                else -> name
+            }
+        }
+        .sorted()
+        .joinToString(prefix = "[", postfix = "]")
 }
 
 private val URI_ATTRIBUTE_REGEX = Regex("""URI=("?)([^",]+)\1""")
@@ -789,9 +955,10 @@ private fun InputStream.skipFully(bytes: Long) {
 private fun InputStream.copyLimitedTo(
     output: OutputStream,
     limit: Long?
-) {
+): Long {
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
     var remaining = limit
+    var copied = 0L
 
     while (true) {
         val maxRead = remaining?.let { minOf(buffer.size.toLong(), it).toInt() } ?: buffer.size
@@ -801,8 +968,49 @@ private fun InputStream.copyLimitedTo(
         if (read == -1) break
 
         output.write(buffer, 0, read)
+        copied += read
         remaining = remaining?.minus(read)
     }
+
+    return copied
+}
+
+private fun InputStream.readTextLimited(limit: Int): String {
+    return use { input ->
+        val buffer = ByteArray(limit.coerceAtLeast(1))
+        val read = input.read(buffer)
+        if (read <= 0) {
+            ""
+        } else {
+            String(buffer, 0, read)
+                .replace('\n', ' ')
+                .replace('\r', ' ')
+                .trim()
+        }
+    }
+}
+
+private fun RandomAccessFile.copyLimitedTo(
+    output: OutputStream,
+    limit: Long?
+): Long {
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    var remaining = limit
+    var copied = 0L
+
+    while (true) {
+        val maxRead = remaining?.let { minOf(buffer.size.toLong(), it).toInt() } ?: buffer.size
+        if (maxRead <= 0) break
+
+        val read = read(buffer, 0, maxRead)
+        if (read == -1) break
+
+        output.write(buffer, 0, read)
+        copied += read
+        remaining = remaining?.minus(read)
+    }
+
+    return copied
 }
 
 private fun Throwable.isExpectedClientDisconnect(): Boolean {

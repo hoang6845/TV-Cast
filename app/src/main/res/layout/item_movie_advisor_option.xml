@@ -13,4 +13,4 @@
     android:maxLines="1"
     android:paddingHorizontal="@dimen/_12sdp"
     android:textColor="@color/white"
-    android:textSize="@dimen/_10ssp" />
+    android:textSize="@dimen/_11ssp" />

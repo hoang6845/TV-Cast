@@ -3,11 +3,16 @@ package com.tvchromecast.screenmirroringplus.ui.iap
 import android.content.Intent
 import android.graphics.Color
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
 import com.android.billingclient.api.ProductDetails
@@ -59,7 +64,7 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
 
     override fun initView() {
         adjustInsetsForBottomNavigation(binding.btnClose)
-
+        adjustInsetsForHiddenNavigationBottomMargin(binding.bottom)
         binding.btnClose.visibility = View.INVISIBLE
         binding.btnClose.postDelayed({
             if (isAdded && !isDetached && view != null) {
@@ -91,6 +96,16 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
     override fun initData() {
         listenBillingManager()
 //        schedulePlanBottomSheet()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hideSystemNavigationBar()
+    }
+
+    override fun onPause() {
+        showSystemNavigationBar()
+        super.onPause()
     }
 
     override fun onConnected(isConnected: Boolean, responseCode: Int) = Unit
@@ -168,23 +183,32 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
             childFragmentManager.findFragmentByTag(IAP_BOTTOM_SHEET_TAG) as? IAPBottomSheetFragment
         if (existingSheet != null) {
             iapBottomSheet = existingSheet
+            bindBottomSheetCallbacks(existingSheet)
             hasShownBottomSheet = true
             return
         }
 
         autoBottomSheetJob?.cancel()
         hasShownBottomSheet = true
-        iapBottomSheet = IAPBottomSheetFragment().apply {
-            onDismissToHome = {
-//                goHome()
-            }
-        }
+        iapBottomSheet = IAPBottomSheetFragment().also(::bindBottomSheetCallbacks)
 
         runCatching {
             iapBottomSheet?.show(childFragmentManager, IAP_BOTTOM_SHEET_TAG)
         }.onFailure {
             hasShownBottomSheet = false
             iapBottomSheet = null
+        }
+    }
+
+    private fun bindBottomSheetCallbacks(sheet: IAPBottomSheetFragment) {
+        sheet.onSheetDismissed = {
+            if (iapBottomSheet === sheet) {
+                iapBottomSheet = null
+            }
+            hasShownBottomSheet = false
+        }
+        sheet.onDismissToHome = {
+//            goHome()
         }
     }
 
@@ -199,6 +223,41 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
         if (!isAdded || view == null) return
 
         popBackStack()
+    }
+
+    private fun hideSystemNavigationBar() {
+        val window = requireActivity().window
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.navigationBars())
+        }
+        ViewCompat.requestApplyInsets(binding.bottom)
+    }
+
+    private fun showSystemNavigationBar() {
+        val window = requireActivity().window
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.getInsetsController(window, window.decorView)
+            .show(WindowInsetsCompat.Type.navigationBars())
+    }
+
+    private fun adjustInsetsForHiddenNavigationBottomMargin(viewBottom: View) {
+        val initialBottomMargin = (viewBottom.layoutParams as? ViewGroup.MarginLayoutParams)
+            ?.bottomMargin
+            ?: 0
+        ViewCompat.setOnApplyWindowInsetsListener(viewBottom) { view, insets ->
+            val params = view.layoutParams as? ViewGroup.MarginLayoutParams
+                ?: return@setOnApplyWindowInsetsListener insets
+            val navigationBars = insets.getInsetsIgnoringVisibility(
+                WindowInsetsCompat.Type.navigationBars()
+            )
+            params.bottomMargin = initialBottomMargin + navigationBars.bottom
+            view.layoutParams = params
+            insets
+        }
+        ViewCompat.requestApplyInsets(viewBottom)
     }
 
     private fun preferredTrialProduct(): IAPProduct? {

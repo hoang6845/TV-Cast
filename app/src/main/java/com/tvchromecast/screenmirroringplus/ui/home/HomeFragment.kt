@@ -17,6 +17,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.lifecycle.asLiveData
 import androidx.mediarouter.media.MediaRouteSelector
 import androidx.mediarouter.media.MediaRouter
 import androidx.recyclerview.widget.GridLayoutManager
@@ -202,6 +203,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
     }
 
     override fun initData() {
+        viewModel.hasPurchased.asLiveData().observe(viewLifecycleOwner) {
+            updatePremiumIcon()
+        }
+        updatePremiumIcon()
     }
 
     override fun onStart() {
@@ -219,6 +224,12 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
         super.onResume()
         currentCastSession = castContext?.sessionManager?.currentCastSession
         updateConnectionButton()
+        updatePremiumIcon()
+    }
+
+    private fun updatePremiumIcon() {
+        if (_binding == null || view == null) return
+        binding.icPremium.isVisible = !AppMonetization.premium.isSubscribed()
     }
 
     override fun onStop() {

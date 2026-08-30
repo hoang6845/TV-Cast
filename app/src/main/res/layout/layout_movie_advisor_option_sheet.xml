@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:background="@drawable/bg_movie_advisor_sheet"
     android:orientation="vertical"
     android:paddingHorizontal="@dimen/_12sdp"
@@ -29,10 +29,10 @@
         tools:text="Genres" />
 
     <ScrollView
+        android:id="@+id/option_scroll"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/_14sdp"
-        android:layout_weight="1"
         android:clipToPadding="false"
         android:overScrollMode="never"
         android:paddingBottom="@dimen/_8sdp">
@@ -56,6 +56,6 @@
         android:includeFontPadding="false"
         android:text="@string/text_done"
         android:textColor="@color/white"
-        android:textSize="@dimen/_10ssp"
+        android:textSize="@dimen/_11ssp"
         android:textStyle="bold" />
 </LinearLayout>

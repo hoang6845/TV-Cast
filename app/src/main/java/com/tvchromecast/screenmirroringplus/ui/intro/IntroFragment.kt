@@ -3,7 +3,6 @@ package com.tvchromecast.screenmirroringplus.ui.intro
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.content.Intent
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.text.SpannableString
@@ -22,7 +21,6 @@ import com.tvchromecast.screenmirroringplus.databinding.FragmentIntroBinding
 import com.tvchromecast.screenmirroringplus.model.entity.SlideItem
 import com.tvchromecast.screenmirroringplus.utils.AppConstants
 import com.tvchromecast.screenmirroringplus.utils.Common
-import com.tvchromecast.screenmirroringplus.ui.language_activity.LanguageActivity
 import com.tvchromecast.screenmirroringplus.utils.gone
 import com.tvchromecast.screenmirroringplus.utils.invisible
 import com.tvchromecast.screenmirroringplus.utils.visible
@@ -133,6 +131,8 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         view.findViewById<TextView>(R.id.des_2).isVisible = false
         view.findViewById<TextView>(R.id.title_3).isVisible = position!=0
         view.findViewById<TextView>(R.id.des_3).isVisible = position!=0
+        view.findViewById<View>(R.id.tv_intro_review_headline).isVisible = position == 0
+        view.findViewById<View>(R.id.layout_intro_review).isVisible = position == 0
 //        view.findViewById<TextView>(R.id.title_3).text = buildSpannedString {
 //            color(Color.parseColor("#ffffff")) {
 //                append(getString(R.string.text_start))
@@ -360,14 +360,8 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
             closeCountdownTimer = null
             binding.viewPager2.setCurrentItem(currentPage - 1, true)
         } else {
-            openLanguage()
+            requireActivity().finish()
         }
-    }
-
-    private fun openLanguage() {
-        startActivity(Intent(requireContext(), LanguageActivity::class.java).apply {
-            putExtra("isFromSplash", true)
-        })
     }
 
     override fun initListener() {

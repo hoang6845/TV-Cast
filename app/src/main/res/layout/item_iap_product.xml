@@ -10,7 +10,7 @@
         android:id="@+id/btn_iap_1"
         android:layout_width="0dp"
         android:layout_height="@dimen/_58sdp"
-        android:layout_marginTop="@dimen/_10sdp"
+        android:layout_marginTop="@dimen/_12sdp"
         android:background="@drawable/bg_iap_plan_selected"
         android:clickable="true"
         android:focusable="true"

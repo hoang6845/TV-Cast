@@ -20,7 +20,7 @@
         android:layout_height="@dimen/_42sdp"
         android:adjustViewBounds="true"
         android:scaleType="fitCenter"
-        tools:src="@drawable/ted" />
+        tools:src="@drawable/ic_archive_org" />
 
     <TextView
         android:id="@+id/site_title"
@@ -34,5 +34,5 @@
         android:maxLines="1"
         android:textColor="@color/white"
         android:textSize="@dimen/_12ssp"
-        tools:text="TED" />
+        tools:text="Archive.org" />
 </LinearLayout>

@@ -2,18 +2,14 @@ package com.tvchromecast.screenmirroringplus.ui.splash
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import androidx.activity.result.contract.ActivityResultContracts
 import com.tvchromecast.screenmirroringplus.databinding.FragmentSplashBinding
-import com.tvchromecast.screenmirroringplus.ui.language_activity.LanguageActivity
 import hoang.dqm.codebase.R
 import hoang.dqm.codebase.base.activity.navigate
 import hoang.dqm.codebase.firebase.AppRemoteConfig
 import hoang.dqm.codebase.service.session.isFirst
-import hoang.dqm.codebase.service.session.saveFirst
 import hoang.dqm.codebase.ui.features.splash.BaseSplashFragment
 import hoang.dqm.codebase.utils.AppMonetization
 import hoang.dqm.codebase.utils.premium
@@ -41,39 +37,6 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
     private var isInternetAvailable = true
 //    private val adsManager by lazy { AdsManager.getInstance() }
     private var hasNavigated = false
-    private var isOpeningLanguage = false
-    private val openLanguageLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-
-            releaseLog(
-                "SplashFragment.languageResult: resultCode=${result.resultCode}, hasNavigated=$hasNavigated"
-            )
-
-            isOpeningLanguage = false
-
-            if (hasNavigated) {
-                releaseLog("SplashFragment.languageResult: ignored because already navigated")
-                return@registerForActivityResult
-            }
-
-            if (result.resultCode == Activity.RESULT_OK) {
-
-                // QUAN TRỌNG
-                hasNavigated = true
-
-                releaseLog("SplashFragment.languageResult: navigate introFragment")
-
-                navigate(
-                    com.tvchromecast.screenmirroringplus.R.id.introFragment,
-                    isPop = true
-                )
-
-            } else {
-                releaseLog(
-                    "SplashFragment.languageResult: no navigation for resultCode=${result.resultCode}"
-                )
-            }
-        }
 
     override fun onAttach(context: Context) {
         releaseLog("SplashFragment.onAttach")
@@ -146,9 +109,9 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
 
     private fun navigateToNextScreen() {
         releaseLog(
-            "SplashFragment.navigateToNextScreen: hasNavigated=$hasNavigated, isOpeningLanguage=$isOpeningLanguage, isFirst=${isFirst()}"
+            "SplashFragment.navigateToNextScreen: hasNavigated=$hasNavigated, isFirst=${isFirst()}"
         )
-        if (hasNavigated || isOpeningLanguage) {
+        if (hasNavigated) {
             releaseLog("SplashFragment.navigateToNextScreen: blocked by navigation guard")
             return
         }
@@ -156,14 +119,9 @@ class SplashFragment : BaseSplashFragment<FragmentSplashBinding, SplashViewModel
 //        adsManager.markSplashCompleted()
 
         if (isFirst()) {
-            releaseLog("SplashFragment.navigateToNextScreen: opening LanguageActivity")
-            isOpeningLanguage = true
-            val intent = Intent(requireContext(), LanguageActivity::class.java).apply {
-                putExtra("isFromSplash", true)
-            }
-
-            openLanguageLauncher.launch(intent)
-
+            hasNavigated = true
+            releaseLog("SplashFragment.navigateToNextScreen: navigate introFragment first user")
+            navigate(com.tvchromecast.screenmirroringplus.R.id.introFragment, isPop = true)
         } else {
             hasNavigated = true
 

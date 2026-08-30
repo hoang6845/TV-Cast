@@ -46,7 +46,7 @@ class IPTVCategoryAdapter(
 
             // Show/hide pin icon based on pinned state
             binding.ivPin.setColorFilter(
-                if (!item.isPinned) "#b99041".toColorInt()
+                if (item.isPinned) "#b99041".toColorInt()
                 else "#7A7A80".toColorInt()
             )
             binding.ivPin.contentDescription = context.getString(

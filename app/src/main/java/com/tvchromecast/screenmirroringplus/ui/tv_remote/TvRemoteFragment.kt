@@ -42,6 +42,7 @@ import com.tvchromecast.screenmirroringplus.tvremote.TvRemoteConnectionState
 import com.tvchromecast.screenmirroringplus.tvremote.TvRemoteDevice
 import com.tvchromecast.screenmirroringplus.tvremote.TvRemoteException
 import com.tvchromecast.screenmirroringplus.tvremote.TvRemoteKey
+import com.tvchromecast.screenmirroringplus.tvremote.TvRemotePairingRateLimitedException
 import com.tvchromecast.screenmirroringplus.tvremote.TvRemotePairingRequiredException
 import com.tvchromecast.screenmirroringplus.databinding.LayoutTvRemotePairingSheetBinding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -111,6 +112,9 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     private var contentBaseBottomPadding = -1
     private var lastCommandAt = 0L
     private var viewActive = false
+    private var pendingConnectionDeviceId: String? = null
+    private var activePairingDeviceId: String? = null
+    private var pairingCooldownUntilMs = 0L
 
     private val nearbyWifiPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -268,6 +272,10 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun startScan() {
+        if (isRemoteConnectionBusy()) {
+            Toast.makeText(requireContext(), R.string.text_please_wait_a_moment, Toast.LENGTH_SHORT).show()
+            return
+        }
         if (!hasNearbyWifiPermission()) {
             requestNearbyWifiPermission()
             return
@@ -397,7 +405,13 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private fun connectToDevice(device: TvRemoteDevice) {
+        if (isRemoteConnectionBusy()) {
+            Toast.makeText(requireContext(), R.string.text_please_wait_a_moment, Toast.LENGTH_SHORT).show()
+            return
+        }
+
         selectedDevice = device
+        pendingConnectionDeviceId = device.id
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 controller.stopDiscovery()
@@ -405,7 +419,12 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
             } catch (_: TvRemotePairingRequiredException) {
                 beginPairing(device)
             } catch (error: Throwable) {
+                handlePairingRateLimit(error)
                 showConnectionError(error)
+            } finally {
+                if (pendingConnectionDeviceId == device.id) {
+                    pendingConnectionDeviceId = null
+                }
             }
         }
     }
@@ -446,7 +465,7 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         }
         
         dialog.setOnShowListener {
-            dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+            applyTvRemoteDialogWindowStyle(dialog)
             dialog.window?.setLayout(
                 resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._280sdp),
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -460,20 +479,35 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
     }
 
     private suspend fun beginPairing(device: TvRemoteDevice) {
+        if (activePairingDeviceId != null) return
+        if (!canStartPairingAttempt()) {
+            renderDisconnected()
+            return
+        }
+
+        activePairingDeviceId = device.id
         try {
             controller.startPairing(device)
             showPairingDialog(device)
         } catch (error: Throwable) {
+            activePairingDeviceId = null
+            handlePairingRateLimit(error)
             showConnectionError(error)
         }
     }
 
     private fun showPairingDialog(device: TvRemoteDevice) {
-        if (isScanning) return
+        if (isScanning) {
+            activePairingDeviceId = null
+            controller.cancelPairing()
+            return
+        }
 
         val sheetBinding = LayoutTvRemotePairingSheetBinding.inflate(layoutInflater)
         val codeInput = sheetBinding.inputPairingCode
         var formattingCode = false
+        var pairingCompleted = false
+        var isSubmittingCode = false
 
         val dialog = BottomSheetDialog(requireContext()).apply {
             setContentView(sheetBinding.root)
@@ -507,22 +541,57 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         }
 
         sheetBinding.btnNext.setOnClickListener {
+            if (isSubmittingCode) return@setOnClickListener
             val code = codeInput.text.toString().replace(" ", "").trim()
             if (!PAIRING_CODE_REGEX.matches(code)) {
                 sheetBinding.tvError.text = getString(R.string.text_pairing_code_format_error)
                 sheetBinding.tvError.isVisible = true
                 return@setOnClickListener
             }
+            isSubmittingCode = true
+            sheetBinding.btnNext.isEnabled = false
             viewLifecycleOwner.lifecycleScope.launch {
                 try {
                     controller.finishPairing(code)
+                } catch (error: Throwable) {
+                    if (error.message == getString(R.string.text_incorrect_pairing_code)) {
+                        sheetBinding.tvError.text = error.message
+                        sheetBinding.tvError.isVisible = true
+                        isSubmittingCode = false
+                        sheetBinding.btnNext.isEnabled = true
+                        return@launch
+                    }
+                    handlePairingRateLimit(error)
+                    activePairingDeviceId = null
                     dialog.dismiss()
-                    hideKeyboard(codeInput)
+                    showConnectionError(error)
+                    return@launch
+                }
+
+                pairingCompleted = true
+                activePairingDeviceId = null
+                dialog.dismiss()
+                hideKeyboard(codeInput)
+                pendingConnectionDeviceId = device.id
+                try {
                     controller.connect(device)
                 } catch (error: Throwable) {
-                    sheetBinding.tvError.text = error.message ?: getString(R.string.text_incorrect_pairing_code)
-                    sheetBinding.tvError.isVisible = true
+                    handlePairingRateLimit(error)
+                    showConnectionError(error)
+                } finally {
+                    if (pendingConnectionDeviceId == device.id) {
+                        pendingConnectionDeviceId = null
+                    }
                 }
+            }
+        }
+
+        dialog.setOnDismissListener {
+            if (!pairingCompleted) {
+                controller.cancelPairing()
+            }
+            if (activePairingDeviceId == device.id) {
+                activePairingDeviceId = null
             }
         }
 
@@ -550,6 +619,32 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
             }
         }
         dialog.show()
+    }
+
+    private fun isRemoteConnectionBusy(): Boolean {
+        return pendingConnectionDeviceId != null || activePairingDeviceId != null
+    }
+
+    private fun canStartPairingAttempt(): Boolean {
+        val remainingSeconds = pairingCooldownRemainingSeconds()
+        if (remainingSeconds <= 0) return true
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.text_tv_remote_pairing_rate_limited, remainingSeconds),
+            Toast.LENGTH_LONG
+        ).show()
+        return false
+    }
+
+    private fun handlePairingRateLimit(error: Throwable) {
+        if (error is TvRemotePairingRateLimitedException || error.message?.contains("status 403") == true) {
+            pairingCooldownUntilMs = System.currentTimeMillis() + PAIRING_RATE_LIMIT_COOLDOWN_MS
+        }
+    }
+
+    private fun pairingCooldownRemainingSeconds(): Long {
+        val remainingMs = pairingCooldownUntilMs - System.currentTimeMillis()
+        return if (remainingMs > 0) (remainingMs + 999L) / 1000L else 0L
     }
 
     private fun renderRemote() {
@@ -908,8 +1003,9 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
             .setBackground(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
             .create()
         
-        // Make dialog background transparent to show rounded corners
-        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+        dialog.setOnShowListener {
+            applyTvRemoteDialogWindowStyle(dialog)
+        }
         
         dialogView.findViewById<View>(R.id.option_ip_address).setOnClickListener {
             dialog.dismiss()
@@ -926,6 +1022,14 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         }
         
         dialog.show()
+    }
+
+    private fun applyTvRemoteDialogWindowStyle(dialog: androidx.appcompat.app.AlertDialog) {
+        dialog.window?.apply {
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            setDimAmount(TV_REMOTE_DIALOG_DIM_AMOUNT)
+        }
     }
 
     private fun initBluetoothConnection() {
@@ -1157,11 +1261,13 @@ class TvRemoteFragment : BaseFragment<FragmentTvRemoteBinding, TvRemoteViewModel
         private const val SCAN_TIMEOUT_MS = 12_000L
         private const val COMMAND_DEBOUNCE_MS = 180L
         private const val DEFAULT_ANDROID_TV_REMOTE_PORT = 6466
+        private const val PAIRING_RATE_LIMIT_COOLDOWN_MS = 60_000L
         private const val MAX_MANUAL_HOST_LENGTH = 253
         private const val PAIRING_CODE_LENGTH = 6
         private const val PAIRING_CODE_DISPLAY_LENGTH = 7
         private const val PAIRING_CODE_GROUP_LENGTH = 3
         private const val TOUCH_TAP_SLOP = 32
+        private const val TV_REMOTE_DIALOG_DIM_AMOUNT = 0x88 / 255f
         private val PAIRING_CODE_REGEX = Regex("^[0-9A-Fa-f]{6}$")
     }
 }

@@ -143,10 +143,24 @@ class AndroidTvRemoteController(
         val session = pairingSession ?: throw TvRemoteException("Pairing session is not active")
         try {
             session.finish(pairingCode)
-        } finally {
             session.close()
             pairingSession = null
+        } catch (error: TvRemoteException) {
+            if (error.message != INCORRECT_PAIRING_CODE_MESSAGE) {
+                session.close()
+                pairingSession = null
+            }
+            throw error
+        } catch (error: Throwable) {
+            session.close()
+            pairingSession = null
+            throw error
         }
+    }
+
+    fun cancelPairing() {
+        runCatching { pairingSession?.close() }
+        pairingSession = null
     }
 
     suspend fun reconnect() {
@@ -268,6 +282,7 @@ class AndroidTvRemoteController(
     companion object {
         private const val AUTO_RECONNECT_ATTEMPTS = 3
         private const val PORT_CHECK_TIMEOUT_MS = 1_000
+        private const val INCORRECT_PAIRING_CODE_MESSAGE = "Incorrect pairing code"
     }
 
     private data class RemotePorts(

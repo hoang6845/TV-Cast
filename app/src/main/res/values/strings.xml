@@ -1,13 +1,16 @@
 <resources>
-    <string name="app_name">TV Cast</string>
+    <string name="app_name" translatable="false">TV Cast</string>
     <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="hello_blank_fragment" translatable="false">Hello blank fragment</string>
     <string name="text_please_wait_a_moment">Please wait a moment</string>
     <string name="loading_text">Loading...</string>
     <string name="text_setting_up_your_app_experience_please_wait_a_moment">Setting up your app experience, please wait a moment...</string>
     <string name="text_continue">Continue</string>
     <string name="text_get_started">Get Started</string>
     <string name="text_next">Next</string>
+    <string name="text_intro_review_headline">Turn Your Phone Into\nthe Big Screen</string>
+    <string name="text_intro_review_title">Fast &amp; Reliable Casting</string>
+    <string name="text_intro_review_description">I love this app! It makes streaming so easy. Smooth connection, simple setup, and stable playback every time</string>
     <string name="text_intro_terms_policy">By continuing, you agree to our\n%1$s and %2$s.</string>
     <string name="text_iap_premium_access">Premium Access</string>
     <string name="text_iap_enable_free_trial">Enable Free Trial</string>
@@ -23,7 +26,7 @@
     <string name="text_iap_terms_of_service">Terms of Service</string>
     <string name="text_iap_privacy_policy">Privacy Policy</string>
     <string name="text_restore">Restore</string>
-    <string name="text_iap_no_payment_now">No payment now</string>
+    <string name="text_iap_no_payment_now">No payment now. Cancel anytime</string>
     <string name="text_iap_trial_auto_renewal">3-day free trial, auto-renewal, cancel anytime.</string>
     <string name="text_iap_cast_without_limits">Cast videos, photos, web and IPTV without limits</string>
     <string name="text_iap_remove_ads">Remove all ads and interruptions</string>
@@ -121,7 +124,7 @@
     <string name="text_favorite_tabs">Favorite Tabs</string>
     <string name="text_youtube">Youtube</string>
     <string name="text_facebook">Facebook</string>
-    <string name="text_ted">TED</string>
+    <string name="text_archive_org">Archive.org</string>
     <string name="text_vevo">Vevo</string>
     <string name="text_twitch">Twitch</string>
     <string name="text_veoh">Veoh</string>
@@ -154,6 +157,7 @@
     <string name="text_previous">Previous</string>
     <string name="text_start_casting">Start Casting</string>
     <string name="text_preparing_to_cast">Preparing to Cast</string>
+    <string name="text_converting_video_for_tv">Converting video...</string>
     <string name="text_select_photos_to_cast">Select photos to cast</string>
     <string name="text_select_video_to_cast">Select a video to cast</string>
     <string name="text_tap_to_choose_media">Tap here or use the button below to choose media from your phone.</string>
@@ -268,6 +272,7 @@
     <string name="text_invalid_tv_ip">Enter a valid TV IP address.</string>
     <string name="text_tv_remote_service_unavailable">This TV is reachable by IP, but Android TV Remote Service is not available. Make sure the TV is Android TV/Google TV, it is turned on, and the router is not blocking device-to-device connections.</string>
     <string name="text_tv_remote_pairing_unavailable">Pairing is not available on this TV. Enable Android TV Remote Service/Google TV remote pairing on the TV, then try again.</string>
+    <string name="text_tv_remote_pairing_rate_limited">Too many pairing requests. Please wait %1$d seconds, then try again.</string>
     <string name="text_tv_device_meta">%1$s - %2$s</string>
     <string name="text_tv_icon">TV</string>
     <string name="text_no_tvs_found">No TVs found</string>
@@ -395,6 +400,7 @@
     <string name="text_sleep_timer">Sleep Timer</string>
     <string name="text_pip">Picture in Picture</string>
     <string name="text_fullscreen">Fullscreen</string>
+    <string name="text_exit_fullscreen">Exit fullscreen</string>
     <string name="text_play_pause">Play/Pause</string>
     <string name="text_rewind">Rewind</string>
     <string name="text_fullscreen_not_available">Fullscreen not available in bottom player</string>

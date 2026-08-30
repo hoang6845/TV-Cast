@@ -36,7 +36,7 @@ internal class AndroidTvPairingSession(
                 }
 
                 PairingMessageType.ConfigurationAck -> return@withContext
-                is PairingMessageType.Error -> throw TvRemoteException("Pairing failed with status ${message.status}")
+                is PairingMessageType.Error -> throw pairingError(message.status)
                 PairingMessageType.SecretAck,
                 PairingMessageType.Unknown -> Unit
             }
@@ -53,7 +53,7 @@ internal class AndroidTvPairingSession(
         while (true) {
             when (val message = AndroidTvProtocolCodec.parsePairingMessage(ProtobufCodec.readFrame(input))) {
                 PairingMessageType.SecretAck -> return@withContext
-                is PairingMessageType.Error -> throw TvRemoteException("Pairing failed with status ${message.status}")
+                is PairingMessageType.Error -> throw pairingError(message.status)
                 else -> Unit
             }
         }
@@ -61,6 +61,18 @@ internal class AndroidTvPairingSession(
 
     fun close() {
         runCatching { socket.close() }
+    }
+
+    private fun pairingError(status: Int): TvRemoteException {
+        return if (status == STATUS_TOO_MANY_PAIRING_REQUESTS) {
+            TvRemotePairingRateLimitedException()
+        } else {
+            TvRemoteException("Pairing failed with status $status")
+        }
+    }
+
+    companion object {
+        private const val STATUS_TOO_MANY_PAIRING_REQUESTS = 403
     }
 }
 

@@ -33,7 +33,8 @@ typealias ProductWithSelection = Pair<IAPProduct, Boolean>
 private data class ProductRenderState(
     val products: List<ProductWithSelection>,
     val isTrialEnabled: Boolean,
-    val hasFreeTrialProduct: Boolean
+    val hasFreeTrialProduct: Boolean,
+    val allProducts: List<IAPProduct>
 )
 
 class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
@@ -51,7 +52,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
         MutableStateFlow(billingManager.getPricedProducts())
     }
     private val selectedProductIdFlow = MutableStateFlow<String?>(null)
-    private val trialEnabledFlow = MutableStateFlow(true)
+    private val trialEnabledFlow = MutableStateFlow(false)
     private val productAdapter by lazy { IAPProductAdapter() }
 
     private var selectedProduct: IAPProduct? = null
@@ -200,28 +201,34 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
         }
 
         combine(selectedProductIdFlow, iapProductsFlow, trialEnabledFlow) { selectedId, items, isTrialEnabled ->
-            val selectedProduct = items.firstOrNull { it.productId == selectedId }
             val hasFreeTrialProduct = items.any { it.freeTrialDays > 0 }
             val effectiveTrialEnabled = isTrialEnabled && hasFreeTrialProduct
+            val renderItems = if (effectiveTrialEnabled) {
+                items.filter { it.freeTrialDays > 0 }
+            } else {
+                items
+            }
+            val selectedProduct = renderItems.firstOrNull { it.productId == selectedId }
 
             val resolvedId = if (
                 effectiveTrialEnabled &&
                 (selectedProduct == null || selectedProduct.freeTrialDays == 0)
             ) {
-                preferredTrialProduct(items)?.productId
+                preferredTrialProduct(renderItems)?.productId
             } else {
                 selectedProduct?.productId
                     ?: if (effectiveTrialEnabled) {
-                        preferredTrialProduct(items)?.productId
+                        preferredTrialProduct(renderItems)?.productId
                     } else {
-                        items.firstOrNull()?.productId
+                        renderItems.firstOrNull()?.productId
                     }
             }
 
             ProductRenderState(
-                products = items.map { it to (it.productId == resolvedId) },
+                products = renderItems.map { it to (it.productId == resolvedId) },
                 isTrialEnabled = effectiveTrialEnabled,
-                hasFreeTrialProduct = hasFreeTrialProduct
+                hasFreeTrialProduct = hasFreeTrialProduct,
+                allProducts = items
             )
         }
             .asLiveData()
@@ -237,7 +244,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
                 productAdapter.setList(products)
                 binding.rvProducts.isVisible = products.isNotEmpty()
                 binding.layoutLoading.isVisible =
-                    products.isEmpty() || !isBillingClientConnectedFlow.value
+                    state.allProducts.isEmpty() || !isBillingClientConnectedFlow.value
                 updateSelectedProductUi()
             }
 
@@ -280,7 +287,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
                 R.drawable.ic_switch_off
             }
         )
-//        binding.noPaymentRow.isVisible = showFreeTrial
+        binding.noPaymentRow.visibility = if (selectedProduct?.isOneTime == false) View.VISIBLE else View.INVISIBLE
 
         binding.btnSave.text = getString(
             if (showFreeTrial) {

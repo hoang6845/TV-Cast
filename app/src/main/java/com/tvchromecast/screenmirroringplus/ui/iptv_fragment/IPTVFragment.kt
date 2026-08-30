@@ -3,21 +3,25 @@ package com.tvchromecast.screenmirroringplus.ui.iptv_fragment
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.AlertDialog
-import android.content.Context
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.PorterDuff
-import android.media.AudioManager
 import android.net.Uri
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
@@ -36,13 +40,16 @@ import com.tvchromecast.screenmirroringplus.databinding.LayoutIptvFilterSheetBin
 import com.tvchromecast.screenmirroringplus.media.LocalMediaHttpServer
 import com.tvchromecast.screenmirroringplus.model.entity.Channel
 import com.tvchromecast.screenmirroringplus.ui.common.hasRecentReceiverMediaError
-import com.tvchromecast.screenmirroringplus.ui.common.showReceiverMediaErrorIfAny
+import com.tvchromecast.screenmirroringplus.ui.common.resetReceiverMediaErrorUiState
 import com.tvchromecast.screenmirroringplus.ui.common.showCastFailureDialog
-import com.google.android.gms.cast.CastMediaControlIntent
+import com.tvchromecast.screenmirroringplus.ui.common.showReceiverMediaErrorIfAny
 import com.google.android.gms.cast.Cast
+import com.google.android.gms.cast.CastMediaControlIntent
+import com.google.android.gms.cast.MediaError
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
 import com.google.android.gms.cast.MediaMetadata
+import com.google.android.gms.cast.MediaStatus
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
@@ -54,9 +61,13 @@ import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
 import hoang.dqm.codebase.utils.collectLatestFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 @AndroidEntryPoint
 class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
@@ -98,8 +109,6 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     private val uiHandler = Handler(Looper.getMainLooper())
     private val hideControlsRunnable = Runnable { hidePlayerControls() }
     private var isSeeking: Boolean = false
-    private var audioManager: AudioManager? = null
-    private var maxVolume: Int = 0
     private var sleepTimer: CountDownTimer? = null
     private var sleepTimerEndTime: Long = 0L
     private val sleepTimerUpdateHandler = Handler(Looper.getMainLooper())
@@ -110,14 +119,30 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         }
     }
     private var isPlayerLocked: Boolean = false
+    private var isPlayerFullscreen: Boolean = false
+    private var originalContentLayoutParams: ConstraintLayout.LayoutParams? = null
+    private var originalPlayerLayoutParams: LinearLayout.LayoutParams? = null
 
     private var castContext: CastContext? = null
     private var castSession: CastSession? = null
     private var sessionManagerListener: SessionManagerListener<CastSession>? = null
+    private var observedRemoteClient: RemoteMediaClient? = null
     private val mediaServer by lazy { LocalMediaHttpServer(requireContext().applicationContext) }
 
-    private val receiverMessageCallback = Cast.MessageReceivedCallback { _, _, message ->
-        logReceiverMessage(message)
+    private val receiverMessageCallback = Cast.MessageReceivedCallback { _, namespace, message ->
+        logCast("receiver message namespace=$namespace payload=${message.take(LOG_MESSAGE_LIMIT)}")
+        showReceiverMediaErrorIfAny(message, TAG)
+    }
+
+    private val mediaClientCallback = object : RemoteMediaClient.Callback() {
+        override fun onStatusUpdated() {
+            handleRemoteMediaStatus(observedRemoteClient?.mediaStatus)
+        }
+
+        override fun onMediaError(mediaError: MediaError) {
+            logCast("remoteMediaClient onMediaError error=$mediaError")
+            handleRemoteMediaStatus(observedRemoteClient?.mediaStatus)
+        }
     }
 
     override fun initView() {
@@ -184,6 +209,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         renderLists(state, showingChannels)
         renderSelectedChannel(state.selectedChannel, showingChannels)
         updateCastIcon(castSession?.isConnected == true)
+        applyPlayerFullscreenVisibility()
     }
 
     private fun renderTabs(tab: IPTVTab) {
@@ -230,6 +256,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
 
     private fun renderSelectedChannel(channel: Channel?, showingChannels: Boolean) {
         if (!showingChannels || channel == null) {
+            exitPlayerFullscreen(render = false)
             selectedPlayerChannelId = null
             binding.playerContainer.root.isVisible = false
             releasePlayer()
@@ -551,11 +578,8 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
             })
         }
         
-        // Update player title and favorite status
+        // Update player title
         binding.playerContainer.tvPlayerTitle.text = channel.name
-        binding.playerContainer.btnFavorite.setImageResource(
-            if (channel.isFavourite) R.drawable.favourited else R.drawable.favourite
-        )
         
         // Show controls initially
         showPlayerControls()
@@ -592,18 +616,23 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
             castContext = CastContext.getSharedInstance(requireContext())
             castContext?.setReceiverApplicationId(CastReceiverIds.CUSTOM_RECEIVER)
             setupSessionManagerListener()
+            logCast("setupCast success targetReceiver=${CastReceiverIds.CUSTOM_RECEIVER}")
         } catch (e: Exception) {
             castContext = null
+            Log.e(TAG, "setupCast failed", e)
         }
     }
 
     private fun showCastDialog() {
         val channel = currentUiState.selectedChannel ?: run {
             Toast.makeText(requireContext(), R.string.text_select_channel_first, Toast.LENGTH_SHORT).show()
+            logCast("showCastDialog ignored: no selected channel")
             return
         }
+        logCast("showCastDialog channel=${channel.logSummary()}")
 
         val castCtx = castContext ?: run {
+            logCast("showCastDialog failed: CastContext is null")
             AlertDialog.Builder(requireContext())
                 .setTitle(getString(R.string.text_cast_not_available))
                 .setMessage(getString(R.string.text_google_play_services_has_not_been_initialized))
@@ -613,13 +642,19 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         }
 
         if (castSession?.isConnected == true) {
+            logCast(
+                "showCastDialog connected session receiver=${castSession?.receiverIdForLog()} " +
+                    "device=${castSession?.castDevice?.friendlyName}"
+            )
             AlertDialog.Builder(requireContext())
                 .setTitle(getString(R.string.text_casting_to_tv_plain))
                 .setMessage(getString(R.string.text_what_would_you_like_to_do))
                 .setPositiveButton(getString(R.string.text_disconnect)) { _, _ ->
+                    logCast("disconnect requested by user")
                     castCtx.sessionManager.endCurrentSession(true)
                 }
                 .setNeutralButton(getString(R.string.text_restart_from_beginning)) { _, _ ->
+                    logCast("restart cast requested by user channel=${channel.logSummary()}")
                     loadMediaOnCast(channel)
                 }
                 .setNegativeButton(getString(R.string.text_cancel), null)
@@ -635,6 +670,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
             )
             .build()
 
+        logCast("showing route chooser targetReceiver=${CastReceiverIds.CUSTOM_RECEIVER}")
         androidx.mediarouter.app.MediaRouteChooserDialogFragment().apply {
             routeSelector = selector
         }.show(childFragmentManager, "IPTVCastChooser")
@@ -644,7 +680,12 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         sessionManagerListener = object : SessionManagerListener<CastSession> {
             override fun onSessionStarted(session: CastSession, sessionId: String) {
                 castSession = session
+                logCast(
+                    "session started id=$sessionId receiver=${session.receiverIdForLog()} " +
+                        "device=${session.castDevice?.friendlyName}"
+                )
                 setReceiverDebugCallback(session)
+                observeRemoteMediaClient(session)
                 currentUiState.selectedChannel?.let { loadMediaOnCast(it) }
                 player?.pause()
                 updateCastIcon(connected = true)
@@ -652,108 +693,190 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
 
             override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
                 castSession = session
+                logCast(
+                    "session resumed wasSuspended=$wasSuspended receiver=${session.receiverIdForLog()} " +
+                        "device=${session.castDevice?.friendlyName}"
+                )
                 setReceiverDebugCallback(session)
+                observeRemoteMediaClient(session)
                 updateCastIcon(connected = true)
             }
 
             override fun onSessionEnded(session: CastSession, error: Int) {
+                logCast("session ended error=$error receiver=${session.receiverIdForLog()}")
                 removeReceiverDebugCallback(session)
+                stopObservingRemoteMediaClient()
                 castSession = null
                 player?.play()
                 updateCastIcon(connected = false)
             }
 
             override fun onSessionStartFailed(session: CastSession, error: Int) {
+                logCast("session start failed error=$error receiver=${session.receiverIdForLog()}")
                 showCastFailureDialog()
             }
 
-            override fun onSessionSuspended(session: CastSession, reason: Int) = Unit
-            override fun onSessionStarting(session: CastSession) = Unit
-            override fun onSessionEnding(session: CastSession) = Unit
-            override fun onSessionResuming(session: CastSession, sessionId: String) = Unit
-            override fun onSessionResumeFailed(session: CastSession, error: Int) = Unit
+            override fun onSessionSuspended(session: CastSession, reason: Int) {
+                logCast("session suspended reason=$reason receiver=${session.receiverIdForLog()}")
+            }
+
+            override fun onSessionStarting(session: CastSession) {
+                logCast("session starting receiver=${session.receiverIdForLog()}")
+            }
+
+            override fun onSessionEnding(session: CastSession) {
+                logCast("session ending receiver=${session.receiverIdForLog()}")
+            }
+
+            override fun onSessionResuming(session: CastSession, sessionId: String) {
+                logCast("session resuming id=$sessionId receiver=${session.receiverIdForLog()}")
+            }
+
+            override fun onSessionResumeFailed(session: CastSession, error: Int) {
+                logCast("session resume failed error=$error receiver=${session.receiverIdForLog()}")
+            }
         }
     }
 
     private fun loadMediaOnCast(channel: Channel) {
-        val remoteClient: RemoteMediaClient = castSession?.remoteMediaClient ?: return
-        val contentType = inferCastContentType(channel.url)
-        val castUrl = mediaServer.registerRemoteUrl(channel.url, contentType) ?: run {
-            Toast.makeText(requireContext(), R.string.text_could_not_prepare_media, Toast.LENGTH_SHORT).show()
+        val session = castSession
+        val remoteClient: RemoteMediaClient = session?.remoteMediaClient ?: run {
+            logCast("loadMediaOnCast aborted: remoteMediaClient is null session=${session?.receiverIdForLog()}")
             return
         }
-        castSession?.let {
-            setReceiverDebugCallback(it)
-            sendReceiverPing(it)
+        resetReceiverMediaErrorUiState()
+
+        val sourceUrl = channel.url.trim()
+        if (!sourceUrl.isHttpCastUrl()) {
+            logCast("loadMediaOnCast aborted: unsupported url channel=${channel.logSummary()}")
+            Toast.makeText(requireContext(), R.string.text_could_not_cast_media, Toast.LENGTH_SHORT).show()
+            return
         }
-        Log.d(
-            TAG,
-            "Loading IPTV on Cast originalUrl=${channel.url} castUrl=$castUrl contentType=$contentType"
+
+        observeRemoteMediaClient(session)
+        logCast(
+            "loadMediaOnCast start receiver=${session.receiverIdForLog()} " +
+                "device=${session.castDevice?.friendlyName} channel=${channel.logSummary()} " +
+                "localPosition=${player?.currentPosition ?: 0L}"
         )
-        val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE).apply {
-            putString(MediaMetadata.KEY_TITLE, channel.name)
-        }
 
-        val streamType = inferCastStreamType(channel.url)
+        val expectedChannelId = channel.id
+        lifecycleScope.launch {
+            val contentType = resolveCastContentType(sourceUrl)
+            if (
+                view == null ||
+                castSession?.isConnected != true ||
+                currentUiState.selectedChannel?.id != expectedChannelId
+            ) {
+                logCast(
+                    "loadMediaOnCast cancelled after sniff viewNull=${view == null} " +
+                        "connected=${castSession?.isConnected == true} " +
+                        "expectedChannelId=$expectedChannelId currentChannelId=${currentUiState.selectedChannel?.id}"
+                )
+                return@launch
+            }
 
-        val mediaInfo = MediaInfo.Builder(castUrl)
-            .setContentUrl(castUrl)
-            .setStreamType(streamType)
-            .setContentType(contentType)
-            .setMetadata(metadata)
-            .build()
+            val useDirectCastUrl = shouldUseDirectCastUrl(sourceUrl, contentType)
+            val castUrl = if (useDirectCastUrl) {
+                sourceUrl
+            } else {
+                mediaServer.registerRemoteUrl(sourceUrl, contentType)
+            } ?: run {
+                logCast("loadMediaOnCast failed: could not register proxy url=$sourceUrl type=$contentType")
+                Toast.makeText(requireContext(), R.string.text_could_not_prepare_media, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
 
-        val requestBuilder = MediaLoadRequestData.Builder()
-            .setMediaInfo(mediaInfo)
-            .setAutoplay(true)
+            castSession?.let {
+                setReceiverDebugCallback(it)
+                sendReceiverPing(it)
+            }
+            logCast(
+                "loadMediaOnCast prepared delivery=${if (useDirectCastUrl) "direct" else "proxy"} " +
+                    "contentType=$contentType streamType=${inferCastStreamType(sourceUrl, contentType).streamTypeName()} " +
+                    "castUrl=$castUrl sourceUrl=$sourceUrl"
+            )
 
-        if (streamType != MediaInfo.STREAM_TYPE_LIVE) {
-            requestBuilder.setCurrentTime(player?.currentPosition ?: 0L)
-        }
+            val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE).apply {
+                putString(MediaMetadata.KEY_TITLE, channel.name)
+            }
 
-        remoteClient.load(requestBuilder.build())
-            .setResultCallback { result ->
-                activity?.runOnUiThread {
-                    if (view == null) return@runOnUiThread
-                    Log.d(
-                        TAG,
-                        "IPTV cast load result success=${result.status.isSuccess} " +
-                            "code=${result.status.statusCode} message=${result.status.statusMessage}"
-                    )
-                    if (result.status.isSuccess) {
-                        player?.pause()
-                    } else {
-                        showCastFailureDialogIfNoReceiverError()
+            val streamType = inferCastStreamType(sourceUrl, contentType)
+
+            val mediaInfo = MediaInfo.Builder(castUrl)
+                .setContentUrl(castUrl)
+                .setStreamType(streamType)
+                .setContentType(contentType)
+                .setMetadata(metadata)
+                .build()
+
+            val requestBuilder = MediaLoadRequestData.Builder()
+                .setMediaInfo(mediaInfo)
+                .setAutoplay(true)
+
+            if (streamType != MediaInfo.STREAM_TYPE_LIVE) {
+                requestBuilder.setCurrentTime(player?.currentPosition ?: 0L)
+            }
+
+            remoteClient.load(requestBuilder.build())
+                .setResultCallback { result ->
+                    activity?.runOnUiThread {
+                        if (view == null) return@runOnUiThread
+                        logCast(
+                            "loadMediaOnCast result success=${result.status.isSuccess} " +
+                                "code=${result.status.statusCode} message=${result.status.statusMessage} " +
+                                "delivery=${if (useDirectCastUrl) "direct" else "proxy"} " +
+                                "receiver=${castSession?.receiverIdForLog()} mediaStatus=${remoteClient.mediaStatus.summaryForLog()}"
+                        )
+                        if (result.status.isSuccess) {
+                            player?.pause()
+                            handleRemoteMediaStatus(remoteClient.mediaStatus)
+                        } else {
+                            showCastFailureDialogIfNoReceiverError()
+                        }
                     }
                 }
-            }
+        }
     }
 
     private fun showCastFailureDialogIfNoReceiverError() {
         uiHandler.postDelayed({
             if (view == null || hasRecentReceiverMediaError()) {
+                logCast(
+                    "skip generic cast failure dialog viewNull=${view == null} " +
+                        "hasRecentReceiverError=${hasRecentReceiverMediaError()}"
+                )
                 return@postDelayed
             }
+            logCast("show generic cast failure dialog: no receiver-specific error received")
             showCastFailureDialog()
         }, CAST_LOAD_FAILURE_FALLBACK_DELAY_MS)
     }
 
-    private fun inferCastStreamType(url: String): Int {
+    private fun inferCastStreamType(url: String, contentType: String): Int {
         val lower = url.lowercase()
+        val lowerType = contentType.lowercase()
         return when {
-            lower.contains(".m3u8") || lower.startsWith("rtmp://") || lower.startsWith("rtsp://") ->
+            lower.contains(".m3u8") ||
+                lower.contains("m3u8") ||
+                lower.contains("/live/") ||
+                lowerType.contains("mpegurl") ||
+                lowerType == "video/mp2t" ->
                 MediaInfo.STREAM_TYPE_LIVE
             else -> MediaInfo.STREAM_TYPE_BUFFERED
         }
     }
 
     private fun inferCastContentType(url: String): String {
-        val cleanUrl = url.lowercase().substringBefore("#").substringBefore("?")
+        val lowerUrl = url.lowercase()
+        val cleanUrl = lowerUrl.substringBefore("#").substringBefore("?")
         return when {
-            cleanUrl.endsWith(".m3u8") || cleanUrl.contains(".m3u8/") ->
+            cleanUrl.endsWith(".m3u8") || cleanUrl.contains(".m3u8/") || lowerUrl.contains("m3u8") ->
                 "application/x-mpegURL"
             cleanUrl.endsWith(".mpd") || cleanUrl.contains(".mpd/") ->
                 "application/dash+xml"
+            cleanUrl.endsWith(".ts") || cleanUrl.contains(".ts/") ->
+                "video/mp2t"
             cleanUrl.endsWith(".webm") || cleanUrl.contains(".webm/") ->
                 "video/webm"
             cleanUrl.endsWith(".mp3") || cleanUrl.contains(".mp3/") ->
@@ -762,6 +885,214 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
                 "audio/mp4"
             else -> "video/mp4"
         }
+    }
+
+    private suspend fun resolveCastContentType(url: String): String {
+        val inferred = inferCastContentType(url)
+        if (inferred != DEFAULT_CAST_CONTENT_TYPE) {
+            logCast("content type inferred url=$url type=$inferred")
+            return inferred
+        }
+
+        val sniffed = withContext(Dispatchers.IO) {
+            sniffRemoteContentType(url)
+        }
+        val resolved = sniffed ?: inferred
+        logCast("content type resolved url=$url inferred=$inferred sniffed=$sniffed resolved=$resolved")
+        return resolved
+    }
+
+    private fun sniffRemoteContentType(url: String): String? {
+        return sniffRemoteContentType(url, "HEAD")
+            ?: sniffRemoteContentType(url, "GET")
+    }
+
+    private fun sniffRemoteContentType(url: String, method: String): String? {
+        val connection = runCatching {
+            (URL(url).openConnection() as HttpURLConnection).apply {
+                instanceFollowRedirects = true
+                connectTimeout = CAST_SNIFF_TIMEOUT_MS
+                readTimeout = CAST_SNIFF_TIMEOUT_MS
+                requestMethod = method
+                setRequestProperty("User-Agent", CAST_REMOTE_USER_AGENT)
+                setRequestProperty("Accept", "*/*")
+                setRequestProperty("Accept-Encoding", "identity")
+                if (method == "GET") {
+                    setRequestProperty("Range", "bytes=0-0")
+                }
+            }
+        }.onFailure {
+            Log.w(TAG, "sniff open failed method=$method url=$url", it)
+        }.getOrNull() ?: return null
+
+        return try {
+            val responseCode = connection.responseCode
+            val remoteType = connection.contentType
+                ?.substringBefore(";")
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+            val normalized = if (responseCode in 200..399 && remoteType != null) {
+                normalizeCastContentType(remoteType, url)
+            } else {
+                null
+            }
+            logCast(
+                "sniff method=$method code=$responseCode type=$remoteType normalized=$normalized " +
+                    "length=${connection.getHeaderField("Content-Length")} url=$url"
+            )
+            normalized
+        } catch (e: Exception) {
+            Log.w(TAG, "sniff failed method=$method url=$url", e)
+            null
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun normalizeCastContentType(contentType: String, url: String): String {
+        val lowerType = contentType.lowercase()
+        return when {
+            lowerType.contains("mpegurl") -> "application/x-mpegURL"
+            lowerType.contains("dash+xml") -> "application/dash+xml"
+            lowerType == "video/mp2t" -> "video/mp2t"
+            lowerType == "video/mp4" || lowerType == "application/mp4" -> "video/mp4"
+            lowerType == "video/webm" -> "video/webm"
+            lowerType == "audio/mpeg" -> "audio/mpeg"
+            lowerType == "audio/mp4" -> "audio/mp4"
+            lowerType == "application/octet-stream" -> inferCastContentType(url)
+            else -> contentType
+        }
+    }
+
+    private fun shouldUseDirectCastUrl(url: String, contentType: String): Boolean {
+        val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return false
+        if (!uri.scheme.equals("https", ignoreCase = true)) return false
+
+        val lowerType = contentType.lowercase()
+        if (lowerType.contains("mpegurl") || lowerType.contains("dash+xml")) return false
+
+        val path = uri.path.orEmpty().lowercase()
+        return lowerType in DIRECT_CAST_CONTENT_TYPES &&
+            DIRECT_CAST_EXTENSIONS.any { path.endsWith(it) }
+    }
+
+    private fun String.isHttpCastUrl(): Boolean {
+        return startsWith("http://", ignoreCase = true) ||
+            startsWith("https://", ignoreCase = true)
+    }
+
+    private fun observeRemoteMediaClient(session: CastSession) {
+        val remoteClient = session.remoteMediaClient ?: run {
+            logCast("observeRemoteMediaClient skipped: remote client null")
+            return
+        }
+        if (observedRemoteClient === remoteClient) return
+
+        stopObservingRemoteMediaClient()
+        observedRemoteClient = remoteClient
+        remoteClient.registerCallback(mediaClientCallback)
+        logCast("observing remote media client status=${remoteClient.mediaStatus.summaryForLog()}")
+        handleRemoteMediaStatus(remoteClient.mediaStatus)
+    }
+
+    private fun stopObservingRemoteMediaClient() {
+        observedRemoteClient?.unregisterCallback(mediaClientCallback)
+        observedRemoteClient = null
+    }
+
+    private fun handleRemoteMediaStatus(status: MediaStatus?) {
+        if (status == null) {
+            logCast("remote media status=null")
+            return
+        }
+
+        logCast("remote media status ${status.summaryForLog()}")
+        if (status.playerState == MediaStatus.PLAYER_STATE_IDLE &&
+            status.idleReason == MediaStatus.IDLE_REASON_ERROR
+        ) {
+            showCastFailureDialogIfNoReceiverError()
+        }
+    }
+
+    private fun setReceiverDebugCallback(session: CastSession) {
+        runCatching {
+            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
+            session.setMessageReceivedCallbacks(RECEIVER_NAMESPACE, receiverMessageCallback)
+            sendReceiverPing(session)
+            logCast("receiver debug callback attached namespace=$RECEIVER_NAMESPACE")
+        }.onFailure {
+            Log.e(TAG, "Could not set receiver debug callback", it)
+        }
+    }
+
+    private fun removeReceiverDebugCallback(session: CastSession) {
+        runCatching {
+            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
+            logCast("receiver debug callback removed namespace=$RECEIVER_NAMESPACE")
+        }
+    }
+
+    private fun sendReceiverPing(session: CastSession) {
+        runCatching {
+            session.sendMessage(
+                RECEIVER_NAMESPACE,
+                JSONObject().put("type", "PING").toString()
+            )
+        }.onFailure {
+            Log.e(TAG, "Could not ping receiver", it)
+        }
+    }
+
+    private fun Channel.logSummary(): String {
+        return "id=$id name=${name.take(LOG_MESSAGE_LIMIT)} url=$url"
+    }
+
+    private fun CastSession.receiverIdForLog(): String {
+        return applicationMetadata?.applicationId ?: "unknown"
+    }
+
+    private fun MediaStatus?.summaryForLog(): String {
+        if (this == null) return "null"
+        return "playerState=${playerState.mediaPlayerStateName()} " +
+            "idleReason=${idleReason.mediaIdleReasonName()} " +
+            "contentType=${mediaInfo?.contentType} " +
+            "contentId=${mediaInfo?.contentId} " +
+            "streamType=${mediaInfo?.streamType?.streamTypeName()}"
+    }
+
+    private fun Int.mediaPlayerStateName(): String {
+        return when (this) {
+            MediaStatus.PLAYER_STATE_UNKNOWN -> "UNKNOWN"
+            MediaStatus.PLAYER_STATE_IDLE -> "IDLE"
+            MediaStatus.PLAYER_STATE_PLAYING -> "PLAYING"
+            MediaStatus.PLAYER_STATE_PAUSED -> "PAUSED"
+            MediaStatus.PLAYER_STATE_BUFFERING -> "BUFFERING"
+            else -> toString()
+        }
+    }
+
+    private fun Int.mediaIdleReasonName(): String {
+        return when (this) {
+            MediaStatus.IDLE_REASON_NONE -> "NONE"
+            MediaStatus.IDLE_REASON_FINISHED -> "FINISHED"
+            MediaStatus.IDLE_REASON_CANCELED -> "CANCELED"
+            MediaStatus.IDLE_REASON_INTERRUPTED -> "INTERRUPTED"
+            MediaStatus.IDLE_REASON_ERROR -> "ERROR"
+            else -> toString()
+        }
+    }
+
+    private fun Int.streamTypeName(): String {
+        return when (this) {
+            MediaInfo.STREAM_TYPE_NONE -> "NONE"
+            MediaInfo.STREAM_TYPE_BUFFERED -> "BUFFERED"
+            MediaInfo.STREAM_TYPE_LIVE -> "LIVE"
+            else -> toString()
+        }
+    }
+
+    private fun logCast(message: String) {
+        Log.d(TAG, "IPTVCast: $message")
     }
 
     private fun updateCastIcon(connected: Boolean) {
@@ -777,25 +1108,39 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     }
 
     private fun handleBackPress() {
-        if (currentUiState.selectedCategory != null) {
-            viewModel.closeCategory()
-        } else {
-            // Không tự động ngắt kết nối, chỉ quay lại màn trước
-            popBackStack()
+        when {
+            isPlayerFullscreen -> exitPlayerFullscreen()
+            currentUiState.selectedCategory != null -> viewModel.closeCategory()
+            else -> {
+                // Không tự động ngắt kết nối, chỉ quay lại màn trước
+                popBackStack()
+            }
         }
     }
 
     override fun onResume() {
         super.onResume()
+        castContext?.setReceiverApplicationId(CastReceiverIds.CUSTOM_RECEIVER)
         sessionManagerListener?.let { listener ->
             castContext?.sessionManager?.addSessionManagerListener(listener, CastSession::class.java)
         }
         castSession = castContext?.sessionManager?.currentCastSession
+        castSession?.let { session ->
+            logCast(
+                "onResume current session connected=${session.isConnected} " +
+                    "receiver=${session.receiverIdForLog()} device=${session.castDevice?.friendlyName}"
+            )
+            if (session.isConnected) {
+                setReceiverDebugCallback(session)
+                observeRemoteMediaClient(session)
+            }
+        } ?: logCast("onResume no current cast session")
         updateCastIcon(castSession?.isConnected == true)
     }
 
     override fun onPause() {
         super.onPause()
+        exitPlayerFullscreen(render = false)
         sessionManagerListener?.let { listener ->
             castContext?.sessionManager?.removeSessionManagerListener(listener, CastSession::class.java)
         }
@@ -803,8 +1148,10 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     }
 
     override fun onDestroyView() {
+        exitPlayerFullscreen(render = false)
         stopRefreshAnimation()
         castSession?.let(::removeReceiverDebugCallback)
+        stopObservingRemoteMediaClient()
         releasePlayer()
         mediaServer.close()
         
@@ -817,37 +1164,6 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         super.onDestroyView()
     }
 
-    private fun setReceiverDebugCallback(session: CastSession) {
-        runCatching {
-            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
-            session.setMessageReceivedCallbacks(RECEIVER_NAMESPACE, receiverMessageCallback)
-            sendReceiverPing(session)
-        }.onFailure {
-            Log.e(TAG, "Could not set receiver debug callback", it)
-        }
-    }
-
-    private fun removeReceiverDebugCallback(session: CastSession) {
-        runCatching {
-            session.removeMessageReceivedCallbacks(RECEIVER_NAMESPACE)
-        }
-    }
-
-    private fun sendReceiverPing(session: CastSession) {
-        runCatching {
-            session.sendMessage(
-                RECEIVER_NAMESPACE,
-                JSONObject().put("type", "PING").toString()
-            )
-        }.onFailure {
-            Log.e(TAG, "Could not ping receiver", it)
-        }
-    }
-
-    private fun logReceiverMessage(rawMessage: String) {
-        showReceiverMediaErrorIfAny(rawMessage, TAG)
-    }
-
     private fun releasePlayer() {
         binding.playerContainer.playerView.player = null
         player?.release()
@@ -857,10 +1173,6 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     // ==================== CUSTOM PLAYER CONTROLS ====================
     
     private fun setupPlayerControls() {
-        binding.playerContainer.root.post {
-            initVolumeAndBrightness()
-        }
-        
         binding.playerContainer.playerView.setOnClickListener {
             togglePlayerControls()
         }
@@ -872,13 +1184,6 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         // Back button
         binding.playerContainer.btnBackPlayer.setOnClickListener {
             viewModel.clearSelectedChannel()
-        }
-        
-        // Favorite button
-        binding.playerContainer.btnFavorite.setOnClickListener {
-            currentUiState.selectedChannel?.let { channel ->
-                viewModel.toggleFavourite(channel, !channel.isFavourite)
-            }
         }
         
         // Play/Pause
@@ -939,8 +1244,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         
         // Fullscreen
         binding.playerContainer.btnFullscreen.setOnClickListener {
-            // Fullscreen không áp dụng cho bottom player
-            Toast.makeText(requireContext(), R.string.text_fullscreen_not_available, Toast.LENGTH_SHORT).show()
+            togglePlayerFullscreen()
             rescheduleHidePlayerControls()
         }
         
@@ -949,19 +1253,7 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
             showSleepTimerDialog()
             rescheduleHidePlayerControls()
         }
-        
-        // PiP
-        binding.playerContainer.btnPip.setOnClickListener {
-            Toast.makeText(requireContext(), R.string.text_pip_not_available, Toast.LENGTH_SHORT).show()
-            rescheduleHidePlayerControls()
-        }
-        
-        // Cast
-        binding.playerContainer.btnCastPlayer.setOnClickListener {
-            showCastDialog()
-            rescheduleHidePlayerControls()
-        }
-        
+
         // Lock
         binding.playerContainer.btnLock.setOnClickListener {
             isPlayerLocked = !isPlayerLocked
@@ -972,82 +1264,6 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
             isPlayerLocked = !isPlayerLocked
             updatePlayerLockState()
         }
-        
-        // Volume control
-        binding.playerContainer.btnVolume.setOnClickListener {
-            val currentVol = audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: 0
-            if (currentVol > 0) {
-                audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
-                binding.playerContainer.volumeSeekbar.progress = 0
-                updateVolumeIcon(0)
-            } else {
-                val halfVol = maxVolume / 2
-                audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, halfVol, 0)
-                binding.playerContainer.volumeSeekbar.progress = 50
-                updateVolumeIcon(50)
-            }
-        }
-    }
-    
-    private fun initVolumeAndBrightness() {
-        audioManager = requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        maxVolume = audioManager!!.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-
-        val currentVolume = audioManager!!.getStreamVolume(AudioManager.STREAM_MUSIC)
-        val volumePercent = (currentVolume * 100) / maxVolume
-        binding.playerContainer.volumeSeekbar.progress = volumePercent
-
-        val currentBrightness = getCurrentBrightness()
-        binding.playerContainer.brightnessSeekbar.progress = currentBrightness
-
-        binding.playerContainer.volumeSeekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    val vol = (progress * maxVolume) / 100
-                    audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, vol, 0)
-                    updateVolumeIcon(progress)
-                }
-            }
-            override fun onStartTrackingTouch(sb: SeekBar) {}
-            override fun onStopTrackingTouch(sb: SeekBar) {}
-        })
-
-        binding.playerContainer.brightnessSeekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) setBrightness(progress)
-            }
-            override fun onStartTrackingTouch(sb: SeekBar) {}
-            override fun onStopTrackingTouch(sb: SeekBar) {}
-        })
-    }
-
-    private fun getCurrentBrightness(): Int {
-        val lp = requireActivity().window.attributes
-        if (lp.screenBrightness >= 0f) {
-            return (lp.screenBrightness * 100).toInt()
-        }
-        return try {
-            val brightness = Settings.System.getInt(
-                requireContext().contentResolver,
-                Settings.System.SCREEN_BRIGHTNESS
-            )
-            (brightness * 100) / 255
-        } catch (e: Exception) {
-            50
-        }
-    }
-
-    private fun setBrightness(progress: Int) {
-        val brightness = progress.coerceAtLeast(5) / 100f
-        val lp = requireActivity().window.attributes
-        lp.screenBrightness = brightness
-        requireActivity().window.attributes = lp
-    }
-
-    private fun updateVolumeIcon(volumePercent: Int) {
-        binding.playerContainer.btnVolume.setImageResource(
-            if (volumePercent == 0) R.drawable.ic_volume_off else R.drawable.ic_volumn
-        )
     }
     
     private fun togglePlayerControls() {
@@ -1083,6 +1299,150 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
         uiHandler.removeCallbacks(hideControlsRunnable)
         uiHandler.postDelayed(hideControlsRunnable, CONTROLS_HIDE_DELAY_MS)
     }
+
+    private fun togglePlayerFullscreen() {
+        if (isPlayerFullscreen) {
+            exitPlayerFullscreen()
+        } else {
+            enterPlayerFullscreen()
+        }
+    }
+
+    private fun enterPlayerFullscreen() {
+        if (currentUiState.selectedChannel == null || isPlayerFullscreen) return
+
+        isPlayerFullscreen = true
+        captureInlinePlayerLayoutParams()
+        applyPlayerFullscreenLayout()
+        applyPlayerFullscreenVisibility()
+        updatePlayerFullscreenIcon()
+        hideSystemBars()
+        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        showPlayerControls()
+    }
+
+    private fun exitPlayerFullscreen(render: Boolean = true) {
+        if (!isPlayerFullscreen) return
+
+        isPlayerFullscreen = false
+        updatePlayerFullscreenIcon()
+        restoreInlinePlayerLayout()
+        showSystemBars()
+        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+        if (render) {
+            renderUiState(currentUiState)
+        } else {
+            applyInlinePlayerVisibility(currentUiState)
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        binding.root.post {
+            if (isPlayerFullscreen) {
+                applyPlayerFullscreenLayout()
+                applyPlayerFullscreenVisibility()
+                updatePlayerFullscreenIcon()
+                hideSystemBars()
+            } else {
+                restoreInlinePlayerLayout()
+                applyInlinePlayerVisibility(currentUiState)
+                updatePlayerFullscreenIcon()
+                showSystemBars()
+            }
+        }
+    }
+
+    private fun captureInlinePlayerLayoutParams() {
+        originalContentLayoutParams =
+            ConstraintLayout.LayoutParams(binding.contentContainer.layoutParams as ConstraintLayout.LayoutParams)
+        originalPlayerLayoutParams =
+            LinearLayout.LayoutParams(binding.playerContainer.root.layoutParams as LinearLayout.LayoutParams)
+    }
+
+    private fun restoreInlinePlayerLayout() {
+        originalContentLayoutParams?.let {
+            binding.contentContainer.layoutParams = ConstraintLayout.LayoutParams(it)
+        }
+        originalPlayerLayoutParams?.let {
+            binding.playerContainer.root.layoutParams = LinearLayout.LayoutParams(it)
+        }
+        originalContentLayoutParams = null
+        originalPlayerLayoutParams = null
+    }
+
+    private fun applyPlayerFullscreenLayout() {
+        val contentParams =
+            ConstraintLayout.LayoutParams(binding.contentContainer.layoutParams as ConstraintLayout.LayoutParams)
+        contentParams.topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+        contentParams.topToBottom = ConstraintLayout.LayoutParams.UNSET
+        binding.contentContainer.layoutParams = contentParams
+
+        val playerParams =
+            LinearLayout.LayoutParams(binding.playerContainer.root.layoutParams as LinearLayout.LayoutParams)
+        playerParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+        playerParams.height = 0
+        playerParams.weight = 1f
+        playerParams.setMargins(0, 0, 0, 0)
+        binding.playerContainer.root.layoutParams = playerParams
+    }
+
+    private fun applyInlinePlayerVisibility(state: IPTVUiState) {
+        val showingChannels = state.isShowingChannelList()
+        val showingRootTabs = state.selectedCategory == null
+        val showingGenreCategories = state.tab == IPTVTab.GENRES && state.selectedCategory == null
+        val showingFavoriteSearch = state.tab == IPTVTab.FAVORITES && state.selectedCategory == null
+
+        binding.topBar.isVisible = true
+        binding.tabContainer.isVisible = showingRootTabs
+        binding.filterContainer.isVisible = showingRootTabs && state.tab == IPTVTab.GENRES
+        binding.channelSearchContainer.isVisible = showingFavoriteSearch
+        binding.listContainer.isVisible = true
+        binding.rvCategories.isVisible = showingGenreCategories
+        binding.tvEmptyCategories.isVisible = showingGenreCategories && state.categories.isEmpty()
+        binding.rvChannels.isVisible = showingChannels
+        binding.tvEmptyChannels.isVisible = showingChannels && state.channels.isEmpty()
+        binding.playerContainer.root.isVisible = showingChannels && state.selectedChannel != null
+    }
+
+    private fun applyPlayerFullscreenVisibility() {
+        if (!isPlayerFullscreen) return
+
+        binding.topBar.isVisible = false
+        binding.tabContainer.isVisible = false
+        binding.filterContainer.isVisible = false
+        binding.channelSearchContainer.isVisible = false
+        binding.listContainer.isVisible = false
+        binding.playerContainer.root.isVisible = true
+    }
+
+    private fun updatePlayerFullscreenIcon() {
+        binding.playerContainer.btnFullscreen.setImageResource(
+            if (isPlayerFullscreen) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen
+        )
+        binding.playerContainer.btnFullscreen.contentDescription = getString(
+            if (isPlayerFullscreen) R.string.text_exit_fullscreen else R.string.text_fullscreen
+        )
+    }
+
+    private fun hideSystemBars() {
+        val window = requireActivity().window
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    private fun showSystemBars() {
+        val window = requireActivity().window
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+        WindowCompat.getInsetsController(window, window.decorView)
+            .show(WindowInsetsCompat.Type.systemBars())
+        binding.root.requestApplyInsets()
+    }
     
     private fun updatePlayerLockState() {
         if (isPlayerLocked) {
@@ -1092,8 +1452,6 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
             binding.playerContainer.btnForward.visibility = View.GONE
             binding.playerContainer.bottomControls.visibility = View.GONE
             binding.playerContainer.btnUnlock.visibility = View.VISIBLE
-            binding.playerContainer.volumePanel.visibility = View.GONE
-            binding.playerContainer.brightnessPanel.visibility = View.GONE
         } else {
             binding.playerContainer.topBarControls.visibility = View.VISIBLE
             binding.playerContainer.btnRewind.visibility = View.VISIBLE
@@ -1101,8 +1459,6 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
             binding.playerContainer.btnForward.visibility = View.VISIBLE
             binding.playerContainer.bottomControls.visibility = View.VISIBLE
             binding.playerContainer.btnUnlock.visibility = View.GONE
-            binding.playerContainer.volumePanel.visibility = View.VISIBLE
-            binding.playerContainer.brightnessPanel.visibility = View.VISIBLE
         }
     }
     
@@ -1235,6 +1591,25 @@ class IPTVFragment : BaseFragment<FragmentIPTVBinding, IPTVViewModel>() {
     companion object {
         private const val RECEIVER_NAMESPACE = "urn:x-cast:com.example.camera.webrtc"
         private const val CAST_LOAD_FAILURE_FALLBACK_DELAY_MS = 1_200L
-        private const val TAG = "IPTVDebug"
+        private const val CAST_SNIFF_TIMEOUT_MS = 3_500
+        private const val CAST_REMOTE_USER_AGENT =
+            "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
+        private const val DEFAULT_CAST_CONTENT_TYPE = "video/mp4"
+        private const val TAG = "IPTVCast"
+        private const val LOG_MESSAGE_LIMIT = 900
+        private val DIRECT_CAST_CONTENT_TYPES = setOf(
+            "video/mp4",
+            "video/webm",
+            "audio/mpeg",
+            "audio/mp4"
+        )
+        private val DIRECT_CAST_EXTENSIONS = setOf(
+            ".mp4",
+            ".m4v",
+            ".webm",
+            ".mp3",
+            ".m4a",
+            ".aac"
+        )
     }
 }

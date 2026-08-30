@@ -171,7 +171,7 @@ class CastYoutubeFragment : BaseFragment<FragmentCastYoutubeBinding, CastYoutube
     }
 
     override fun initListener() {
-        binding.btnBack.setOnClickListener { handleBackPressed() }
+        binding.btnBack.setOnClickListener { popBackStack() }
         binding.btnWebBack.setOnClickListener {
             if (binding.webView.canGoBack()) {
                 binding.webView.goBack()

@@ -18,7 +18,7 @@ class PremiumManager private constructor() : IPremiumManager {
     }
 
     override fun isActiveSubscription(): Boolean {
-        return isActiveSubscription()
+        return PremiumPrefs.isActiveSubscription
     }
 
     override fun updateActiveSubscriptionState(isActiveSubscription: Boolean) {

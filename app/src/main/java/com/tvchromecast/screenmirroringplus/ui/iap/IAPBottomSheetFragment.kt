@@ -34,6 +34,7 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
     override fun getTheme(): Int = R.style.IAPBottomSheet
 
     var onDismissToHome: (() -> Unit)? = null
+    var onSheetDismissed: (() -> Unit)? = null
 
     private val billingManager by lazy { AppMonetization.billing }
     private val isBillingClientConnectedFlow by lazy {
@@ -102,6 +103,7 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
 
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
+        onSheetDismissed?.invoke()
         if (navigateHomeOnDismiss) {
             onDismissToHome?.invoke()
         }

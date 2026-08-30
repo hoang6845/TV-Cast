@@ -68,3 +68,7 @@ sealed interface TvRemoteConnectionState {
 open class TvRemoteException(message: String, cause: Throwable? = null) : Exception(message, cause)
 class TvRemotePairingRequiredException(message: String = "Pairing required", cause: Throwable? = null) :
     TvRemoteException(message, cause)
+class TvRemotePairingRateLimitedException(
+    message: String = "Too many pairing requests. Wait a minute, then try pairing again.",
+    cause: Throwable? = null
+) : TvRemoteException(message, cause)

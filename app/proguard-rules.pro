@@ -47,13 +47,14 @@
 
 -keep class hoang.dqm.codebase.utils.BindingReflex { *; }
 
-# BaseActivity/BaseFragment đọc generic ViewBinding/ViewModel bằng reflection.
-# Nếu R8 tối ưu/strip metadata của các subclass này, release có thể fail trước setContentView.
+# BaseActivity/BaseFragment/BaseRecyclerViewAdapter đọc generic ViewBinding/ViewModel bằng reflection.
+# Nếu R8 tối ưu/strip metadata của các subclass này, release có thể fail hoặc item RecyclerView rơi về EmptyViewBinding.
 -keep class * extends hoang.dqm.codebase.base.activity.BaseActivity { *; }
 -keep class * extends hoang.dqm.codebase.base.activity.BaseFragment { *; }
 -keep class * extends hoang.dqm.codebase.base.viewmodel.BaseViewModel { *; }
+-keep class * extends hoang.dqm.codebase.base.adapter.BaseRecyclerViewAdapter { *; }
 
--keepclassmembers class * implements androidx.viewbinding.ViewBinding {
+-keep class * implements androidx.viewbinding.ViewBinding {
     public static *** bind(android.view.View);
     public static *** inflate(android.view.LayoutInflater);
     public static *** inflate(
@@ -61,6 +62,35 @@
         android.view.ViewGroup,
         boolean
     );
+}
+
+# IAP adapters inflate item ViewBinding through BaseRecyclerViewAdapter generic reflection.
+-keep class com.tvchromecast.screenmirroringplus.ui.iap.** { *; }
+-keep class tpt.dev.monetization.subs.** { *; }
+
+
+############################################################
+# BROAD RELEASE KEEP - TEMPORARY IAP DEBUG
+############################################################
+
+# Giữ rộng giống hướng project IPTV để loại trừ lỗi R8/proguard ở màn IAP.
+# Khi IAP ổn định có thể thu hẹp lại từng package.
+-dontwarn androidx.**
+-dontwarn kotlin.**
+
+-keep class androidx.** { *; }
+-keep interface androidx.** { *; }
+-keep class com.google.android.material.** { *; }
+
+-keep class com.tvchromecast.screenmirroringplus.** { *; }
+-keep class hoang.dqm.codebase.** { *; }
+-keep class tpt.dev.monetization.** { *; }
+
+-keepnames class kotlinx.** { *; }
+-keep class kotlin.coroutines.Continuation { *; }
+
+-keep public class * {
+    public protected *;
 }
 
 
