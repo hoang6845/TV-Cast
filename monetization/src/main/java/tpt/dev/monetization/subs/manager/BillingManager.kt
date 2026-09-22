@@ -3,6 +3,7 @@ package tpt.dev.monetization.subs.manager
 import android.app.Activity
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -123,19 +124,32 @@ class BillingManager private constructor(
     override fun isConnected() = ::mBillingClient.isInitialized && mBillingClient.isReady
 
     override fun buyBasePlan(activity: Activity, product: IAPProduct) {
+        Log.d(
+            TAG,
+            "buyBasePlan: productId=${product.productId}, type=${product.productType}, " +
+                    "connected=${isConnected()}, productReady=${product.isProductReady()}, " +
+                    "hasDetails=${product.productDetails != null}, offerCount=${product.productDetails?.subscriptionOfferDetails?.size ?: 0}"
+        )
         if (!product.isProductReady()) {
+            Log.d(TAG, "buyBasePlan: product is not ready, abort launch")
             return
         }
 
+        val productDetails = product.productDetails!!
         val productDetailsParamsList = listOf(
             BillingFlowParams.ProductDetailsParams
                 .newBuilder()
-                .setProductDetails(product.productDetails!!)
+                .setProductDetails(productDetails)
                 .apply {
-                    if (product.productDetails!!.productType == BillingClient.ProductType.SUBS) {
+                    if (productDetails.productType == BillingClient.ProductType.SUBS) {
                         val selectedOfferToken =
-                            product.productDetails!!.biggestSubscriptionOfferDetailsToken()?.offerToken
+                            productDetails.biggestSubscriptionOfferDetailsToken()?.offerToken
                                 ?: ""
+                        Log.d(
+                            TAG,
+                            "buyBasePlan: subscription offerTokenBlank=${selectedOfferToken.isBlank()}, " +
+                                    "offerCount=${productDetails.subscriptionOfferDetails?.size ?: 0}"
+                        )
                         setOfferToken(selectedOfferToken)
                     }
                 }.build()
@@ -196,6 +210,11 @@ class BillingManager private constructor(
      * */
 
     override fun onPurchasesUpdated(result: BillingResult, purchases: MutableList<Purchase>?) {
+        Log.d(
+            TAG,
+            "onPurchasesUpdated: responseCode=${result.responseCode}, " +
+                    "debugMessage=${result.debugMessage}, purchases=${purchases?.size ?: 0}"
+        )
         when (result.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 if (!purchases.isNullOrEmpty()) {
@@ -212,6 +231,7 @@ class BillingManager private constructor(
             }
 
             BillingClient.BillingResponseCode.USER_CANCELED -> {
+                purchaseCanceled()
             }
 
             else -> {
@@ -411,6 +431,11 @@ class BillingManager private constructor(
 
     private fun launchBillingFlow(activity: Activity, params: BillingFlowParams) {
         val result = mBillingClient.launchBillingFlow(activity, params)
+        Log.d(
+            TAG,
+            "launchBillingFlow: responseCode=${result.responseCode}, " +
+                    "debugMessage=${result.debugMessage}, isOk=${result.isOk()}"
+        )
         launchBillingFlowComplete(result.isOk())
     }
 
@@ -509,6 +534,8 @@ class BillingManager private constructor(
     }
 
     companion object {
+        private const val TAG = "IAP_DEBUG"
+
         @Volatile
         private var instance: BillingManager? = null
 

@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.annotation.Keep
 import androidx.core.graphics.toColorInt
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
@@ -18,6 +19,7 @@ import hoang.dqm.codebase.base.activity.BaseFragment
 import hoang.dqm.codebase.base.activity.onBackPressed
 import hoang.dqm.codebase.base.activity.popBackStack
 import hoang.dqm.codebase.base.application.appInfo
+import hoang.dqm.codebase.firebase.AppRemoteConfig
 import hoang.dqm.codebase.utils.AppMonetization
 import hoang.dqm.codebase.utils.billing
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,9 +29,8 @@ import tpt.dev.monetization.subs.listener.BillingClientListener
 import tpt.dev.monetization.subs.listener.SubscriptionServiceListener
 import tpt.dev.monetization.subs.model.IAPProduct
 import tpt.dev.monetization.subs.model.PurchaseInfo
-
 typealias ProductWithSelection = Pair<IAPProduct, Boolean>
-
+@Keep
 private data class ProductRenderState(
     val products: List<ProductWithSelection>,
     val isTrialEnabled: Boolean,
@@ -57,6 +58,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
 
     private var selectedProduct: IAPProduct? = null
     private var displayedProducts: List<IAPProduct> = emptyList()
+    private var availableProducts: List<IAPProduct> = emptyList()
 
     private val isFromSplash by lazy {
         arguments?.getBoolean(ARG_FROM_SPLASH) ?: false
@@ -188,11 +190,14 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
         billingManager.addBillingClientListener(this)
         billingManager.addSubscriptionListener(this)
 
+        val weeklyTrialProductId = getString(hoang.dqm.codebase.R.string.billing_sub_week)
+        val weeklyProductId = getString(hoang.dqm.codebase.R.string.billing_sub_week_no_trial)
         val displayProductIds = listOf(
-            getString(hoang.dqm.codebase.R.string.billing_sub_week),
+            weeklyTrialProductId,
+            weeklyProductId,
             getString(hoang.dqm.codebase.R.string.billing_sub_year),
             getString(hoang.dqm.codebase.R.string.billing_lifetime),
-            )
+        )
 
         val iapProductsFlow = pricedProductsFlow.map { products ->
             products
@@ -206,7 +211,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
             val renderItems = if (effectiveTrialEnabled) {
                 items.filter { it.freeTrialDays > 0 }
             } else {
-                items
+                items.filter { it.productId != weeklyTrialProductId && it.freeTrialDays == 0 }
             }
             val selectedProduct = renderItems.firstOrNull { it.productId == selectedId }
 
@@ -220,7 +225,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
                     ?: if (effectiveTrialEnabled) {
                         preferredTrialProduct(renderItems)?.productId
                     } else {
-                        renderItems.firstOrNull()?.productId
+                        preferredDefaultProduct(renderItems)?.productId
                     }
             }
 
@@ -238,6 +243,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
                 }
 
                 val products = state.products
+                availableProducts = state.allProducts
                 displayedProducts = products.map { it.first }
                 selectedProduct = products.firstOrNull { it.second }?.first
                 productAdapter.setTrialEnabled(state.isTrialEnabled)
@@ -257,7 +263,7 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
     }
 
     private fun toggleTrialSelection() {
-        val hasFreeTrialProduct = displayedProducts.any { it.freeTrialDays > 0 }
+        val hasFreeTrialProduct = availableProducts.any { it.freeTrialDays > 0 }
         if (!hasFreeTrialProduct) {
             trialEnabledFlow.tryEmit(false)
             return
@@ -267,14 +273,14 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
         trialEnabledFlow.tryEmit(shouldEnableTrial)
 
         if (shouldEnableTrial && selectedProduct?.freeTrialDays == 0) {
-            preferredTrialProduct(displayedProducts)?.let {
+            preferredTrialProduct(availableProducts)?.let {
                 selectedProductIdFlow.tryEmit(it.productId)
             }
         }
     }
 
     private fun updateSelectedProductUi() {
-        val hasFreeTrialProduct = displayedProducts.any { it.freeTrialDays > 0 }
+        val hasFreeTrialProduct = availableProducts.any { it.freeTrialDays > 0 }
         val showFreeTrial = trialEnabledFlow.value &&
                 hasFreeTrialProduct &&
                 (selectedProduct?.freeTrialDays ?: 0) > 0
@@ -306,6 +312,28 @@ class IAPFragment : BaseFragment<FragmentIAPBinding, IAPViewModel>(),
         val yearlyProductId = getString(hoang.dqm.codebase.R.string.billing_sub_year)
         return products.firstOrNull { it.productId == yearlyProductId && it.freeTrialDays > 0 }
             ?: products.firstOrNull { it.freeTrialDays > 0 }
+    }
+
+    /**
+     * Defaults to the yearly subscription. Firebase Remote Config can override this with
+     * `iap_default_product`: `year`, `week`, `lifetime`, or an exact Play product ID.
+     */
+    private fun preferredDefaultProduct(products: List<IAPProduct>): IAPProduct? {
+        val configuredValue = AppRemoteConfig
+            .getStringValue(AppRemoteConfig.IAP_DEFAULT_PRODUCT, "year")
+            .trim()
+            .lowercase()
+        val productId = when (configuredValue) {
+            "year", "yearly" -> getString(hoang.dqm.codebase.R.string.billing_sub_year)
+            "week", "weekly" -> getString(hoang.dqm.codebase.R.string.billing_sub_week_no_trial)
+            "lifetime" -> getString(hoang.dqm.codebase.R.string.billing_lifetime)
+            else -> configuredValue
+        }
+
+        val yearlyProductId = getString(hoang.dqm.codebase.R.string.billing_sub_year)
+        return products.firstOrNull { it.productId.equals(productId, ignoreCase = true) }
+            ?: products.firstOrNull { it.productId == yearlyProductId }
+            ?: products.firstOrNull()
     }
 
     private fun handleClose() {

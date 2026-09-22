@@ -1,5 +1,8 @@
 package com.tvchromecast.screenmirroringplus.ui.iap
 
+import android.text.TextUtils
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.ProductDetails
 import com.tvchromecast.screenmirroringplus.R
@@ -19,6 +22,11 @@ class IAPProductAdapter() :
 
     private var clickListener: ((item: IAPProduct, position: Int) -> Unit)? = null
     private var isTrialEnabled: Boolean = false
+
+    // Do not rely on generic-signature reflection here. R8 may strip or rewrite it
+    // in minified builds, while this binding is known statically.
+    override fun inflateBinding(parent: ViewGroup): ItemIapProductBinding =
+        ItemIapProductBinding.inflate(LayoutInflater.from(parent.context), parent, false)
 
     override fun bindData(
         binding: ItemIapProductBinding,
@@ -43,6 +51,9 @@ class IAPProductAdapter() :
         } else {
             displayPrice
         }
+        binding.textPrice.ellipsize =
+            if (showTrial) TextUtils.TruncateAt.MARQUEE else TextUtils.TruncateAt.END
+        binding.textPrice.isSelected = showTrial
         binding.textPriceDes.text = if (showTrial) {
             context.getString(R.string.text_iap_then_price, displayPrice)
         } else {

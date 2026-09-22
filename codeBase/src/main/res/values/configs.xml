@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="billing_sub_week" translatable="false">weekly_trial_premium</string>
+    <string name="billing_sub_week_no_trial" translatable="false">weekly_premium</string>
     <string name="billing_sub_year" translatable="false">yearly_premium</string>
     <string name="billing_lifetime" translatable="false">lifetime_premium</string>
 

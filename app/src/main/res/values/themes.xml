@@ -10,6 +10,7 @@
         <item name="colorOnPrimary">@color/color_on_primary</item>
         <item name="colorSurface">@color/white</item>
         <item name="colorOnSurface">@color/black</item>
+        <item name="android:windowBackground">@color/black</item>
 
         <!-- Custom attrs -->
         <item name="myColorPrimary">@color/color_primary_045DCC</item>

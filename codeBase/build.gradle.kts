@@ -78,6 +78,8 @@ dependencies {
     api(libs.scalars)
     //hilt
     api(libs.hilt.android)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
     implementation(libs.firebase.config)
     kapt(libs.hilt.compiler)
 

@@ -1,6 +1,9 @@
 package com.tvchromecast.screenmirroringplus.ui.iap
 
+import android.text.TextUtils
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.ProductDetails
 import com.tvchromecast.screenmirroringplus.R
@@ -20,6 +23,10 @@ class IAPBottomSheetProductAdapter :
 
     private var clickListener: ((item: IAPProduct, position: Int) -> Unit)? = null
 
+    // Avoid ViewBinding generic reflection, which is not reliable after R8 minification.
+    override fun inflateBinding(parent: ViewGroup): ItemIapBottomSheetProductBinding =
+        ItemIapBottomSheetProductBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+
     override fun bindData(
         binding: ItemIapBottomSheetProductBinding,
         item: ProductWithSelection,
@@ -27,10 +34,16 @@ class IAPBottomSheetProductAdapter :
     ) {
         val (product, isSelected) = item
         val period = product.periods()
+        val showTrial = product.freeTrialDays > 0
 
         binding.tvNameProduct.text = getNamePeriod(product)
-        binding.tvDescription.text = getDescription(product)
+        binding.tvDescription.text = getDescription(product, showTrial)
+        binding.tvDescription.ellipsize =
+            if (showTrial) TextUtils.TruncateAt.MARQUEE else TextUtils.TruncateAt.END
+        binding.tvDescription.isSelected = showTrial
         binding.textPrice.text = getDisplayPrice(getRegularPrice(product), period)
+        binding.textPrice.ellipsize = TextUtils.TruncateAt.END
+        binding.textPrice.isSelected = false
         binding.textPriceDes.text = getWeeklyPrice(product)
         binding.textPriceDes.visibility =
             if (period == IAPProductPeriods.Yearly) View.VISIBLE else View.GONE
@@ -96,8 +109,8 @@ class IAPBottomSheetProductAdapter :
         else -> product.productDetails?.name ?: product.productId
     }
 
-    private fun getDescription(product: IAPProduct): String {
-        if (product.freeTrialDays > 0) return getTrialText(product)
+    private fun getDescription(product: IAPProduct, showTrial: Boolean): String {
+        if (showTrial) return getTrialText(product)
         if (product.isOneTime) return context.getString(R.string.text_iap_one_time)
 
         return when (product.periods()) {

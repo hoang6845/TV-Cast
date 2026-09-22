@@ -229,7 +229,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding, HomeViewModel>() {
 
     private fun updatePremiumIcon() {
         if (_binding == null || view == null) return
-        binding.icPremium.isVisible = !AppMonetization.premium.isSubscribed()
+        binding.icPremium.isVisible = true
     }
 
     override fun onStop() {

@@ -64,19 +64,32 @@
             <TextView
                 android:id="@+id/btn_save"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/_46sdp"
+                android:layout_height="0dp"
                 app:layout_constraintBottom_toTopOf="@id/no_payment_row"
-                android:layout_marginHorizontal="@dimen/_28sdp"
+                android:layout_marginHorizontal="@dimen/_16sdp"
                 android:layout_marginBottom="@dimen/_12sdp"
                 android:background="@drawable/bg_btn_iap"
                 android:fontFamily="@font/inter"
+                app:layout_constraintDimensionRatio="297:65"
                 android:gravity="center"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 android:text="@string/text_iap_try_for_free"
-                android:textColor="#101010"
-                android:textSize="@dimen/_13ssp"
-                android:textStyle="bold" />
+                android:textColor="@color/white"
+                android:textSize="@dimen/_17ssp"
+               />
+
+            <com.tvchromecast.screenmirroringplus.ui.intro.IntroButtonSparkleView
+                android:id="@+id/btn_save_sparkle"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:clickable="false"
+                android:focusable="false"
+                android:importantForAccessibility="no"
+                app:layout_constraintBottom_toBottomOf="@id/btn_save"
+                app:layout_constraintEnd_toEndOf="@id/btn_save"
+                app:layout_constraintStart_toStartOf="@id/btn_save"
+                app:layout_constraintTop_toTopOf="@id/btn_save" />
 
             <LinearLayout
                 android:id="@+id/no_payment_row"

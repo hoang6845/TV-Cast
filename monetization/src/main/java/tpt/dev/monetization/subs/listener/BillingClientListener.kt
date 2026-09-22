@@ -8,4 +8,6 @@ interface BillingClientListener {
     fun onQueryProductDetailComplete(products: List<IAPProduct>)
 
     fun onLaunchPurchaseComplete(isSuccess: Boolean)
+
+    fun onPurchaseCanceled() = Unit
 }

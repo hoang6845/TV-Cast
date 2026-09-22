@@ -19,7 +19,10 @@ import androidx.viewbinding.ViewBinding
 import com.google.android.gms.ads.nativead.NativeAd
 import hoang.dqm.codebase.base.application.appInfo
 import hoang.dqm.codebase.base.viewmodel.BaseViewModel
+import hoang.dqm.codebase.firebase.FirebaseAnalyticsTracker
+import hoang.dqm.codebase.service.session.isFirstScene
 import hoang.dqm.codebase.service.session.saveFirst
+import hoang.dqm.codebase.service.session.setFirstScene
 import hoang.dqm.codebase.utils.AppMonetization
 import hoang.dqm.codebase.utils.BindingReflex
 import hoang.dqm.codebase.utils.ads
@@ -35,6 +38,8 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
     private var lastClickTime = 0L
     private var lastTimeLoadBannerNativeAd = 0L
     private var nativeAd: NativeAd? = null
+    private var screenResumeAtMs = 0L
+    private var isTrackingScreenTime = false
 
     private val interval by lazy { 500L }
     protected var _binding: VB? = null
@@ -82,6 +87,8 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
     }
 
     protected var activity: Activity? = null
+    protected open val analyticsScreenName: String
+        get() = this::class.java.simpleName
 
     abstract fun initView()
     abstract fun initListener()
@@ -98,6 +105,7 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
     }
 
     override fun onPause() {
+        stopTrackingScreenTime()
         super<Fragment>.onPause()
     }
 
@@ -118,7 +126,6 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
         super.onViewCreated(view, savedInstanceState)
         Log.d("SCREEN_APP", this::class.java.name)
         try {
-//            trackingScreen()
             initView()
             initListener()
             viewModel.isLoading.observe { showLoading(it) }
@@ -137,6 +144,7 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
 
     override fun onResume() {
         super<Fragment>.onResume()
+        trackingScreen()
     }
 
     open fun idFragmentContainer(): Int = 0
@@ -182,8 +190,40 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
     }
 
     override fun onDestroyView() {
+        stopTrackingScreenTime()
         showLoading(false)
         super.onDestroyView()
+    }
+
+    private fun trackingScreen() {
+        if (isFirstScene(clazz = this)) {
+            setFirstScene(clazz = this, isFirst = false)
+        }
+
+        val screenClass = this::class.java.simpleName
+        FirebaseAnalyticsTracker.logScreenView(
+            context = requireContext(),
+            screenName = analyticsScreenName,
+            screenClass = screenClass,
+            screenType = SCREEN_TYPE_FRAGMENT
+        )
+        screenResumeAtMs = System.currentTimeMillis()
+        isTrackingScreenTime = true
+    }
+
+    private fun stopTrackingScreenTime() {
+        if (!isTrackingScreenTime || screenResumeAtMs <= 0L || context == null) return
+
+        val durationMs = System.currentTimeMillis() - screenResumeAtMs
+        FirebaseAnalyticsTracker.logScreenTime(
+            context = requireContext(),
+            screenName = analyticsScreenName,
+            screenClass = this::class.java.simpleName,
+            screenType = SCREEN_TYPE_FRAGMENT,
+            durationMs = durationMs
+        )
+        screenResumeAtMs = 0L
+        isTrackingScreenTime = false
     }
 
     fun showInterstitialAd(onAdsClosed: () -> Unit) {
@@ -378,6 +418,10 @@ abstract class BaseFragment<VB : ViewBinding, VM : BaseViewModel> : Fragment(),
 //        // Fallback: Load mới nếu pool rỗng
 //        Log.d("BaseFragment", "Preloaded ad not available, loading new ad: $adKey")
 //        loadSingleNative(viewNativeAd, adId, updateTimeout)
+    }
+
+    private companion object {
+        const val SCREEN_TYPE_FRAGMENT = "fragment"
     }
 }
 

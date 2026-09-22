@@ -65,6 +65,10 @@ class MainApplication : BaseApplication(), Configuration.Provider {
                 ),
                 IAPProduct(
                     productType = IAPProductType.Subscription,
+                    productId = getString(hoang.dqm.codebase.R.string.billing_sub_week_no_trial)
+                ),
+                IAPProduct(
+                    productType = IAPProductType.Subscription,
                     productId = getString(hoang.dqm.codebase.R.string.billing_sub_year)
                 ),
                 IAPProduct(

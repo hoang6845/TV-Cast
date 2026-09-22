@@ -242,7 +242,7 @@
             <TextView
                 android:id="@+id/btn_save"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/_46sdp"
+                android:layout_height="@dimen/_60sdp"
                 android:layout_marginTop="@dimen/_16sdp"
                 android:background="@drawable/bg_iap_cta"
                 android:fontFamily="@font/inter"

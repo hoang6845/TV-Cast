@@ -1,7 +1,8 @@
 package tpt.dev.monetization.subs.model
 
+import androidx.annotation.Keep
 import com.android.billingclient.api.AccountIdentifiers
-
+@Keep
 data class PurchaseInfo(
     val purchaseState: Int,
     val developerPayload: String,

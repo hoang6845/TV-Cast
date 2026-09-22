@@ -133,6 +133,14 @@ abstract class IBillingManager internal constructor() {
         }
     }
 
+    internal fun purchaseCanceled() {
+        findUiHandler().post {
+            billingClientListeners.forEach { billingClientListener ->
+                billingClientListener.onPurchaseCanceled()
+            }
+        }
+    }
+
     internal fun close() {
         billingClientListeners.clear()
         purchaseServiceListeners.clear()

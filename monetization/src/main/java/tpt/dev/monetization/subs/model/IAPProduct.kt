@@ -2,6 +2,7 @@ package tpt.dev.monetization.subs.model
 
 import android.os.Build
 import androidx.annotation.IntDef
+import androidx.annotation.Keep
 import androidx.annotation.RequiresApi
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.ProductDetails
@@ -9,18 +10,19 @@ import tpt.dev.monetization.subs.extensions.biggestPrice
 import tpt.dev.monetization.subs.extensions.biggestSubscriptionOfferDetailsToken
 import java.time.Period
 import java.time.format.DateTimeParseException
-
+@Keep
 enum class IAPProductType {
     InApp,
     Subscription
 }
 
+@Keep
 enum class IAPProductPeriods {
     Weekly,
     Monthly,
     Yearly
 }
-
+@Keep
 data class IAPProduct(
     val productType: IAPProductType,
     val productId: String,

@@ -2,8 +2,10 @@ package com.tvchromecast.screenmirroringplus.ui.iap
 
 import android.content.Intent
 import android.graphics.Color
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
 import android.widget.Toast
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
@@ -49,11 +51,15 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
     private val pricedProductsFlow by lazy {
         MutableStateFlow(billingManager.getPricedProducts())
     }
+    private val isBillingClientConnectedFlow by lazy {
+        MutableStateFlow(billingManager.isConnected())
+    }
 
     private var displayedProducts: List<IAPProduct> = emptyList()
     private var autoBottomSheetJob: Job? = null
     private var iapBottomSheet: IAPBottomSheetFragment? = null
     private var hasShownBottomSheet = false
+    private var isLaunchingIntroTrialPurchase = false
 
     override fun inflateBinding(
         inflater: android.view.LayoutInflater,
@@ -63,19 +69,17 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
     }
 
     override fun initView() {
+        Log.d(TAG, "initView: hide intro close button")
         adjustInsetsForBottomNavigation(binding.btnClose)
         adjustInsetsForHiddenNavigationBottomMargin(binding.bottom)
-        binding.btnClose.visibility = View.INVISIBLE
-        binding.btnClose.postDelayed({
-            if (isAdded && !isDetached && view != null) {
-                binding.btnClose.visibility = View.VISIBLE
-            }
-        }, CLOSE_BUTTON_DELAY_MS)
+        binding.btnClose.visibility = View.GONE
+        startIntroButtonEffects()
+        updateIntroActionUi()
     }
 
     override fun initListener() {
         binding.btnClose.setOnClickListener { goHome() }
-        binding.btnSave.setOnClickListener { showPlanBottomSheet() }
+        binding.btnSave.setOnClickListener { launchWeeklyTrialPurchase() }
         binding.textTerm.setOnClickListener {
             Common.openWebView(requireContext(), appInfo().term)
         }
@@ -108,19 +112,40 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
         super.onPause()
     }
 
-    override fun onConnected(isConnected: Boolean, responseCode: Int) = Unit
+    override fun onConnected(isConnected: Boolean, responseCode: Int) {
+        Log.d(
+            TAG,
+            "onConnected: isConnected=$isConnected, responseCode=$responseCode, products=${displayedProducts.size}"
+        )
+        isBillingClientConnectedFlow.tryEmit(isConnected)
+    }
 
     override fun onQueryProductDetailComplete(products: List<IAPProduct>) {
+        Log.d(TAG, "onQueryProductDetailComplete: products=${products.toDebugString()}")
         pricedProductsFlow.tryEmit(products)
     }
 
     override fun onLaunchPurchaseComplete(isSuccess: Boolean) {
-        if (!isSuccess && isAdded) {
-            Toast.makeText(
-                requireContext(),
-                R.string.text_iap_billing_error,
-                Toast.LENGTH_SHORT
-            ).show()
+        Log.d(
+            TAG,
+            "onLaunchPurchaseComplete: isSuccess=$isSuccess, isLaunchingIntroTrialPurchase=$isLaunchingIntroTrialPurchase"
+        )
+        if (isSuccess) return
+
+        if (isLaunchingIntroTrialPurchase) {
+            isLaunchingIntroTrialPurchase = false
+            showPlanBottomSheet("launch_purchase_failed")
+        } else if (isAdded) {
+            Toast.makeText(requireContext(), R.string.text_iap_billing_error, Toast.LENGTH_SHORT)
+                .show()
+        }
+    }
+
+    override fun onPurchaseCanceled() {
+        Log.d(TAG, "onPurchaseCanceled: isLaunchingIntroTrialPurchase=$isLaunchingIntroTrialPurchase")
+        if (isLaunchingIntroTrialPurchase) {
+            isLaunchingIntroTrialPurchase = false
+            showPlanBottomSheet("purchase_canceled")
         }
     }
 
@@ -163,25 +188,95 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
             .asLiveData()
             .observe(viewLifecycleOwner) { products ->
                 displayedProducts = products
+                Log.d(TAG, "displayedProducts updated: ${products.toDebugString()}")
                 binding.introTrialSubtitle.text = getIntroTrialSubtitle()
+                updateIntroActionUi()
+            }
+
+        isBillingClientConnectedFlow
+            .asLiveData()
+            .observe(viewLifecycleOwner) {
+                updateIntroActionUi()
             }
     }
 
     private fun schedulePlanBottomSheet() {
+        Log.d(TAG, "schedulePlanBottomSheet: delay=$AUTO_BOTTOM_SHEET_DELAY_MS")
         autoBottomSheetJob?.cancel()
         autoBottomSheetJob = viewLifecycleOwner.lifecycleScope.launch {
             delay(AUTO_BOTTOM_SHEET_DELAY_MS)
-            showPlanBottomSheet()
+            showPlanBottomSheet("auto_delay")
         }
     }
 
-    private fun showPlanBottomSheet() {
+    private fun launchWeeklyTrialPurchase() {
+        val product = preferredTrialProduct()
+        Log.d(
+            TAG,
+            "launchWeeklyTrialPurchase: connected=${isBillingClientConnectedFlow.value}, " +
+                    "selected=${product.toDebugString()}, displayed=${displayedProducts.toDebugString()}"
+        )
+
+        when {
+            !isAdded || view == null -> {
+                Log.d(TAG, "launchWeeklyTrialPurchase: abort, fragment not attached")
+                return
+            }
+
+            !isBillingClientConnectedFlow.value -> {
+                Log.d(TAG, "launchWeeklyTrialPurchase: abort, billing not connected")
+                Toast.makeText(
+                    requireContext(),
+                    R.string.text_iap_waiting_billing,
+                    Toast.LENGTH_SHORT
+                ).show()
+                return
+            }
+
+            product == null -> {
+                Log.d(TAG, "launchWeeklyTrialPurchase: abort, weekly trial product is null")
+                Toast.makeText(
+                    requireContext(),
+                    R.string.text_iap_no_product_selected,
+                    Toast.LENGTH_SHORT
+                ).show()
+                return
+            }
+        }
+
+        isLaunchingIntroTrialPurchase = true
+        updateIntroActionUi()
+        Log.d(TAG, "launchWeeklyTrialPurchase: buyBasePlan productId=${product.productId}")
+        billingManager.buyBasePlan(requireActivity(), product)
+    }
+
+    private fun updateIntroActionUi() {
+        val isEnabled = isBillingClientConnectedFlow.value &&
+                preferredTrialProduct() != null &&
+                !isLaunchingIntroTrialPurchase
+
+        Log.d(
+            TAG,
+            "updateIntroActionUi: isEnabled=$isEnabled, connected=${isBillingClientConnectedFlow.value}, " +
+                    "selected=${preferredTrialProduct().toDebugString()}, isLaunching=$isLaunchingIntroTrialPurchase"
+        )
+        binding.btnSave.isEnabled = isEnabled
+        binding.btnSave.alpha = if (isEnabled) 1f else 0.75f
+    }
+
+    private fun showPlanBottomSheet(reason: String) {
+        Log.d(
+            TAG,
+            "showPlanBottomSheet: reason=$reason, hasShown=$hasShownBottomSheet, " +
+                    "isAdded=$isAdded, hasView=${view != null}, stateSaved=${childFragmentManager.isStateSaved}"
+        )
         if (hasShownBottomSheet || !isAdded || view == null) return
         if (childFragmentManager.isStateSaved) return
 
         val existingSheet =
             childFragmentManager.findFragmentByTag(IAP_BOTTOM_SHEET_TAG) as? IAPBottomSheetFragment
         if (existingSheet != null) {
+            Log.d(TAG, "showPlanBottomSheet: reuse existing sheet")
             iapBottomSheet = existingSheet
             bindBottomSheetCallbacks(existingSheet)
             hasShownBottomSheet = true
@@ -190,11 +285,13 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
 
         autoBottomSheetJob?.cancel()
         hasShownBottomSheet = true
+        Log.d(TAG, "showPlanBottomSheet: create and show new sheet")
         iapBottomSheet = IAPBottomSheetFragment().also(::bindBottomSheetCallbacks)
 
         runCatching {
             iapBottomSheet?.show(childFragmentManager, IAP_BOTTOM_SHEET_TAG)
         }.onFailure {
+            Log.d(TAG, "showPlanBottomSheet: failed to show sheet", it)
             hasShownBottomSheet = false
             iapBottomSheet = null
         }
@@ -202,23 +299,28 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
 
     private fun bindBottomSheetCallbacks(sheet: IAPBottomSheetFragment) {
         sheet.onSheetDismissed = {
+            Log.d(TAG, "bottomSheet onSheetDismissed")
             if (iapBottomSheet === sheet) {
                 iapBottomSheet = null
             }
             hasShownBottomSheet = false
         }
         sheet.onDismissToHome = {
-//            goHome()
+            Log.d(TAG, "bottomSheet onDismissToHome")
+            goHome()
         }
     }
 
     private fun handlePurchaseCompleted() {
+        Log.d(TAG, "handlePurchaseCompleted")
+        isLaunchingIntroTrialPurchase = false
         iapBottomSheet?.dismissWithoutNavigation()
         iapBottomSheet = null
         goHome()
     }
 
     private fun goHome() {
+        Log.d(TAG, "goHome")
         autoBottomSheetJob?.cancel()
         if (!isAdded || view == null) return
 
@@ -243,6 +345,14 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
             .show(WindowInsetsCompat.Type.navigationBars())
     }
 
+    private fun startIntroButtonEffects() {
+        binding.btnSave.clearAnimation()
+        binding.btnSave.startAnimation(AnimationUtils.loadAnimation(requireContext(), R.anim.intro_button_pulse))
+        binding.btnSaveSparkle.clearAnimation()
+        binding.btnSaveSparkle.startAnimation(AnimationUtils.loadAnimation(requireContext(), R.anim.intro_button_pulse))
+        binding.btnSaveSparkle.bringToFront()
+    }
+
     private fun adjustInsetsForHiddenNavigationBottomMargin(viewBottom: View) {
         val initialBottomMargin = (viewBottom.layoutParams as? ViewGroup.MarginLayoutParams)
             ?.bottomMargin
@@ -262,8 +372,20 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
 
     private fun preferredTrialProduct(): IAPProduct? {
         val weeklyProductId = getString(hoang.dqm.codebase.R.string.billing_sub_week)
-        return displayedProducts.firstOrNull { it.productId == weeklyProductId && it.freeTrialDays > 0 }
+        return displayedProducts.firstOrNull { it.productId == weeklyProductId }
             ?: displayedProducts.firstOrNull { it.freeTrialDays > 0 }
+    }
+
+    private fun IAPProduct?.toDebugString(): String {
+        if (this == null) return "null"
+        val details = productDetails
+        val offerCount = details?.subscriptionOfferDetails?.size ?: 0
+        return "id=$productId,type=$productType,hasDetails=${details != null}," +
+                "offers=$offerCount,hasTrial=$hasFreeTrial,trialDays=$freeTrialDays"
+    }
+
+    private fun List<IAPProduct>.toDebugString(): String {
+        return joinToString(prefix = "[", postfix = "]") { it.toDebugString() }
     }
 
     private fun getIntroTrialSubtitle(): String {
@@ -308,7 +430,7 @@ class IAPIntroFragment : BaseFragment<FragmentIapIntroBinding, IAPViewModel>(),
     }
 
     companion object {
-        private const val CLOSE_BUTTON_DELAY_MS = 3000L
+        private const val TAG = "IAP_INTRO_DEBUG"
         private const val AUTO_BOTTOM_SHEET_DELAY_MS = 30000L
         private const val IAP_BOTTOM_SHEET_TAG = "IAPBottomSheetFragment"
     }

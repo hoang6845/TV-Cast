@@ -11,6 +11,7 @@ import android.text.TextPaint
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
 import android.view.View
+import android.view.animation.AnimationUtils
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -155,6 +156,7 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
         } else {
             getString(R.string.text_continue)
         }
+        startIntroButtonEffects(button, view.findViewById(R.id.btn_save_sparkle))
         view.findViewById<ImageView>(R.id.img_intro).setImageResource(item.imageRes)
         bindIntroFooter(view, position)
         button.setOnClickListener {
@@ -257,9 +259,11 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
 //                append(getString(R.string.text_trial))
 //            }
 //        }
-        view.findViewById<TextView>(R.id.btn_save).text = getString(R.string.text_next)
+        val button = view.findViewById<TextView>(R.id.btn_save)
+        button.text = getString(R.string.text_next)
+        startIntroButtonEffects(button, view.findViewById(R.id.btn_save_sparkle))
         view.findViewById<ImageView>(R.id.img_intro).setImageResource(item.imageRes)
-        view.findViewById<TextView>(R.id.btn_save).setOnClickListener {
+        button.setOnClickListener {
             handleNext(position)
         }
 
@@ -280,6 +284,16 @@ class IntroFragment : BaseFragment<FragmentIntroBinding, IntroViewModel>() {
 //                )
 //            }
 //        }
+    }
+
+    private fun startIntroButtonEffects(button: View, sparkleView: View?) {
+        button.clearAnimation()
+        button.startAnimation(AnimationUtils.loadAnimation(requireContext(), R.anim.intro_button_pulse))
+        sparkleView?.let {
+            it.clearAnimation()
+            it.startAnimation(AnimationUtils.loadAnimation(requireContext(), R.anim.intro_button_pulse))
+            it.bringToFront()
+        }
     }
 
     private fun bindIntroType3(view: View, item: SlideItem, position: Int) {

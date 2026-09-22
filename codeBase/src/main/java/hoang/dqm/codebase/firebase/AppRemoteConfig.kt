@@ -26,6 +26,10 @@ object AppRemoteConfig {
     const val IS_SHOW_ADS_APP = "is_show_ads_app"
     const val IS_SHOW_INTER_SPLASH = "is_show_inter_splash"
     const val CATEGORY_IPTV = "category_iptv"
+    /**
+     * IAP default product. Supported values: `year`, `week`, `lifetime`, or a Play product ID.
+     */
+    const val IAP_DEFAULT_PRODUCT = "iap_default_product"
 
     fun fetchConfig( callback: Runnable){
         Log.d("AppRemoteConfig", "fetchConfig called, passing callback to baseConfig")

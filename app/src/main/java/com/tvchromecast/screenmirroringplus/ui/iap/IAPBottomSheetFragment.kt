@@ -20,6 +20,7 @@ import com.tvchromecast.screenmirroringplus.databinding.FragmentIapBottomSheetBi
 import com.tvchromecast.screenmirroringplus.utils.Common
 import hoang.dqm.codebase.base.activity.BaseBottomSheetFragment
 import hoang.dqm.codebase.base.application.appInfo
+import hoang.dqm.codebase.firebase.AppRemoteConfig
 import hoang.dqm.codebase.utils.AppMonetization
 import hoang.dqm.codebase.utils.billing
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,7 +99,7 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
     override fun onStart() {
         super.onStart()
         configureSheetWindow()
-//        addDelayedCloseButton()
+        addDelayedCloseButton()
     }
 
     override fun onDismiss(dialog: DialogInterface) {
@@ -116,7 +117,7 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        isCancelable = true
+        isCancelable = false
         setStyle(STYLE_NORMAL, R.style.IAPBottomSheet)
     }
 
@@ -143,8 +144,7 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
         combine(selectedProductIdFlow, iapProductsFlow) { selectedId, items ->
             val resolvedId = selectedId
                 ?.takeIf { id -> items.any { it.productId == id } }
-                ?: preferredTrialProduct(items)?.productId
-                ?: items.firstOrNull()?.productId
+                ?: preferredDefaultProduct(items)?.productId
 
             items.map { it to (it.productId == resolvedId) }
         }
@@ -164,10 +164,26 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
             }
     }
 
-    private fun preferredTrialProduct(products: List<IAPProduct>): IAPProduct? {
-        val weeklyProductId = getString(hoang.dqm.codebase.R.string.billing_sub_week)
-        return products.firstOrNull { it.productId == weeklyProductId && it.freeTrialDays > 0 }
-            ?: products.firstOrNull { it.freeTrialDays > 0 }
+    /**
+     * Uses the same `iap_default_product` Remote Config key as [IAPFragment].
+     * This sheet displays the trial weekly SKU, so `week` resolves to that SKU.
+     */
+    private fun preferredDefaultProduct(products: List<IAPProduct>): IAPProduct? {
+        val configuredValue = AppRemoteConfig
+            .getStringValue(AppRemoteConfig.IAP_DEFAULT_PRODUCT, "year")
+            .trim()
+            .lowercase()
+        val productId = when (configuredValue) {
+            "year", "yearly" -> getString(hoang.dqm.codebase.R.string.billing_sub_year)
+            "week", "weekly" -> getString(hoang.dqm.codebase.R.string.billing_sub_week)
+            "lifetime" -> getString(hoang.dqm.codebase.R.string.billing_lifetime)
+            else -> configuredValue
+        }
+
+        val yearlyProductId = getString(hoang.dqm.codebase.R.string.billing_sub_year)
+        return products.firstOrNull { it.productId.equals(productId, ignoreCase = true) }
+            ?: products.firstOrNull { it.productId == yearlyProductId }
+            ?: products.firstOrNull()
     }
 
     private fun launchSelectedPurchase() {
@@ -214,8 +230,8 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
     private fun configureSheetWindow() {
         val dialog = dialog as? BottomSheetDialog ?: return
 
-        dialog.setCanceledOnTouchOutside(true)
-        dialog.setCancelable(true)
+        dialog.setCanceledOnTouchOutside(false)
+        dialog.setCancelable(false)
 
         dialog.window?.apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
@@ -278,7 +294,7 @@ class IAPBottomSheetFragment : BaseBottomSheetFragment<FragmentIapBottomSheetBin
             setOnClickListener { dismiss() }
         }
 
-        val sizePx = (36 * resources.displayMetrics.density).toInt()
+        val sizePx = (30 * resources.displayMetrics.density).toInt()
         val params = androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams(
             sizePx,
             sizePx
